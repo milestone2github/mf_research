@@ -1,0 +1,541 @@
+/* General App Styling */
+/* General App Styling */
+*{
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: "Roboto", sans-serif;
+}
+.App {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  line-height: 1.6;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.detail-headers th{
+  padding: 0rem 1rem;
+}
+.App-header {
+  background-color: #1a202c; /* Dark, professional header background */
+  color: white;
+  padding: 0rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-content h1{
+  color: #5A51DF;
+}
+/* Sidebar Styling */
+.app-sidebar {
+  background-color: #2d3748; /* Dark sidebar for contrast */
+  color: #cbd5e0; /* Light text color for readability */
+  width: 250px;
+  padding: 1rem;
+}
+.loader {
+  width: 50px;
+  padding: 8px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #25b09b;
+  --_m: 
+    conic-gradient(#0000 10%,#000),
+    linear-gradient(#000 0 0) content-box;
+  -webkit-mask: var(--_m);
+          mask: var(--_m);
+  -webkit-mask-composite: source-out;
+          mask-composite: subtract;
+  animation: l3 1s infinite linear;
+}
+@keyframes l3 {to{transform: rotate(1turn)}}
+.app-sidebar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-sidebar ul li a {
+  display: block;
+  padding: 10px 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+
+.app-sidebar ul li a.active {
+  background-color: #162133; /* Highlight for hover and active state */
+  color: white;
+  border-radius: 0.25rem;
+
+}
+.app-sidebar ul li a:hover{
+   background-color: #212b3b;
+   border-radius: 0.25rem;
+}
+/* Content Styling */
+.app-body {
+  display: flex;
+  flex-grow: 1;
+}
+
+.app-content {
+  flex-grow: 1;
+  padding: 20px;
+  /* background-color: #edf2f7;  */
+    background-color: #EAFFFD; 
+  overflow: auto;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Adjust content spacing */
+  width: 100%; /* Use full available width */
+  padding-block: 1rem;
+}
+
+.mNivesh-logo {
+  max-width: 40%;
+  max-height: 100px;
+  width: auto;
+  height: auto;
+  cursor: pointer; /* Indicates the logo is clickable */
+  transition: transform 0.3s ease; /* Smooth scaling animation */
+  border-radius: 0.25rem;
+}
+
+.mNivesh-logo:hover {
+  transform: scale(1.05); /* Slightly enlarge logo on hover */
+}
+
+/* Additions for User Info and Logout Button */
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.user-name {
+  color: #cbd5e0;
+  margin-right: 15px;
+}
+
+.logout-button {
+  background-color: #4a5568;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  border-radius: 0.25rem;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.logout-button:hover {
+  background-color: #66738f;
+}
+
+/*Home Page*/
+.responsive-iframe {
+  width: 100%;
+  height: 80vh; /* Adjust the height as needed */
+  border: 0; /* Remove border */
+}
+
+/*Back Button styling*/
+.back-button {
+  background-color: #3182ce; /* A pleasant blue tone */
+  color: white; /* White text color */
+  padding: 10px; /* Padding on all sides reduced */
+  margin-right: 10px; /* Add margin to create space between button and container */
+  border: none; /* Remove default border */
+  border-radius: 5px; /* Slightly rounded corners */
+  font-size: 16px; /* Font size that is not too big or small */
+  cursor: pointer; /* Change cursor to pointer on hover */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  transition: background-color 0.3s, box-shadow 0.3s; /* Smooth transition for hover effects */
+}
+
+.back-button:hover {
+  background-color: #2268a2; /* Darker shade of blue on hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Larger shadow for a "lifted" effect */
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px; /* Add margin at the bottom */
+}
+.page-title {
+  font-size: 24px;
+  margin-top: 20px;
+  text-align: center; /* Center the text */
+  flex-grow: 1; /* Allow the title to take up remaining space */
+}
+
+/* Container for the portfolio analysis */
+.portfolio-analysis {
+  background-color: #f4f4f4; /* Neutral background */
+  color: #333; /* Dark text for readability */
+  padding: 20px;
+  max-width: 100%;
+  margin: auto;
+}
+
+.report-heading {
+  text-align: center;
+  color: #005a8d; /* Primary color for headings */
+  margin-bottom: 20px;
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  padding: 0 10px; /* Add padding to ensure buttons don't touch the screen edge */
+}
+
+.report-button {
+  background-color: #007bff; /* Bright color for buttons */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.3s, background-color 0.3s, box-shadow 0.3s; /* Smooth transitions for transform, background-color, and box-shadow */
+  flex-grow: 1; /* Allow buttons to grow and fill the space */
+  margin: 5px; /* Add some margin around buttons */
+  max-width: 200px; /* Max width for buttons to ensure they don't get too large */
+}
+
+.report-button:hover {
+  background-color: #0056b3; /* Darker shade on hover */
+  transform: translateY(-5px); /* Slightly raise the button on hover */
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Add shadow for 3D effect on hover */
+}
+
+.image-container {
+  text-align: center; /* Center the image horizontally */
+  margin: 20px 0; /* Add some vertical space around the image */
+}
+
+.portfolio-image {
+  width: 100%; /* Make the image responsive */
+  max-height: 50vh; /* Set maximum height to 50% of the viewport height */
+  object-fit: contain; /* Ensure the image is scaled properly */
+}
+
+/* Portfolio Analysis - Existing Client*/
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0%;
+}
+
+.title {
+  font-size: 24px;
+  margin-top: 20px;
+}
+
+.centered-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.radio-buttons,
+.dropdown-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px; /* Add margin at the bottom */
+}
+
+.radio-buttons label,
+.dropdown-container label {
+  margin-right: 10px; /* Add spacing between labels */
+}
+
+.radio-buttons input[type="radio"] {
+  width: 15px; /* Increased width for the radio button */
+  height: 15px; /* Increased height for the radio button */
+  border-radius: 50%; /* Make the radio button round */
+}
+
+.search-input {
+  width: 200px; /* Adjust the width of the dropdown as needed */
+  height: 30px; /* Adjust the height of the dropdown as needed */
+}
+
+.report-container {
+  width: 90%;
+  min-height: 125%;
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-top: 20px;
+  position: relative; /* Set position to relative for absolute positioning */
+}
+
+.pdf-div {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px;
+}
+
+.generate-pdf-icon {
+  color: #3182ce;
+  cursor: pointer;
+  position: absolute;
+  top: 15px; /* Adjust this value to position the icon as desired */
+  left: 550px; /* Adjust this value to position the icon as desired */
+  width: 100px; /* Set width of the icon */
+  height: 100px; /* Set height of the icon */
+}
+
+/*CAS Import Page*/
+.cas-import-container {
+  font-family: "Segoe UI", "Roboto", sans-serif;
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.cas-import-content {
+  background: linear-gradient(to right, #6a82fb, #fc5c7d);
+  border-radius: 10px;
+  padding: 25px;
+  color: white;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  margin-bottom: 30px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%; /* Ensure section uses full container width */
+  max-width: 400px; /* Maximum width for better aesthetics */
+  margin: auto; /* Center align the section */
+}
+
+.section:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.input-field,
+.input-file {
+  width: 100%; /* Full width within section */
+  max-width: 360px; /* Maximum width to avoid overstretching */
+  padding: 10px;
+  margin: 10px 0;
+  border: 2px solid #90caf9;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.action-button {
+  padding: 10px 15px;
+  margin: 10px 0;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  background-color: #42a5f5;
+  color: white;
+  width: 100%; /* Full width within section */
+  max-width: 200px; /* Maximum width to avoid overstretching */
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.input-field:focus,
+.input-file:focus {
+  border-color: #6a82fb;
+  box-shadow: 0 0 0 3px rgba(106, 130, 251, 0.5);
+}
+
+.action-button:hover {
+  background-color: #1e88e5;
+  transform: translateY(-2px);
+}
+
+h2 {
+  color: #333;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.separator hr {
+  flex: 1;
+  border: none;
+  height: 1px;
+  background-color: #ccc;
+}
+
+.separator span {
+  padding: 0 15px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #666;
+}
+
+/* Specific styles for upload field to enhance appearance */
+.input-file {
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.input-file:hover {
+  background-color: #eef2f7;
+}
+
+.error {
+  color: #ff6b6b;
+  margin-top: 5px;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+  width: 100%;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+  width: 100%;
+}
+
+.separator:before,
+.separator:after {
+  content: "";
+  flex: 1;
+  border-bottom: 2px solid #ccc; /* Increased line thickness */
+  margin: 0 10px; /* Consistent spacing around the OR text */
+}
+
+.separator span {
+  font-size: 20px;
+  font-weight: bold;
+  color: #666;
+}
+
+/*Model Portfolio*/
+/* App.css */
+.body {
+  font-family: "Segoe UI", "Roboto", sans-serif;
+  background-color: #f4f7fa;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+.portfolio-wrapper {
+  padding: 20px;
+}
+
+.portfolio-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+.portfolio-content {
+  padding: 30px;
+}
+
+.section-heading {
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #333;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 10px;
+  color: #4a4a4a;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.input-field {
+  width: 100%; /* Full width for input fields */
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #d1d4d8;
+  border-radius: 6px;
+  background-color: #fefefe;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.input-field:focus {
+  border-color: #007bff;
+}
+
+.scheme-name-input {
+  width: 50%; /* Adjusted width for scheme name input field */
+}
+
+.description-textarea {
+  width: 100%; /* Full width for description textarea */
+}
+
+.scheme-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.remove-scheme {
+  cursor: pointer;
+  color: #e74c3c;
+  font-weight: bold;
+  font-size: 14px;
+  margin-left: 10px;
+}
+
+.add-scheme {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 14px;
+}
+
+.add-scheme:hover {
+  background-color: #0056b3;
+}
