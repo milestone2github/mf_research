@@ -8,7 +8,6 @@ const app = express();
 const port = process.env.PORT || 5000;
 const session = require("express-session");
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }))
-console.log(process.env.CLIENT_ID);
 app.use(
   session({
     secret: "44174af5c5a93051fabbada3337e57973bc8f4d56f",
@@ -34,7 +33,6 @@ app.get("/auth/zoho", (req, res) => {
 
 app.get("/auth/zoho/callback", async (req, res) => {
   const code = req.query.code;
-  console.log(`code ${code}`);
   try {
     const tokenResponse = await axios.post(
       "https://accounts.zoho.com/oauth/v2/token",
@@ -49,18 +47,14 @@ app.get("/auth/zoho/callback", async (req, res) => {
         },
       }
     );
-    console.log(`token response ${tokenResponse}`);
     let id_token = tokenResponse.data.id_token;
-    console.log(`token ${id_token}`);
     const decode = jwt.decode(id_token);
-    console.log(decode);
-    // Store user data in session
     req.session.user = {
       name: `${decode.first_name} ${decode.last_name}`,
       email: decode.email,
     };
     // return res.json({username:decode.first_name})
-    res.redirect("http://localhost:3000");
+    res.redirect("/");
   } catch (error) {
     console.error(
       "Error during authentication or fetching user details",
@@ -69,13 +63,10 @@ app.get("/auth/zoho/callback", async (req, res) => {
     res.status(500).send("Authentication failed", error);
   }
 });
-app.get("/getsession", (req, res) => {
-  res.json({ session: req.session.user })
-})
+
 app.get("/api/user/checkLoggedIn", (req, res) => {
      try {
       if (req.session && req.session.user) {
-        console.log(req.session.user.email);
   
         // refresh the session expiration time by the time set during configuration  
         req.session.touch();
@@ -115,7 +106,9 @@ app.get("/api/logout", (req, res) => {
     res.status(401).json({ message: "Session not found" }); // Not authenticated or session expired
   }
 });
-
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../Frontend/dist/index.html"));
+});
 
 app.listen(port, () => {
   console.log(`App running http://localhost/${port}`);
