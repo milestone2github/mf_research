@@ -48,8 +48,8 @@ const AssociatePayout = () => {
     axios
       .get(
         "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=ass", {
-          withCredentials: true
-        }
+        // withCredentials: true
+      }
       )
       .then((response) => {
         setData(groupData(response.data));
@@ -435,7 +435,7 @@ const AssociatePayout = () => {
             <tbody>
               {Object.entries(data).map(([name, details], index) => (
                 <React.Fragment key={name}>
-                 <tr className=" text-center  border-b-[1px] border-solid border-black">
+                  <tr className=" text-center  border-b-[1px] border-solid border-black">
                     <td className=" p-5 cursor-pointer text-lg" onClick={(e) => toggleDetail(name, e)}>
                       {expanded === name ? "−" : "+"}
                     </td>
@@ -444,14 +444,14 @@ const AssociatePayout = () => {
                       {details.processableCount} / {details.entryCount}
                     </td>
                     <td>₹ {details.totalPayout.toFixed(2)}</td>
-                    <td style={details.highestStatus.status==="In Cool off Period"? {color:"blue" , fontWeight:"700"}:{ color: details.highestStatus.color, fontWeight:"700" }}>
+                    <td style={details.highestStatus.status === "In Cool off Period" ? { color: "blue", fontWeight: "700" } : { color: details.highestStatus.color, fontWeight: "700" }}>
                       {details.highestStatus.status}
                     </td>
                   </tr>
                   {expanded === name && (
-                    <>
-                      <tr style={{ padding: "0rem" }} className="detail-headers overflow-x-auto w-full">
-                        <th style={{ textAlign: "left" }}>Lead Name</th>
+                    <td colSpan="5" className="  rounded-md text-sm   ">
+                      <tr style={{ padding: "0rem" }} className="detail-headers bg-gray-400 whitespace-nowrap overflow-x-auto w-full">
+                        <th style={{ textAlign: "left"  , paddingBlock:"1rem"}}>Lead Name</th>
                         <th>Lead ID</th>
                         <th>Associate Payout</th>
                         <th>Associate Payout1</th>
@@ -461,8 +461,8 @@ const AssociatePayout = () => {
                         <th>Action</th>
                       </tr>
                       {details.data.map((item, index) => (
-                        <tr key={index} className=" text-center border-b-[1px] border-solid border-black overflow-x-auto w-full">
-                          <td style={{ textAlign: "left", paddingBlock: "0.5rem" }}>{item["Insurance_Lead_Name"]}</td>
+                        <tr key={index} className="lead bg-gray-200 text-center border-b-[1px] border-solid border-black overflow-x-auto w-full">
+                          <td style={{ textAlign: "left" , paddingLeft:"0.9rem"}}>{item["Insurance_Lead_Name"]}</td>
                           <td>{item["Lead_ID"]}</td>
                           <td>{item["Associate_Payout"]}%</td>
                           <td>₹ {item["Associate_Payout1"]}</td>
@@ -472,8 +472,8 @@ const AssociatePayout = () => {
                           <td style={{ color: item.statusDetails.color }}>
                             {item.statusDetails.status}
                           </td>
-                          <td>
-                            <button className=" whitespace-nowrap text-sm bg-blue-500 rounded px-2 py-3 text-white"
+                          <td className=" pr-3">
+                            <button className=" whitespace-nowrap text-sm  bg-blue-500 rounded px-2 py-3 text-white"
                               onClick={() =>
                                 requestEarlyRelease(
                                   item["id"], // Assuming item.id is the ID of the record
@@ -492,7 +492,8 @@ const AssociatePayout = () => {
                           </td>
                         </tr>
                       ))}
-                    </>
+                    </td>
+
                   )}
                 </React.Fragment>
               ))}

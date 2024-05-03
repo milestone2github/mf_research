@@ -320,7 +320,9 @@
   color: white;
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
 }
-
+.lead td{
+  padding-block: 1rem;
+}
 .section {
   display: flex;
   flex-direction: column;

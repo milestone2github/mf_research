@@ -423,8 +423,8 @@ const AssociatePayoutAccounts = () => {
               </tr>
               {expanded === name && (
                 <>
-                  <tr className="detail-headers bg-black text-white py-10 ">
-                    <th className=" py-5">Lead Name</th>
+                  <tr className="detail-headers bg-gray-400 text-sm whitespace-nowrap  ">
+                    <th style={{paddingBlock:"1rem"}} >Lead Name</th>
                     <th>Lead ID</th>
                     <th>Associate Payout</th>
                     <th>Associate Payout1</th>
@@ -441,8 +441,8 @@ const AssociatePayoutAccounts = () => {
                           .substring(0, 10) <= filterDate
                     )
                     .map((item, index) => (
-                      <tr key={index} className="detail-row text-center  ">
-                        <td className=" py-4 text-left pl-5">{item["Insurance_Lead_Name"]}</td>
+                      <tr key={index} className="detail-row bg-gray-200 text-sm text-center border-b-[1px] border-solid border-black  ">
+                        <td className=" py-4 text-left pl-5" style={{paddingBlock:"1.4rem"}}>{item["Insurance_Lead_Name"]}</td>
                         <td>{item["Lead_ID"]}</td>
                         <td>{item["Associate_Payout"]}%</td>
                         <td>₹ {item["Associate_Payout1"]}</td>
