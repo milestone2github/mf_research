@@ -39,103 +39,6 @@ import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
-// const Sidebar = () => (
-//   <nav className="app-sidebar">
-//     <ul className=" ">
-//       <li className=" ">
-//         <NavLink
-//           to="/"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           Home
-//         </NavLink>
-//       </li>
-//       <li>
-//         <NavLink
-//           to="/portfolio-analysis"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           Portfolio Analysis
-//         </NavLink>
-//       </li>
-//       <li>
-//         <NavLink
-//           to="/calculator"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           Calculator
-//         </NavLink>
-//       </li>
-//       <li>
-//         <NavLink
-//           to="/mf-trans-request"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           MF Trans Request
-//         </NavLink>
-//       </li>
-//       <li>
-//         <NavLink
-//           to="/associate-payout"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           Associate Payout
-//         </NavLink>
-//       </li>
-//       <li>
-//         <NavLink
-//           to="/associate-payout-accounts"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           Associate Payout Accounts
-//         </NavLink>
-//       </li>
-//       <li>
-//         <NavLink
-//           to="/dir-client-payout"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           Direct Client Payout
-//         </NavLink>
-//       </li>
-//       <li>
-//         <NavLink
-//           to="/dir-clientPayout-accounts"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           Direct Client Payout Accounts
-//         </NavLink>
-//       </li>
-//       <li>
-//         <NavLink
-//           to="/mf-trans-form"
-//           className={({ isActive }) =>
-//             isActive ? "nav-link active" : "nav-link"
-//           }
-//         >
-//           MF Transaction
-//         </NavLink>
-//       </li>
-//     </ul>
-//   </nav>
-// );
-
 function App() {
   const dispatch = useDispatch()
   const { userstate } = useSelector((state) => state.user)
@@ -148,10 +51,10 @@ function App() {
         method: "GET",
         credentials: 'include',
       });
-      console.log(data);
       const res = await data.json()
-
+      console.log(res);
       if (res.loggedIn) {
+        console.log(res.user);
         setLoading(false)
         dispatch({
           type: "checkuserloggedin",

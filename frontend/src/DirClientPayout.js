@@ -147,7 +147,7 @@ const DirClientPayouts = () => {
                 <td>₹ {item["Referral_Amount"]}</td>
                 <td className=" text-center w-[10rem]  ">{item["Insurance_Type"]}</td>
                 <td>{item["Payout_Release_Date"]}</td>
-                <td style={{ color: item.statusDetails.color , textAlign:"center" }}>
+                <td style={{ color: item.statusDetails.color , textAlign:"center" , fontWeight:"700" }}>
                   {item.statusDetails.status}
                 </td>
                 <button className=" bg-blue-500 rounded  p-3 m-3 text-white"

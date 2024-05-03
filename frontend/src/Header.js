@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from 'react-redux';
 
 const Header = () => {
   const { userstate } = useSelector((state) => state.user)
-  console.log(userstate);
   const navigate = useNavigate()
     const dispatch = useDispatch()
     const logout = async () => {

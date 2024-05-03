@@ -7,10 +7,10 @@ const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 5000;
 const session = require("express-session");
-app.use(cors({ credentials: true, origin: 'http://localhost:3000' }))
+app.use(cors({ credentials: true, origin: process.env.ROUTE }))
 app.use(
   session({
-    secret: "44174af5c5a93051fabbada3337e57973bc8f4d56f",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -22,7 +22,7 @@ app.use(
 
 // app.use(cors());
 app.use(express.json());
-// app.use(express.static(path.join(__dirname, "./src/App.js")));
+app.use(express.static(path.join(__dirname, "../frontend/build")));
 
 
 // Now, in your route handlers, you can access the database connection via `req.db`
@@ -49,12 +49,13 @@ app.get("/auth/zoho/callback", async (req, res) => {
     );
     let id_token = tokenResponse.data.id_token;
     const decode = jwt.decode(id_token);
+    console.log(decode);
     req.session.user = {
       name: `${decode.first_name} ${decode.last_name}`,
       email: decode.email,
     };
     // return res.json({username:decode.first_name})
-    res.redirect("/");
+    res.redirect(process.env.ROUTE);
   } catch (error) {
     console.error(
       "Error during authentication or fetching user details",
@@ -65,32 +66,27 @@ app.get("/auth/zoho/callback", async (req, res) => {
 });
 
 app.get("/api/user/checkLoggedIn", (req, res) => {
-     try {
-      if (req.session && req.session.user) {
-  
-        // refresh the session expiration time by the time set during configuration  
-        req.session.touch();
-  
-        // If the session exists and contains user information, the user is logged in
-        res.status(200).json({ loggedIn: true, user: req.session.user });
-        // } else {
-        //   // Otherwise, the user is not logged in
-  
-        //   res.status(200).json({ loggedIn: false , user:req.session.user });
-        // }
-      }
-      else{
-        res.status(200).json({ loggedIn: false });
-  
-      }
-     } catch (error) {
-      console.log(error);
-      res.status(500).json({ loggedIn: false });
-        
-     }
-   
+  try {
+    if (req.session && req.session.user) {
+      // refresh the session expiration time by the time set during configuration  
+      req.session.touch();
 
-  });
+      // If the session exists and contains user information, the user is logged in
+      res.status(200).json({ loggedIn: true, user: req.session.user });
+      // } else {
+      //   // Otherwise, the user is not logged in
+
+      //   res.status(200).json({ loggedIn: false , user:req.session.user });
+      // }
+    }
+    else {
+      res.status(200).json({ loggedIn: false });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ loggedIn: false });
+  }
+});
 
 app.get("/api/logout", (req, res) => {
   if (req.session) {
@@ -100,16 +96,18 @@ app.get("/api/logout", (req, res) => {
         return res.status(500).json({ message: "Could not log out." });
       }
       res.clearCookie("user");
-      return res.status(200).json({msg:"user logout successfully"}); // No content to send back
+      return res.status(200).json({ msg: "user logout successfully" }); // No content to send back
     });
   } else {
     res.status(401).json({ message: "Session not found" }); // Not authenticated or session expired
   }
 });
+
+
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../Frontend/dist/index.html"));
+  res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
 });
 
 app.listen(port, () => {
-  console.log(`App running http://localhost/${port}`);
+  console.log(`App running http://localhost:${port}`);
 })

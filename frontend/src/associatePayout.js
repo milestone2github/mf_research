@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 // import * as XLSX from "xlsx";
-// import "./app.css"; // Ensure you have some basic CSS for styling
+// Ensure you have some basic CSS for styling
 import { useSelector } from "react-redux";
 
 const AssociatePayout = () => {
@@ -47,7 +47,9 @@ const AssociatePayout = () => {
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=ass"
+        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=ass", {
+          withCredentials: true
+        }
       )
       .then((response) => {
         setData(groupData(response.data));
@@ -417,11 +419,11 @@ const AssociatePayout = () => {
 
   return (
     <>
-   {userstate ?   <div>
+      {userstate ? <div>
         <h1 className="text-2xl font-semibold">Associate Payouts</h1>
         <div className=" rounded-2xl p-2 ">
-          <table className="main-table  w-full ">
-            <thead>
+          <table className="main-table  w-full mt-4">
+            <thead className=" bg-black text-white ">
               <tr className="  bg-black text-white rounded-2xl ">
                 <th className=" py-4 ">Toggle</th>
                 <th>Associate Name</th>
@@ -430,10 +432,10 @@ const AssociatePayout = () => {
                 <th>Main Record Status</th>
               </tr>
             </thead>
-            <tbody className=" ">
+            <tbody>
               {Object.entries(data).map(([name, details], index) => (
                 <React.Fragment key={name}>
-                  <tr  className=" text-center border-b-[1px] border-solid border-black">
+                 <tr className=" text-center  border-b-[1px] border-solid border-black">
                     <td className=" p-5 cursor-pointer text-lg" onClick={(e) => toggleDetail(name, e)}>
                       {expanded === name ? "−" : "+"}
                     </td>
@@ -442,13 +444,13 @@ const AssociatePayout = () => {
                       {details.processableCount} / {details.entryCount}
                     </td>
                     <td>₹ {details.totalPayout.toFixed(2)}</td>
-                    <td style={{ color: details.highestStatus.color }}>
+                    <td style={details.highestStatus.status==="In Cool off Period"? {color:"blue" , fontWeight:"700"}:{ color: details.highestStatus.color, fontWeight:"700" }}>
                       {details.highestStatus.status}
                     </td>
                   </tr>
                   {expanded === name && (
                     <>
-                      <tr style={{ padding: "0rem" }} className="detail-headers">
+                      <tr style={{ padding: "0rem" }} className="detail-headers overflow-x-auto w-full">
                         <th style={{ textAlign: "left" }}>Lead Name</th>
                         <th>Lead ID</th>
                         <th>Associate Payout</th>
@@ -459,8 +461,8 @@ const AssociatePayout = () => {
                         <th>Action</th>
                       </tr>
                       {details.data.map((item, index) => (
-                        <tr key={index} className="detail-row  text-center border-b-[1px] border-solid border-black">
-                          <td style={{ textAlign: "left" , paddingBlock:"0.5rem" }}>{item["Insurance_Lead_Name"]}</td>
+                        <tr key={index} className=" text-center border-b-[1px] border-solid border-black overflow-x-auto w-full">
+                          <td style={{ textAlign: "left", paddingBlock: "0.5rem" }}>{item["Insurance_Lead_Name"]}</td>
                           <td>{item["Lead_ID"]}</td>
                           <td>{item["Associate_Payout"]}%</td>
                           <td>₹ {item["Associate_Payout1"]}</td>
@@ -471,7 +473,7 @@ const AssociatePayout = () => {
                             {item.statusDetails.status}
                           </td>
                           <td>
-                            <button
+                            <button className=" whitespace-nowrap text-sm bg-blue-500 rounded px-2 py-3 text-white"
                               onClick={() =>
                                 requestEarlyRelease(
                                   item["id"], // Assuming item.id is the ID of the record
@@ -490,7 +492,7 @@ const AssociatePayout = () => {
                           </td>
                         </tr>
                       ))}
-                      </>
+                    </>
                   )}
                 </React.Fragment>
               ))}
@@ -498,7 +500,7 @@ const AssociatePayout = () => {
           </table>
         </div>
 
-      </div> : navigate('/login' , {replace:true}) }
+      </div> : navigate('/login', { replace: true })}
     </>
 
   );

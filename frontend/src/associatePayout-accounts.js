@@ -401,7 +401,7 @@ const AssociatePayoutAccounts = () => {
                   {details.processableCount} / {details.entryCount}
                 </td>
                 <td>₹ {details.totalPayout.toFixed(2)}</td>
-                <td className=" font-semibold" style={{ color: details.highestStatus.color }}>
+                <td className=""style={details.highestStatus.status==="In Cool off Period"? {color:"blue" , fontWeight:"700"}:{ color: details.highestStatus.color, fontWeight:"700" }}>
                   {details.highestStatus.status}
                 </td>
                 <td>
