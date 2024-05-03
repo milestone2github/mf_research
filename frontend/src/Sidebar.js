@@ -4,12 +4,13 @@ import { NavLink } from 'react-router-dom'
 
 const Sidebar = () => {
     const { userstate } = useSelector((state) => state.user)
-
+    const a =5 
+    const b=8
     return (
         <>
             {userstate && <nav className="app-sidebar">
                 <ul className=" ">
-                    <li className=" ">
+                 { a===5 && b===6 &&  <li className=" ">
                         <NavLink
                             to="/"
                             className={({ isActive }) =>
@@ -18,7 +19,7 @@ const Sidebar = () => {
                         >
                             Home
                         </NavLink>
-                    </li>
+                    </li> }
                     <li>
                         <NavLink
                             to="/portfolio-analysis"
