@@ -2,9 +2,14 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 // import "./styles.css"; // Ensure you have some basic CSS for styling
+import { MdOutlineCurrencyRupee } from "react-icons/md";
 
 const AssociatePayoutAccounts = () => {
+  const [originalData, setOriginalData] = useState([])
   const [data, setData] = useState({});
+  console.log(Object.entries(data));
+  const [total, setTotal] = useState(null)
+  const [load, setLoad] = useState(false)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(null); // Track the expanded associate
@@ -12,7 +17,39 @@ const AssociatePayoutAccounts = () => {
     const today = new Date();
     return today.toISOString().substring(0, 10);
   });
+  useEffect(() => {
+    if (originalData.length) {
+      let filteredData = originalData.filter(function (item) {
+        return !filterDate ||
+          new Date(item["Payout_Release_Date"])
+            .toISOString()
+            .substring(0, 10) <= filterDate
+      })
+      setData(groupData(filteredData))
+    }
+  }, [originalData, filterDate])
 
+  const gettotalsum = async () => {
+    try {
+      setLoad(true)
+      let sum = 800
+      const arrdata = Object.entries(data).flat()
+      arrdata.forEach((item) => {
+        if (item.totalPayout) {
+          sum = sum + item.totalPayout
+        }
+      })
+      setLoad(false)
+      setTotal(sum)
+      // console.log(sum);
+    } catch (error) {
+      setLoad(false)
+      setTotal(null)
+    }
+  }
+  useEffect(() => {
+    gettotalsum(data)
+  }, [data])
   useEffect(() => {
     setLoading(true);
     axios
@@ -20,6 +57,8 @@ const AssociatePayoutAccounts = () => {
         "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=ass"
       )
       .then((response) => {
+        console.log(response.data);
+        setOriginalData(response.data);
         setData(groupData(response.data));
         setLoading(false);
       })
@@ -63,6 +102,7 @@ const AssociatePayoutAccounts = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const releaseDate = new Date(record["Payout_Release_Date"]);
+
     releaseDate.setHours(0, 0, 0, 0);
 
     if (record.Payout_Approval !== "Approved") {
@@ -349,13 +389,17 @@ const AssociatePayoutAccounts = () => {
     }
   };
 
-  if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div> 
+  if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div className="loader"></div>
   </div>
   if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Associate Payouts - Accounts</h1>
+      <div className=" flex justify-between">
+        <h1 className="text-2xl font-semibold">Associate Payout - Accounts</h1>
+        {load ? <p>Calclating</p> : total ? <p className=" text-xl flex items-center">Overall Payout :
+          &nbsp; <MdOutlineCurrencyRupee />{total}</p> : <p>Total : Error Occured while Calculating</p>}
+      </div>
       <button className=" bg-blue-600 rounded text-white py-3 px-3 hover:bg-blue-500"
         onClick={() => downloadAllData("download")}
         style={{ float: "right" }}
@@ -371,14 +415,14 @@ const AssociatePayoutAccounts = () => {
       </button> */}
       <label htmlFor="payoutDate">Set Payout Release Date : </label>
       <input
-       className=" py-2 px-2 rounded outline-blue-500 border-[2px] border-solid border-slate-300"
+        className=" py-2 px-2 rounded outline-blue-500 border-[2px] border-solid border-slate-300"
         type="date"
         value={filterDate}
         onChange={(e) => setFilterDate(e.target.value)}
         style={{ margin: "10px 0" }}
       />
       <table className="main-table  w-full mt-4">
-        <thead  className=" bg-black text-white ">
+        <thead className=" bg-black text-white ">
           <tr >
             <th className=" pl-4 py-6">Toggle</th>
             <th>Associate Name</th>
@@ -390,7 +434,7 @@ const AssociatePayoutAccounts = () => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(data).map(  ([name, details] , index) => (
+          {Object.entries(data).map(([name, details], index) => (
             <React.Fragment key={name}>
               <tr className="border-b-[1px] border-solid border-black rounded-2xl py-3 text-center  text-sm">
                 <td className=" py-4 text-2xl cursor-pointer" onClick={(e) => toggleDetail(name, e)}>
@@ -401,7 +445,7 @@ const AssociatePayoutAccounts = () => {
                   {details.processableCount} / {details.entryCount}
                 </td>
                 <td>₹ {details.totalPayout.toFixed(2)}</td>
-                <td className=""style={details.highestStatus.status==="In Cool off Period"? {color:"blue" , fontWeight:"700"}:{ color: details.highestStatus.color, fontWeight:"700" }}>
+                <td className="" style={details.highestStatus.status === "In Cool off Period" ? { color: "blue", fontWeight: "700" } : { color: details.highestStatus.color, fontWeight: "700" }}>
                   {details.highestStatus.status}
                 </td>
                 <td>
@@ -424,7 +468,7 @@ const AssociatePayoutAccounts = () => {
               {expanded === name && (
                 <>
                   <tr className="detail-headers bg-gray-400 text-sm whitespace-nowrap  ">
-                    <th style={{paddingBlock:"1rem"}} >Lead Name</th>
+                    <th style={{ paddingBlock: "1rem" }} >Lead Name</th>
                     <th>Lead ID</th>
                     <th>Associate Payout</th>
                     <th>Associate Payout1</th>
@@ -440,9 +484,9 @@ const AssociatePayoutAccounts = () => {
                           .toISOString()
                           .substring(0, 10) <= filterDate
                     )
-                    .map((item, index) => (
+                    .map((item, index) =>
                       <tr key={index} className="detail-row bg-gray-200 text-sm text-center border-b-[1px] border-solid border-black  ">
-                        <td className=" py-4 text-left pl-5" style={{paddingBlock:"1.4rem"}}>{item["Insurance_Lead_Name"]}</td>
+                        <td className=" py-4 text-left pl-5" style={{ paddingBlock: "1.4rem" }}>{item["Insurance_Lead_Name"]}</td>
                         <td>{item["Lead_ID"]}</td>
                         <td>{item["Associate_Payout"]}%</td>
                         <td>₹ {item["Associate_Payout1"]}</td>
@@ -452,7 +496,7 @@ const AssociatePayoutAccounts = () => {
                           {item.statusDetails.status}
                         </td>
                       </tr>
-                    ))}
+                    )}
                 </>
               )}
             </React.Fragment>

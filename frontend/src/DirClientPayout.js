@@ -2,16 +2,36 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 // import * as XLSX from "xlsx";
 // import "./styles.css"; // Ensure you have some basic CSS for styling
+import { MdOutlineCurrencyRupee } from "react-icons/md";
 
 const DirClientPayouts = () => {
   const [data, setData] = useState([]);
+  const [total, setTotal] = useState(null)
+  const [load, setLoad] = useState(false)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [filterDate, setFilterDate] = useState(() => {
     const today = new Date();
     return today.toISOString().substring(0, 10);
   });
-
+  const gettotalsum = async () => {
+    try {
+      setLoad(true)
+      let sum = 0
+      console.log(data);
+      data.forEach((item)=>{
+        sum = sum + item.Referral_Amount
+      })
+      setLoad(false)
+      setTotal(sum)
+    } catch (error) {
+      setLoad(false)
+      setTotal(null)
+    }
+  }
+  useEffect(() => {
+    gettotalsum(data)
+  }, [data])
   useEffect(() => {
     setLoading(true);
     axios
@@ -116,7 +136,11 @@ const DirClientPayouts = () => {
 
   return (
     <div>
-      <h1 className=" text-2xl font-semibold">Direct Client Payouts</h1>
+       <div className=" flex justify-between">
+          <h1 className="text-2xl font-semibold">Dir Client Payouts</h1>
+        { load ? <p>Calclating</p>: total ? <p className=" text-xl flex items-center">Overall Payout : 
+         &nbsp; <MdOutlineCurrencyRupee/>{String(total).slice(0,8)}</p>  : <p>Total : Error Occured while Calculating</p>}
+        </div>
       <table className="main-table w-full">
         <thead className=" whitespace-nowrap">
           <tr  className=" bg-black text-white ">

@@ -12,7 +12,27 @@ body {
   --primary-color: #2196f3;
   --secondary-color: #e91e63;
 }
-
+.info li{
+  background-color:#2d3748;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap:0.5rem;
+  border-radius: 0.25rem;
+  padding-block: 1.5rem;
+  align-items: center;
+  text-align: center;
+}
+.info li span{
+  order: 1;
+  font-size: 2rem;
+}
+.info li p {
+  order: 2;
+  font-size: 0.8rem;
+  color: #c7c4c4;
+}
 /* Retirement Calculator Styles */
 .form-cal div{
   display: flex;

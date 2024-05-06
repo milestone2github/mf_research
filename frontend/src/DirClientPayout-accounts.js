@@ -2,16 +2,36 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 // import "./styles.css"; // Ensure you have some basic CSS for styling
+import { MdOutlineCurrencyRupee } from "react-icons/md";
 
 const DirectClientPayouts = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(null)
+  const [load, setLoad] = useState(false)
   const [error, setError] = useState(null);
   const [filterDate, setFilterDate] = useState(() => {
     const today = new Date();
     return today.toISOString().substring(0, 10);
   });
-
+  const gettotalsum = async () => {
+    try {
+      setLoad(true)
+      let sum = 0
+      console.log(data);
+      data.forEach((item)=>{
+        sum = sum + item.Referral_Amount
+      })
+      setLoad(false)
+      setTotal(sum)
+    } catch (error) {
+      setLoad(false)
+      setTotal(null)
+    }
+  }
+  useEffect(() => {
+    gettotalsum(data)
+  }, [data])
   useEffect(() => {
     setLoading(true);
     axios
@@ -228,7 +248,11 @@ const DirectClientPayouts = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Direct Client Payouts - Accounts</h1>
+       <div className=" flex justify-between">
+          <h1 className="text-2xl font-semibold">Dir Client Payouts - Accounts</h1>
+        { load ? <p>Calclating</p>: total ? <p className=" text-xl flex items-center">Overall Payout : 
+         &nbsp; <MdOutlineCurrencyRupee/>{String(total).slice(0,8)}</p>  : <p>Total : Error Occured while Calculating</p>}
+        </div>
       <label htmlFor="payoutDate text-lg">Set Payout Release Date :  </label>
       <input
        className=" py-2 px-2 rounded outline-blue-500 border-[2px] border-solid border-slate-300"

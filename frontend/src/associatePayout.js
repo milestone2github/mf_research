@@ -4,10 +4,35 @@ import { useNavigate } from "react-router-dom";
 // import * as XLSX from "xlsx";
 // Ensure you have some basic CSS for styling
 import { useSelector } from "react-redux";
+import { MdOutlineCurrencyRupee } from "react-icons/md";
 
 const AssociatePayout = () => {
   const navigate = useNavigate()
+  const [total, setTotal] = useState(null)
+  const [load, setLoad] = useState(false)
   const [data, setData] = useState({});
+  const gettotalsum = async () => {
+    try {
+      setLoad(true)
+      let sum = 0
+      const arrdata = Object.entries(data).flat()
+      arrdata.forEach((item) => {
+        if (item.totalPayout) {
+          sum = sum + item.totalPayout
+        }
+      })
+      setLoad(false)
+      setTotal(sum)
+      console.log(sum);
+    } catch (error) {
+      setLoad(false)
+      setTotal(null)
+    }
+  }
+  useEffect(() => {
+    gettotalsum(data)
+  }, [data])
+
   const { userstate } = useSelector((state) => state.user)
 
   const [loading, setLoading] = useState(false);
@@ -53,6 +78,10 @@ const AssociatePayout = () => {
       )
       .then((response) => {
         setData(groupData(response.data));
+        let gData = groupData(response.data)
+        gData.forEach(item => {
+          console.log(item)
+        });
         setLoading(false);
       })
       .catch((error) => {
@@ -420,7 +449,11 @@ const AssociatePayout = () => {
   return (
     <>
       {userstate ? <div>
-        <h1 className="text-2xl font-semibold">Associate Payouts</h1>
+        <div className=" flex justify-between">
+          <h1 className="text-2xl font-semibold">Associate Payouts</h1>
+        { load ? <p>Calclating</p>: total ? <p className=" text-xl flex items-center">Overall Payout : 
+         &nbsp; <MdOutlineCurrencyRupee/>{total}</p>  : <p>Total : Error Occured while Calculating</p>}
+        </div>
         <div className=" rounded-2xl p-2 ">
           <table className="main-table  w-full mt-4">
             <thead className=" bg-black text-white ">
@@ -451,7 +484,7 @@ const AssociatePayout = () => {
                   {expanded === name && (
                     <td colSpan="5" className="  rounded-md text-sm   ">
                       <tr style={{ padding: "0rem" }} className="detail-headers bg-gray-400 whitespace-nowrap overflow-x-auto w-full">
-                        <th style={{ textAlign: "left"  , paddingBlock:"1rem"}}>Lead Name</th>
+                        <th style={{ textAlign: "left", paddingBlock: "1rem" }}>Lead Name</th>
                         <th>Lead ID</th>
                         <th>Associate Payout</th>
                         <th>Associate Payout1</th>
@@ -462,7 +495,7 @@ const AssociatePayout = () => {
                       </tr>
                       {details.data.map((item, index) => (
                         <tr key={index} className="lead bg-gray-200 text-center border-b-[1px] border-solid border-black overflow-x-auto w-full">
-                          <td style={{ textAlign: "left" , paddingLeft:"0.9rem"}}>{item["Insurance_Lead_Name"]}</td>
+                          <td style={{ textAlign: "left", paddingLeft: "0.9rem" }}>{item["Insurance_Lead_Name"]}</td>
                           <td>{item["Lead_ID"]}</td>
                           <td>{item["Associate_Payout"]}%</td>
                           <td>₹ {item["Associate_Payout1"]}</td>

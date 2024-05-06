@@ -49,7 +49,7 @@ app.get("/auth/zoho/callback", async (req, res) => {
     );
     let id_token = tokenResponse.data.id_token;
     const decode = jwt.decode(id_token);
-    console.log(decode);
+    // console.log(decode);
     req.session.user = {
       name: `${decode.first_name} ${decode.last_name}`,
       email: decode.email,

@@ -273,39 +273,41 @@ const RetirementCalculator = () => {
         </div>
       </div>
       {results.totalCorpusNeeded !== null && (
-        <div>
-          <h3>Years to Retirement: {yearsToRetirement}</h3>
-          <h3>
-            Total Corpus Needed: {formatCurrency(results.totalCorpusNeeded)}
-          </h3>
-          <h3>Total SIP Required: {formatCurrency(results.sipRequired)}</h3>
-          <h3>
-            Total Lumpsum Required: {formatCurrency(results.lumpSumRequired)}
-          </h3>
-          <h3>
-            Monthly Pension Amount:{" "}
-            {formatCurrency(results.monthlyPensionAmount)}
-          </h3>
-          <h3>
-            Monthly Expense at Retirement:{" "}
-            {formatCurrency(results.monthlyExpenseAtRetirement)}
-          </h3>
-          <div className="retirement-calculator">
+        <ul className="info grid grid-cols-3 justify-center  gap-2 mt-5">
+          <li><p>Years to Retirement</p><span>{yearsToRetirement}</span> </li>
+          <li>
+            <p>Total Corpus Needed</p> <span>{formatCurrency(results.totalCorpusNeeded)}</span>
+          </li>
+          <li> <p>Total SIP Required</p> <span>{formatCurrency(results.sipRequired)}</span></li>
+          <li>
+            <p>Total Lumpsum Required</p> <span>{formatCurrency(results.lumpSumRequired)}</span>
+          </li>
+          <li>
+           <p> Monthly Pension Amount{" "}</p>
+            <span>{formatCurrency(results.monthlyPensionAmount)}</span>
+          </li>
+          <li>
+           <p>Monthly Expense at Retirement{" "}</p> 
+            <span>{formatCurrency(results.monthlyExpenseAtRetirement)}</span>
+          </li>
+          <li className=" col-span-3  flex justify-center  items-center gap-2">
             <input
+            style={{marginBottom: 0}}
+            className="mb-0 m-0 outline-none border-0"
               type="range"
               min="0"
               max="100"
               value={investmentMix}
               onChange={handleSliderChange}
             />
-            <label>
+            <label className=" ">
               Investment Mix: {investmentMix}% SIP, {100 - investmentMix}% Lump
               Sum
             </label>
-            <button type="button" onClick={generatePublicLink}>
+            {/* <button type="button" onClick={generatePublicLink}>
               Generate Public Link
-            </button>
-          </div>
+            </button> */}
+          </li>
           {publicLink && (
             <div>
               <p>Your public link is:</p>
@@ -314,8 +316,8 @@ const RetirementCalculator = () => {
               </a>
             </div>
           )}
-        </div>
-      )}
+        </ul>
+        )} 
     </div> // This closes the main container div
   );
 };
