@@ -1,7 +1,7 @@
 import {createReducer} from '@reduxjs/toolkit'
 
 const initialstates = {
-    userstate:null
+    userstate: 'Kishan' //test
 }
 
 export const userReducer = createReducer(initialstates , (builder)=>{

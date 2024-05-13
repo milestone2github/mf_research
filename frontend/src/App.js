@@ -5,45 +5,48 @@ import {
   Route,
   NavLink,
   useNavigate,
+  Outlet,
 } from "react-router-dom";
-import mNiveshLogo from "./img/mNiveshLogo.png";
-import PortfolioReport from "./PortfolioReport";
-import ExistingPortfolio from "./ExistingPortfolio";
-import CasImport from "./CasImport";
-import ModelPortfolio from "./ModelPortfolio";
-import Calculator from "./Calculator";
-import MFTransRequest from "./MFTransRequest";
-import Home from "./Home";
+import PortfolioReport from "./components/pages/PortfolioReport";
+import ExistingPortfolio from "./components/pages/ExistingPortfolio";
+import CasImport from "./components/pages/CasImport";
+import ModelPortfolio from "./components/pages/ModelPortfolio";
+import Calculators from "./components/pages/Calculators";
+import MFTransRequest from "./components/pages/MFTransRequest";
+import Home from "./components/pages/Home";
 import "./App.css";
-import RetirementCalculator from "./calculators/RetirementCalculator";
-import TargetDateFundCalculator from "./calculators/TargetDateFundCalculator";
-import MutualFundPortfolioOverlapCalculator from "./calculators/MutualFundPortfolioOverlapCalculator";
-import MutualFundToETFComparisonCalculator from "./calculators/MutualFundToETFComparisonCalculator";
-import AssetAllocationTool from "./calculators/AssetAllocationTool";
-import MutualFundCashFlowPlanningCalculator from "./calculators/MutualFundCashFlowPlanningCalculator";
-import GoalBasedInvestmentCalculator from "./calculators/GoalBasedInvestmentCalculator";
-import MutualFundComparisonTool from "./calculators/MutualFundComparisonTool";
-import EducationPlanningCalculator from "./calculators/EducationPlanningCalculator";
-import MutualFundWithdrawalPlanCalculator from "./calculators/MutualFundWithdrawalPlanCalculator";
-import RiskAnalyzer from "./calculators/RiskAnalyzer";
-import MutualFundPerformanceAttributionCalculator from "./calculators/MutualFundPerformanceAttributionCalculator";
-import SIPCalculator from "./calculators/SIPCalculator";
-import LumpsumCalculator from "./calculators/LumpsumCalculator";
-import AssociatePayout from "./associatePayout";
-import AssociatePayoutAccounts from "./associatePayout-accounts";
-import DirClientPayouts from "./DirClientPayout";
-import DirectClientPayouts from "./DirClientPayout-accounts";
-import Loginpage from "./Loginpage";
+import RetirementCalculator from "./components/calculators/RetirementCalculator";
+import TargetDateFundCalculator from "./components/calculators/TargetDateFundCalculator";
+import MutualFundPortfolioOverlapCalculator from "./components/calculators/MutualFundPortfolioOverlapCalculator";
+import MutualFundToETFComparisonCalculator from "./components/calculators/MutualFundToETFComparisonCalculator";
+import AssetAllocationTool from "./components/calculators/AssetAllocationTool";
+import MutualFundCashFlowPlanningCalculator from "./components/calculators/MutualFundCashFlowPlanningCalculator";
+import GoalBasedInvestmentCalculator from "./components/calculators/GoalBasedInvestmentCalculator";
+import MutualFundComparisonTool from "./components/calculators/MutualFundComparisonTool";
+import EducationPlanningCalculator from "./components/calculators/EducationPlanningCalculator";
+import MutualFundWithdrawalPlanCalculator from "./components/calculators/MutualFundWithdrawalPlanCalculator";
+import RiskAnalyzer from "./components/calculators/RiskAnalyzer";
+import MutualFundPerformanceAttributionCalculator from "./components/calculators/MutualFundPerformanceAttributionCalculator";
+import SIPCalculator from "./components/calculators/SIPCalculator";
+import LumpsumCalculator from "./components/calculators/LumpsumCalculator";
+import AssociatePayout from "./components/pages/associatePayout";
+import AssociatePayoutAccounts from "./components/pages/associatePayout-accounts";
+import DirClientPayouts from "./components/pages/DirClientPayout";
+import DirectClientPayouts from "./components/pages/DirClientPayout-accounts";
+import Loginpage from "./components/pages/Loginpage";
 import axios from 'axios';
 import { useDispatch, useSelector } from "react-redux";
-import Sidebar from "./Sidebar";
-import Header from "./Header";
+import Sidebar from "./components/common/Sidebar";
+import Header from "./components/common/Header";
+import CalculatorList from "./components/calculators/CalculatorList";
+import MfTransForm from "./components/pages/MfTransForm";
+import Protected from "./components/common/Protected";
 
 function App() {
   const dispatch = useDispatch()
-  const { userstate } = useSelector((state) => state.user)
+  const { isLoggedIn } = useSelector((state) => state.user)
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)// test
   const checkuserlogin = async () => {
     try {
       setLoading(true)
@@ -67,7 +70,7 @@ function App() {
           type: "checkuserloggedin",
           payload: null
         })
-        navigate('/login' , {replace:true})
+        navigate('/login', { replace: true })
       }
     } catch (error) {
       setLoading(false)
@@ -76,14 +79,14 @@ function App() {
 
   }
 
-  useEffect(() => {
-    checkuserlogin()
-  }, [])
+  // useEffect(() => {
+  //   checkuserlogin()
+  // }, [])
 
   if (loading) {
     return <h1>Loading...</h1>
   }
-  if (userstate) {
+  // if (isLoggedIn) {
     return (
       <>
         <div className="App">
@@ -92,89 +95,91 @@ function App() {
             <Sidebar />
             <main className="app-content">
               <Routes>
-                <Route path="/" element={<Home />} end />
-                <Route path="/portfolio-analysis" element={<PortfolioReport />} />
+                <Route path="/" element={<Protected><Home /></Protected>} />
+                <Route path="/portfolio-analysis" element={<Protected><PortfolioReport /></Protected>} />
                 <Route
                   path="/existing-portfolio"
-                  element={<ExistingPortfolio />}
+                  element={<Protected><ExistingPortfolio /></Protected>}
                 />
-                <Route path="/import-cas" element={<CasImport />} />
-                <Route path="/model-portfolio" element={<ModelPortfolio />} />
-                <Route path="/calculator" element={<Calculator />} />
-                <Route path="/mf-trans-request" element={<MFTransRequest />} />
-                <Route path="/associate-payout" element={<AssociatePayout />} />
-                <Route path="/associate-payout-accounts" element={<AssociatePayoutAccounts />} />
-                <Route path="/dir-client-payout" element={<DirClientPayouts />} />
-                <Route path="/dir-clientPayout-accounts" element={<DirectClientPayouts />} />
+                <Route path="/import-cas" element={<Protected><CasImport /></Protected>} />
+                <Route path="/model-portfolio" element={<Protected><ModelPortfolio /></Protected>} />
+                <Route path="/mf-trans-request" element={<Protected><MFTransRequest /></Protected>} />
+                <Route path="/associate-payout" element={<Protected><AssociatePayout /></Protected>} />
+                <Route path="/associate-payout-accounts" element={<Protected><AssociatePayoutAccounts /></Protected>} />
+                <Route path="/dir-client-payout" element={<Protected><DirClientPayouts /></Protected>} />
+                <Route path="/dir-clientPayout-accounts" element={<Protected><DirectClientPayouts /></Protected>} />
+                <Route path="/mf-trans-form" element={<Protected><MfTransForm /></Protected>} />
                 <Route path="/login" element={<Loginpage />} />
 
-                <Route
-                  path="/retirement-calculator"
-                  element={<RetirementCalculator />}
-                />
-                <Route
-                  path="/retirement-calculator"
-                  element={<RetirementCalculator />}
-                />
-                <Route
-                  path="/target-date-calculator"
-                  element={<TargetDateFundCalculator />}
-                />
-                <Route
-                  path="/mf-overlap-tool"
-                  element={<MutualFundPortfolioOverlapCalculator />}
-                />
-                <Route
-                  path="/mf-vs-etf-calculator"
-                  element={<MutualFundToETFComparisonCalculator />}
-                />
-                <Route
-                  path="/asset-allocation-tool"
-                  element={<AssetAllocationTool />}
-                />
-                <Route
-                  path="/cash-flow-calculator"
-                  element={<MutualFundCashFlowPlanningCalculator />}
-                />
-                <Route
-                  path="/goal-based-investment-calculator"
-                  element={<GoalBasedInvestmentCalculator />}
-                />
-                <Route
-                  path="/mf-comparison"
-                  element={<MutualFundComparisonTool />}
-                />
-                <Route
-                  path="/education-planning-calculator"
-                  element={<EducationPlanningCalculator />}
-                />
-                <Route
-                  path="/SWP-calculator"
-                  element={<MutualFundWithdrawalPlanCalculator />}
-                />
-                <Route path="/risk-analyzer" element={<RiskAnalyzer />} />
-                <Route
-                  path="/mf-performance-source-calculator"
-                  element={<MutualFundPerformanceAttributionCalculator />}
-                />
-                <Route path="/sip-calculator" element={<SIPCalculator />} />
-                <Route
-                  path="/lumpsum-calculator"
-                  element={<LumpsumCalculator />}
-                />
+                <Route path="/calculator" element={<Protected><Calculators /></Protected>} >
+                  <Route
+                    path=""
+                    element={<CalculatorList />}
+                  />
+                  <Route
+                    path="retirement-calculator"
+                    element={<RetirementCalculator />}
+                  />
+                  <Route
+                    path="target-date-calculator"
+                    element={<TargetDateFundCalculator />}
+                  />
+                  <Route
+                    path="mf-overlap-tool"
+                    element={<MutualFundPortfolioOverlapCalculator />}
+                  />
+                  <Route
+                    path="mf-vs-etf-calculator"
+                    element={<MutualFundToETFComparisonCalculator />}
+                  />
+                  <Route
+                    path="asset-allocation-tool"
+                    element={<AssetAllocationTool />}
+                  />
+                  <Route
+                    path="cash-flow-calculator"
+                    element={<MutualFundCashFlowPlanningCalculator />}
+                  />
+                  <Route
+                    path="goal-based-investment-calculator"
+                    element={<GoalBasedInvestmentCalculator />}
+                  />
+                  <Route
+                    path="mf-comparison"
+                    element={<MutualFundComparisonTool />}
+                  />
+                  <Route
+                    path="education-planning-calculator"
+                    element={<EducationPlanningCalculator />}
+                  />
+                  <Route
+                    path="SWP-calculator"
+                    element={<MutualFundWithdrawalPlanCalculator />}
+                  />
+                  <Route path="risk-analyzer" element={<RiskAnalyzer />} />
+                  <Route
+                    path="mf-performance-source-calculator"
+                    element={<MutualFundPerformanceAttributionCalculator />}
+                  />
+                  <Route path="sip-calculator" element={<SIPCalculator />} />
+                  <Route
+                    path="lumpsum-calculator"
+                    element={<LumpsumCalculator />}
+                  />
+                </Route>
               </Routes>
             </main>
           </div>
         </div>
       </>
     );
-  }
-  else {
-    return (
-      <Loginpage />
+  // }
+  // else {
+  //   return (
+  //     <Loginpage />
 
-    )
-  }
+  //   )
+  // }
 }
 
 export default App;
