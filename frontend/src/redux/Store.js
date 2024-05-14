@@ -7,7 +7,7 @@ import userReducer from '../Reducers/UserSlice'
 import optionListsReducer from '../Reducers/OptionListsSlice'
 import transactionReducer from '../Reducers/TransactionSlice'
 
-export const Store =  configureStore({
+export default configureStore({
     reducer: {
         systematicData: systematicDataReducer,
         purchRedempData: purchRedempDataReducer,
