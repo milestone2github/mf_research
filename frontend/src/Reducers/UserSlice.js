@@ -15,7 +15,7 @@ const userSlice = createSlice({
       state.isLoading = action.payload;
     },
     setUser: (state, action) => {
-      state.user = action.payload
+      state.userData = action.payload
     }
   }
 })

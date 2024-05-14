@@ -22,7 +22,7 @@ app.use(
 
 // app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../frontend/build")));
+// app.use(express.static(path.join(__dirname, "../frontend/build")));
 
 
 // Now, in your route handlers, you can access the database connection via `req.db`
@@ -104,9 +104,9 @@ app.get("/api/logout", (req, res) => {
 });
 
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
-});
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
+// });
 
 app.listen(port, () => {
   console.log(`App running http://localhost:${port}`);

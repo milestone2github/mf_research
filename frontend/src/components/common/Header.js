@@ -6,12 +6,23 @@ import { setLoggedIn } from '../../Reducers/UserSlice'
 
 const Header = () => {
     const { isLoggedIn, userData } = useSelector((state) => state.user)
+    console.log(userData);
     const navigate = useNavigate()
     const dispatch = useDispatch()
     // Method to handle logout
+    const checklogout = ()=>{
+        console.log(userData.userdata.email);
+        if(userData.userdata.email.match("gmail")){
+             dispatch(setLoggedIn(false))
+             navigate("/login")
+        }
+        else{
+            handleLogout()
+        }
+    }
     const handleLogout = async () => {
         try {
-            const response = await fetch(`${process.env.VITE_API_BASE_URL}/api/logout`, {
+            const response = await fetch(`http://localhost:5000/api/logout`, {
                 method: 'POST',
                 credentials: 'include',
             });
@@ -39,7 +50,7 @@ const Header = () => {
                     <h1 className=" text-white text-xl mt-6">Mutual Fund Research Portal</h1>
                     <div className="header-right">
                         {isLoggedIn && <span className="user-name">Welcome, {userData?.name}</span>}
-                        <button className="logout-button" onClick={handleLogout}>Logout</button>
+                        <button className="logout-button" onClick={checklogout}>Logout</button>
                     </div>
                 </div>
             </header>}
