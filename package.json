@@ -1,9 +1,9 @@
 {
     "scripts": {
-      "install-backend": "cd authentication && npm install",
+      "install-backend": "cd backend && npm install",
       "install-frontend": "cd frontend && npm install",
       "build-frontend": "cd frontend && npm run build",
-      "start-backend": "cd authentication && npm start",
+      "start-backend": "cd backend && npm start",
       "start": "npm run build-frontend && npm run start-backend",
       "postinstall": "npm run install-backend && npm run install-frontend && npm run build-frontend"
     }

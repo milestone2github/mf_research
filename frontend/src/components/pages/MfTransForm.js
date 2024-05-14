@@ -265,7 +265,7 @@ function MfTransForm() {
       body: JSON.stringify({ formData: allTransactions })
     };
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/data`, requestOptions);
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/data`, requestOptions);
       const data = await response.json();
 
       if (!response.ok) {

@@ -9,7 +9,6 @@ function Protected({children}) {
   
   useEffect(() => {
     // Function to check if the user is already logged in
-    if(!isLoggedIn){
       dispatch(setLoading(true));
       const checkLoggedIn = async () => {
         try {
@@ -18,8 +17,6 @@ function Protected({children}) {
             credentials: 'include'
           });
           const data = await response.json();
-          console.log(data);
-          console.log(data.loggedIn)
           dispatch(setLoggedIn(data.loggedIn));
           dispatch(setUser(data.user));
         } catch (error) {
@@ -31,8 +28,6 @@ function Protected({children}) {
       }
   
       checkLoggedIn();
-  
-    }
    
   }, [isLoggedIn])
 

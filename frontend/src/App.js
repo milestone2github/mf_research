@@ -47,41 +47,6 @@ function App() {
   const { isLoggedIn } = useSelector((state) => state.user)
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)// test
-  const checkuserlogin = async () => {
-    try {
-      setLoading(true)
-      const data = await fetch(`http://localhost:5000/api/user/checkLoggedIn`, {
-        method: "GET",
-        credentials: 'include',
-      });
-      const res = await data.json()
-      console.log(res);
-      if (res.loggedIn) {
-        console.log(res.user);
-        setLoading(false)
-        dispatch({
-          type: "checkuserloggedin",
-          payload: res.user.name
-        })
-      }
-      else {
-        setLoading(false)
-        dispatch({
-          type: "checkuserloggedin",
-          payload: null
-        })
-        navigate('/login', { replace: true })
-      }
-    } catch (error) {
-      setLoading(false)
-      console.error("Error occured while checking user Logged in or not ", error)
-    }
-
-  }
-
-  // useEffect(() => {
-  //   checkuserlogin()
-  // }, [])
 
   if (loading) {
     return <h1>Loading...</h1>

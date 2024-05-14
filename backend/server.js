@@ -31,7 +31,8 @@ app.use(
 
 app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use(express.json());
-// app.use(express.static(path.join(__dirname, "../frontend/build")));
+app.use(express.static(path.join(__dirname, "../frontend/build")));
+
 // Initialize MongoDB Client
 const mongoClient = new MongoClient(process.env.MONGO_URI);
 
@@ -147,10 +148,10 @@ app.get("/auth/zoho/callback", async (req, res) => {
         name: `${decode.first_name} ${decode.last_name}`,
         userdata: checkuser,
       };
-      res.redirect("http://localhost:3000");
+      res.redirect("/");
     }
     else {
-      res.redirect("http://localhost:3000/login?error=permissiondenied")
+      res.redirect("/login?error=permissiondenied")
     }
   } catch (error) {
     console.error(
@@ -162,7 +163,6 @@ app.get("/auth/zoho/callback", async (req, res) => {
 });
 
 app.get("/api/user/checkLoggedIn", (req, res) => {
-  console.log(req.session);
   if (req.session && req.session.user) {
     // refresh the session expiration time by the time set during configuration  
     req.session.touch();
@@ -177,7 +177,7 @@ app.get("/api/user/checkLoggedIn", (req, res) => {
 
 app.post("/checkuser", async (req, res) => {
   try {
-    console.log(req.body);
+    console.log('from checkuser: ', req.body);
     const checkuser = await user.findOne({email:req.body.email}).populate("role")
     console.log(checkuser);
     if (checkuser) {
@@ -185,22 +185,24 @@ app.post("/checkuser", async (req, res) => {
         name: req.body.fullname,
         userdata: checkuser,
       };
+      // res.redirect('http://localhost:3000');
       return res.status(200).json({success:true , msg:"logged in successfull" , user:{
         name: req.body.fullname,
         userdata: checkuser,
       }})
     }
     else {
+      // res.redirect('http://localhost:3000/login?error=permissiondenied')
       return res.status(400).json({success:false , msg:"permission denied"})
     }
   } catch (error) {
     console.log(error);
+    res.status(500).json({success: false, msg: "Internal server error"})
   }
 })
 
 app.get("/api/investors", async (req, res) => {
   try {
-    console.log('request reached') //test
     const collection = req.db.collection("MintDb");
     const { name, pan, fh } = req.query;
     // Directly parse searchAll as a boolean
@@ -230,7 +232,6 @@ app.get("/api/investors", async (req, res) => {
     }
 
     const result = await collection.find(query).toArray();
-    console.log('result: ', result) //test
     res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching investors", error);
@@ -550,9 +551,9 @@ app.post("/api/data", async (req, res) => {
 });
 
 // wildcard route to serve react using express
-// app.get("*", (req, res) => {
-//   res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
-// });
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
+});
 
 // Start the server and connect to MongoDB
 app.listen(port, async () => {

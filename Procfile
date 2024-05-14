@@ -1,1 +1,1 @@
-web: node authentication/index.js
+web: node backend/server.js
