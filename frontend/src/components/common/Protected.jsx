@@ -1,41 +1,50 @@
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { setLoading, setLoggedIn, setUser } from '../../Reducers/UserSlice';
 
 function Protected({children}) {
   const {isLoggedIn, isLoading} = useSelector(state => state.user);
   const dispatch = useDispatch();
-  console.log('location: ', window.location.href) //test
+  const navigate = useNavigate();
+
   useEffect(() => {
     // Function to check if the user is already logged in
+    const checkLoggedIn = async () => {
       dispatch(setLoading(true));
-      const checkLoggedIn = async () => {
-        try {
-          const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/user/checkLoggedIn`, {
-            method: "GET",
-            credentials: 'include'
-          });
-          const data = await response.json();
-          dispatch(setLoggedIn(data.loggedIn));
-          dispatch(setUser(data.user));
-        } catch (error) {
-          console.error("Error Checking session", error)
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/user/checkLoggedIn`, {
+          method: "GET",
+          credentials: 'include'
+        });
+        const data = await response.json();
+        dispatch(setLoggedIn(data.loggedIn));
+        dispatch(setUser(data.user));
+        if (!data.loggedIn) {
+          navigate('/login', { replace: true }); // navigate if not logged in
         }
-        finally{
-          dispatch(setLoading(false));
-        }
+      } catch (error) {
+        console.error("Error Checking session", error);
+      } finally {
+        dispatch(setLoading(false));
       }
-  
+    };
+
+    if (!isLoggedIn) { // Check on initial render and dependency changes
       checkLoggedIn();
-   
-  }, [isLoggedIn])
+    }
+  }, [dispatch, navigate, isLoggedIn]);
 
-  if(isLoading) return <h1>Loading...</h1>
+  if (isLoading) {
+    return (
+      <div className='h-full w-full flex items-center justify-center'>
+        <div className='loader'>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    !isLoading && isLoggedIn ? children : <Navigate to={'/login'} replace/>
-  )
+  return isLoggedIn ? children : null;
 }
 
-export default Protected
+export default Protected;
