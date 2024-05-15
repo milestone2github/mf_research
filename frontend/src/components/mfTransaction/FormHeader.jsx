@@ -1,11 +1,15 @@
 import React, { useCallback, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { handleChange } from '../../Reducers/CommonDataSlice'
+import { resetAllOptionLists, setInvestorNameOptions } from '../../Reducers/OptionListsSlice'
 import { fetchInvestorData } from '../../Actions/OptionListsAction'
 import debounce from '../../utils/debounce'
 import CustomInputList from './common/CustomInputList'
 import InputListWithFilter from './common/InputListWithFilter'
 import RadioInputWithDate from './common/RadioInputWithDate'
+import { resetSystematicData } from '../../Reducers/SystematicDataSlice'
+import { resetPurchRedempData } from '../../Reducers/PurchRedempDataSlice'
+import { resetSwitchData } from '../../Reducers/SwitchDataSlice'
 
 function FormHeader() {
   // get common data state from store
@@ -47,6 +51,17 @@ function FormHeader() {
     dispatch(handleChange({ name: 'panNumber', value: option.pan || '' }))
     dispatch(handleChange({ name: 'familyHead', value: option.familyHead || '' }))
     dispatch(handleChange({ name: 'iWellCode', value: option.iWellCode || '' }))
+
+    // reset other option lists 
+    dispatch(resetAllOptionLists())
+
+    // add selected option to investor list 
+    dispatch(setInvestorNameOptions([option]))
+
+    // reset all filled data
+    dispatch(resetSystematicData())
+    dispatch(resetPurchRedempData())
+    dispatch(resetSwitchData())
   }
 
   // method to handle change in inputs 

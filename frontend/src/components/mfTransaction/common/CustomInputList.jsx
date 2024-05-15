@@ -109,7 +109,7 @@ function CustomInputList({
 
       <div
         ref={container} 
-        className={`relative mt-1 focus:outline-none focus-within:border-light-blue border-2 rounded-md ${isOpen && 'border-light-blue'}`} 
+        className={`relative mt-1 focus:outline-none focus-within:border-light-blue border-2 border-inactive-border rounded-md ${isOpen && 'border-light-blue'}`} 
         onKeyDown={handleKeyDown}
         onBlur={handleClickOutside} 
         onFocus={() => toggleDropdown}

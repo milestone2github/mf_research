@@ -9,6 +9,7 @@ import { fetchAmcNameOptions, fetchFolioOptions, fetchSchemeNameOptions } from '
 import debounce from '../../utils/debounce';
 import TextInput from './common/TextInput';
 import FolioSelectMenu from './common/FolioSelectMenu';
+import { setAmcNameOptions, setSchemeNameOptions } from '../../Reducers/OptionListsSlice';
 
 function PurchRedempForm({ index, updateCollapsed }) {
   // get purchRedempData state from store
@@ -59,9 +60,20 @@ function PurchRedempForm({ index, updateCollapsed }) {
     [dispatch]
   );
 
-  // method to handle change in select menus
-  const handleInputListChange = (value, name, index) => {
-    dispatch(handleSelect({ name, value, index })); // dispatch the change 
+  // method to handle change in amc name
+  const handleAmcNameChange = (value, name, index) => {
+    dispatch(handleSelect({ name, value, index })); // dispatch the change
+
+    dispatch(setAmcNameOptions([value])) 
+    dispatch(setSchemeNameOptions([]))
+    dispatch(handleSelect({name: 'purch_redempSchemeName', value: '', index}))
+    dispatch(handleSelect({name: 'purch_redempFolio', value: '', index}))
+  };
+
+  // method to handle change in scheme name
+  const handleSchemeNameChange = (value, name, index) => {
+    dispatch(handleSelect({ name, value, index })); // dispatch the change
+    dispatch(setSchemeNameOptions(value)) 
   };
 
   // method to handle change in inputs 
@@ -112,7 +124,7 @@ function PurchRedempForm({ index, updateCollapsed }) {
           required={true}
           value={purchRedempItem.purch_redempMfAmcName}
           fetchData={debouncedFetchAmcNames}
-          updateSelectedOption={handleInputListChange}
+          updateSelectedOption={handleAmcNameChange}
           listOptions={amcNameOptions}
           updateCollapsed={updateCollapsed}
           renderOption={(option) => (
@@ -131,7 +143,7 @@ function PurchRedempForm({ index, updateCollapsed }) {
           fetchData={(value) =>
             debouncedFetchSchemeNames(purchRedempItem.purch_redempMfAmcName, value)
           }
-          updateSelectedOption={handleInputListChange}
+          updateSelectedOption={handleSchemeNameChange}
           listOptions={schemeNameOptions}
           updateCollapsed={updateCollapsed}
           renderOption={(option) => (

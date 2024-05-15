@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { IoChevronDownOutline } from "react-icons/io5";
+import { TbCaretUpDownFilled } from "react-icons/tb";
 
-const PreFilledSelect = ({ label, id, index, selectedOption, options, onSelect }) => {
+const PreFilledSelect = ({ label, id, index, selectedOption, options, onSelect, updateCollapsed }) => {
   const [isOpen, setIsOpen] = useState(false);
   const container = useRef(null);
 
@@ -19,6 +19,11 @@ const PreFilledSelect = ({ label, id, index, selectedOption, options, onSelect }
       setIsOpen(false);
     }
   };
+
+  const handleInvalidSelect = (e) => {
+    if(updateCollapsed)
+      updateCollapsed(false);
+  }
 
   useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside);
@@ -59,17 +64,18 @@ const PreFilledSelect = ({ label, id, index, selectedOption, options, onSelect }
       <label htmlFor={id} className='text-gray-750 text-sm text-left z-0'>{label}</label>
       <div 
         ref={container} 
-        className={`relative mt-1 focus:outline-none border-2 focus:border-light-blue rounded-md ${isOpen && 'border-light-blue'}`} 
+        className={`relative mt-1 focus:outline-none border-2 border-inactive-border focus:border-light-blue rounded-md ${isOpen && 'border-light-blue'}`} 
         tabIndex={0} 
         onKeyDown={handleKeyDown}
         role="combobox" 
         aria-haspopup="listbox" 
         aria-expanded={isOpen} 
-        aria-labelledby={id} 
+        aria-labelledby={id}
+        onInvalid={handleInvalidSelect}
       >
-        <div className={`flex items-center bg-transparent text-black-900 w-full border-gray-300 py-2 px-2 z-0 `} onClick={toggleDropdown}>
+        <div className={`flex items-center bg-transparent text-black-900 w-full border-gray-300 py-2 px-2 z-0 cursor-pointer`} onClick={toggleDropdown}>
           <span>{selectedOption || 'Select'}</span>
-          <span className='ms-auto'><IoChevronDownOutline /></span>
+          <span className='ms-auto text-gray-600'><TbCaretUpDownFilled /></span>
         </div>
         {isOpen && (
           <ul className="absolute top-full w-full backdrop-blur-sm bg-light-blue/5 rounded-md mt-1 py-1 list-none shadow-md z-10">

@@ -5,6 +5,7 @@ import PreFilledSelect from './common/PreFilledSelect'
 import NumberInput from './common/NumberInput'
 import { useDispatch, useSelector } from 'react-redux'
 import { handleChange, handleSelect } from '../../Reducers/SystematicDataSlice'
+import { setAmcNameOptions, setSchemeNameOptions } from '../../Reducers/OptionListsSlice'
 import { fetchAmcNameOptions, fetchFolioOptions, fetchSchemeNameOptions } from '../../Actions/OptionListsAction'
 import CustomInputList from './common/CustomInputList'
 import debounce from '../../utils/debounce'
@@ -68,16 +69,27 @@ function SystematicForm({ index, updateCollapsed }) {
     dispatch(handleChange({ name, value, index })); // dispatch the change 
   };
 
-  // method to handle change in select menus
-  const handleInputListChange = (value, name, index) => {
-    dispatch(handleSelect({ name, value, index })); // dispatch the change 
+  // method to handle change in amc name
+  const handleAmcNameChange = (value, name, index) => {
+    dispatch(handleSelect({ name, value, index })); // dispatch the change
+
+    dispatch(setAmcNameOptions([value])) 
+    dispatch(setSchemeNameOptions([]))
+    dispatch(handleSelect({name: 'systematicSourceScheme', value: '', index}))
+    dispatch(handleSelect({name: 'systematicSchemeName', value: '', index}))
+    dispatch(handleSelect({name: 'systematicFolio', value: '', index}))
+  };
+
+  // method to handle change in scheme name
+  const handleSchemeNameChange = (value, name, index) => {
+    dispatch(handleSelect({ name, value, index })); // dispatch the change
+    dispatch(setSchemeNameOptions([value])) 
   };
 
   // method to handle change in select menus
   const handleSelectChange = (name, value, index) => {
     dispatch(handleSelect({ name, value, index })); // dispatch the change 
   };
-
 
   // effect to fetch folio options on change of amc and pan number 
   useEffect(() => {
@@ -130,7 +142,7 @@ function SystematicForm({ index, updateCollapsed }) {
           required={true}
           value={systematicItem.systematicMfAmcName}
           fetchData={debouncedFetchAmcNames}
-          updateSelectedOption={handleInputListChange}
+          updateSelectedOption={handleAmcNameChange}
           listOptions={amcNameOptions}
           updateCollapsed={updateCollapsed}
           renderOption={(option) => (
@@ -150,7 +162,7 @@ function SystematicForm({ index, updateCollapsed }) {
             fetchData={(value) =>
               debouncedFetchSchemeNames(systematicItem.systematicMfAmcName, value)
             }
-            updateSelectedOption={handleInputListChange}
+            updateSelectedOption={handleSchemeNameChange}
             listOptions={schemeNameOptions}
             updateCollapsed={updateCollapsed}
             renderOption={(option) => (
@@ -170,7 +182,7 @@ function SystematicForm({ index, updateCollapsed }) {
             fetchData={(value) =>
               debouncedFetchSchemeNames(systematicItem.systematicMfAmcName, value)
             }
-            updateSelectedOption={handleInputListChange}
+            updateSelectedOption={handleSchemeNameChange}
             listOptions={schemeNameOptions}
             updateCollapsed={updateCollapsed}
             renderOption={(option) => (
@@ -300,6 +312,7 @@ function SystematicForm({ index, updateCollapsed }) {
             options={sysPaymentModeOptions}
             selectedOption={systematicItem.systematicPaymentMode}
             onSelect={handleSelectChange}
+            updateCollapsed={updateCollapsed}
           />
         </div>
       }

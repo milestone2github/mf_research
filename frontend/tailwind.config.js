@@ -17,6 +17,7 @@ export default {
         "gray-750": "#3E4A5D",
         "light-blue": "#07A7CF",
         "success": "#6BAA75",
+        "inactive-border": "#6b7280",
       },
     },
   },

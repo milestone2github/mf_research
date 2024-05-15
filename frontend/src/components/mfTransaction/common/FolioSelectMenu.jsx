@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { IoChevronDownOutline } from "react-icons/io5";
+import { TbCaretUpDownFilled } from "react-icons/tb";
 
 const FolioSelectMenu = ({ label, id, index, selectedOption, options, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -67,7 +67,7 @@ const FolioSelectMenu = ({ label, id, index, selectedOption, options, onSelect }
       </label>
       <div
         ref={container}
-        className={`relative mt-1 focus:outline-none focus:border-light-blue border-2 rounded-md ${isOpen && 'border-light-blue'}`}
+        className={`relative mt-1 focus:outline-none border-inactive-border focus:border-light-blue border-2 rounded-md ${isOpen && 'border-light-blue'}`}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         role="combobox"
@@ -76,9 +76,9 @@ const FolioSelectMenu = ({ label, id, index, selectedOption, options, onSelect }
         aria-labelledby={id}
       >
 
-        <div className={`flex items-center bg-transparent text-black-900 w-full border-gray-300 py-2 px-2 z-0 `} onClick={toggleDropdown}>
+        <div className={`flex items-center bg-transparent text-black-900 w-full border-gray-300 py-2 px-2 z-0 cursor-pointer`} onClick={toggleDropdown}>
           <span>{selectedOption || 'Select'}</span>
-          <span className='ms-auto'><IoChevronDownOutline /></span>
+          <span className='ms-auto text-gray-600'><TbCaretUpDownFilled /></span>
 
         </div>
         {isOpen && (

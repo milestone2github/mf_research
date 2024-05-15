@@ -20,7 +20,7 @@ function RadioInput({ options, index, selectedOption, label, name, onChange, upd
           <div key={option} className='relative text-left py-2 rounded-md outline outline-none focus-within:outline-blue-900'>
             <label
               htmlFor={`${name}-${option}-${index}`}
-              className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === option ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-light-gray ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
+              className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === option ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-inactive-border ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
             >{option}</label>
 
             <input

@@ -43,6 +43,22 @@ const optionListsSlice = createSlice({
   reducers: {
     resetAllOptionLists: () => {
       return initialState;
+    },
+    setInvestorNameOptions: (state, action) => {
+      console.log('payload: ', action.payload)
+      state.investorNameOptions = action.payload;
+    },
+    setAmcNameOptions: (state, action) => {
+      state.amcNameOptions = action.payload;
+    },
+    setSchemeNameOptions: (state, action) => {
+      state.schemeNameOptions = action.payload;
+    },
+    setfolioOptions: (state, action) => {
+      state.folioOptions = action.payload;
+    },
+    setfolioOptionsWithNew: (state, action) => {
+      state.folioOptionsWithNew = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -88,6 +104,13 @@ const optionListsSlice = createSlice({
   }
 })
 
-export const { resetAllOptionLists } = optionListsSlice.actions;
+export const { 
+  resetAllOptionLists, 
+  setInvestorNameOptions,
+  setAmcNameOptions,
+  setSchemeNameOptions,
+  setfolioOptions,
+  setfolioOptionsWithNew
+} = optionListsSlice.actions;
 
 export default optionListsSlice.reducer;

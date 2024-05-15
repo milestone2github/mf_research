@@ -127,14 +127,14 @@ function InputListWithFilter({
 
       <div
         ref={container}
-        className={`relative mt-1 focus:outline-none focus-within:border-light-blue border-2 rounded-md ${isOpen && 'border-light-blue'}`}
+        className={`relative mt-1 focus:outline-none focus-within:border-light-blue border-2 border-inactive-border rounded-md ${isOpen && 'border-light-blue'}`}
         onKeyDown={handleKeyDown}
         onBlur={handleClickOutside}
         onFocus={() => toggleDropdown}
       >
 
         <input
-          className='bg-transparent text-black-900 rounded-md w-full border-gray-300 py-2 px-2 outline-none focus-within:border-none disabled:border-gray-200'
+          className='bg-transparent text-black-900 rounded-md w-full border-inactive-border py-2 px-2 outline-none focus-within:border-none disabled:border-gray-200'
           name={id}
           id={id}
           list={listName}

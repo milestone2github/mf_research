@@ -6,7 +6,7 @@ import { setLoading, setLoggedIn, setUser } from '../../Reducers/UserSlice';
 function Protected({children}) {
   const {isLoggedIn, isLoading} = useSelector(state => state.user);
   const dispatch = useDispatch();
-  
+  console.log('location: ', window.location.href) //test
   useEffect(() => {
     // Function to check if the user is already logged in
       dispatch(setLoading(true));

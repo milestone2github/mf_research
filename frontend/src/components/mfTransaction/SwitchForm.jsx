@@ -9,6 +9,7 @@ import { fetchAmcNameOptions, fetchFolioOptions, fetchSchemeNameOptions } from '
 import debounce from '../../utils/debounce';
 import TextInput from './common/TextInput';
 import FolioSelectMenu from './common/FolioSelectMenu';
+import { setAmcNameOptions, setSchemeNameOptions } from '../../Reducers/OptionListsSlice';
 
 function SwitchForm({ index, updateCollapsed }) {
   // get switchData state from store 
@@ -55,9 +56,21 @@ function SwitchForm({ index, updateCollapsed }) {
     [dispatch]
   );
 
-  // method to handle change in select menus
-  const handleInputListChange = (value, name, index) => {
-    dispatch(handleSelect({ name, value, index })); // dispatch the change 
+  // method to handle change in amc name
+  const handleAmcNameChange = (value, name, index) => {
+    dispatch(handleSelect({ name, value, index })); // dispatch the change
+
+    dispatch(setAmcNameOptions([value])) 
+    dispatch(setSchemeNameOptions([]))
+    dispatch(handleSelect({name: 'switchFromScheme', value: '', index}))
+    dispatch(handleSelect({name: 'switchToScheme', value: '', index}))
+    dispatch(handleSelect({name: 'switchFolio', value: '', index}))
+  };
+
+  // method to handle change in scheme name
+  const handleSchemeNameChange = (value, name, index) => {
+    dispatch(handleSelect({ name, value, index })); // dispatch the change
+    dispatch(setSchemeNameOptions([value])) 
   };
 
   // method to handle change in inputs 
@@ -97,7 +110,7 @@ function SwitchForm({ index, updateCollapsed }) {
           listName='amc-names'
           value={switchItem.switchMfAmcName}
           fetchData={debouncedFetchAmcNames}
-          updateSelectedOption={handleInputListChange}
+          updateSelectedOption={handleAmcNameChange}
           listOptions={amcNameOptions}
           updateCollapsed={updateCollapsed}
           renderOption={(option) => (
@@ -116,7 +129,7 @@ function SwitchForm({ index, updateCollapsed }) {
           fetchData={(value) =>
             debouncedFetchSchemeNames(switchItem.switchMfAmcName, value)
           }
-          updateSelectedOption={handleInputListChange}
+          updateSelectedOption={handleSchemeNameChange}
           listOptions={schemeNameOptions}
           updateCollapsed={updateCollapsed}
           renderOption={(option) => (
@@ -146,7 +159,7 @@ function SwitchForm({ index, updateCollapsed }) {
           fetchData={(value) =>
             debouncedFetchSchemeNames(switchItem.switchMfAmcName, value)
           }
-          updateSelectedOption={handleInputListChange}
+          updateSelectedOption={handleSchemeNameChange}
           listOptions={schemeNameOptions}
           updateCollapsed={updateCollapsed}
           renderOption={(option) => (

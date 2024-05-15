@@ -44,7 +44,7 @@ function RadioInputWithDate({ label, name, onChange, selectedValue }) {
         <div className='relative text-left py-2 rounded-md outline outline-none focus-within:outline-blue-900'>
           <label
             htmlFor='asap'
-            className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === 'ASAP' ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-light-gray ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
+            className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === 'ASAP' ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-inactive-border ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
           >ASAP</label>
 
           <input
@@ -62,7 +62,7 @@ function RadioInputWithDate({ label, name, onChange, selectedValue }) {
         <div className='relative text-left py-2 rounded-md outline outline-none focus-within:outline-blue-900'>
           <label
             htmlFor='nextWorkingDay'
-            className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === 'Next Working Day' ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-light-gray ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
+            className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === 'Next Working Day' ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-inactive-border ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
           >Next Working Day</label>
 
           <input
@@ -81,7 +81,7 @@ function RadioInputWithDate({ label, name, onChange, selectedValue }) {
         <div className='relative text-left py-2 rounded-md outline outline-none focus-within:outline-blue-900'>
           <label
             htmlFor='chooseDate'
-            className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === 'chooseDate' ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-light-gray ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
+            className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === 'chooseDate' ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-inactive-border ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
           ><span className='text-gray-750'>Select Date</span> 
           <input
             type="date"
@@ -111,7 +111,7 @@ function RadioInputWithDate({ label, name, onChange, selectedValue }) {
         <div className='relative text-left py-2 rounded-md outline outline-none focus-within:outline-blue-900'>
           <label
             htmlFor='chooseDateTime'
-            className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === 'chooseDateTime' ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-light-gray ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
+            className={`relative rounded-md cursor-pointer px-4 py-2 ring-inset  ${selectedOption === 'chooseDateTime' ? 'ring-light-blue ring-2 bg-light-blue/10 text-light-blue' : 'bg-transparent ring-inactive-border ring-1'} before:rounded-md before:absolute before:-inset-0 before:bg-primary-white before:-z-10`}
           ><span className='text-gray-750'>Select Date & Time</span> 
           <input
             type='datetime-local'
