@@ -29,7 +29,7 @@ app.use(
   })
 );
 
-app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
+app.use(cors({ credentials: true, origin: process.env.ORIGIN }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../frontend/build")));
 
@@ -60,58 +60,6 @@ function dbAccess(req, res, next) {
 }
 
 app.use(dbAccess); // Use the middleware
-
-// login with zoho CRM 
-// app.get("/auth/zoho", (req, res) => {
-//   const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=ZohoCRM.users.READ&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline`;
-//   res.redirect(authUrl);
-// });
-// app.get("/auth/zoho/callback", async (req, res) => {
-//   const code = req.query.code;
-//   try {
-//     const tokenResponse = await axios.post(
-//       "https://accounts.zoho.com/oauth/v2/token",
-//       null,
-//       {
-//         params: {
-//           grant_type: "authorization_code",
-//           client_id: process.env.ZOHO_CLIENT_ID,
-//           client_secret: process.env.ZOHO_CLIENT_SECRET,
-//           redirect_uri: process.env.ZOHO_REDIRECT_URI,
-//           code: code,
-//         },
-//       }
-//     );
-
-//     const accessToken = tokenResponse.data.access_token;
-//     const response = await axios.get(
-//       "https://www.zohoapis.com/crm/v3/users?type=CurrentUser",
-//       {
-//         headers: {
-//           Authorization: `Zoho-oauthtoken ${accessToken}`,
-//         },
-//       }
-//     );
-//     console.log('zoho profile: ', response.data.users[0].profile) //test
-//     console.log('zoho role: ', response.data.users[0].role) //test
-//     const userName = response.data.users[0].full_name;
-//     const userEmail = response.data.users[0].email;
-//     // Store user data in session
-//     req.session.user = {
-//       name: userName,
-//       email: userEmail,
-//       accessToken: accessToken, // Storing the access token might be useful for future API calls
-//     };
-
-//     res.redirect("http://localhost:3000");
-//   } catch (error) {
-//     console.error(
-//       "Error during authentication or fetching user details",
-//       error
-//     );
-//     res.status(500).send("Authentication failed");
-//   }
-// });
 
 // Now, in your route handlers, you can access the database connection via `req.db`
 // login with zoho auth 
@@ -148,10 +96,10 @@ app.get("/auth/zoho/callback", async (req, res) => {
         name: `${decode.first_name} ${decode.last_name}`,
         userdata: checkuser,
       };
-      res.redirect("/");
+      res.redirect(`${process.env.ORIGIN}`);
     }
     else {
-      res.redirect("/login?error=permissiondenied")
+      res.redirect(`${process.env.ORIGIN}login?error=permissiondenied`)
     }
   } catch (error) {
     console.error(
