@@ -25,7 +25,8 @@ export const fetchInvestorData = createAsyncThunk(
 
       // make api request to search investors 
       const response = await fetch(`${baseUrl}/investors/?${params}`, {
-        method: 'GET'
+        method: 'GET',
+        credentials: 'include'
       }); 
       const data = await response.json();
 

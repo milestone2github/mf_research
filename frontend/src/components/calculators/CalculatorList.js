@@ -1,18 +1,19 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import "./CalculatorList.css";
+import RetirementCalculator from '../../assets/RetirementCalculator.png'
 
 const calculators = [
   {
     id: 1,
-    icon: "path/to/icon1.png",
+    icon: RetirementCalculator,
     title: "Retirement Calculator",
     description: "Calculate the future value of your retirement savings.",
     route: "retirement-calculator",
   },
   {
     id: 2,
-    icon: "path/to/icon2.png",
+    icon: "tdfCalculator.png",
     title: "Target Date Fund Calculator",
     description:
       "determine how much they could accumulate by a specified date using target-date mutual funds.",
@@ -20,7 +21,7 @@ const calculators = [
   },
   {
     id: 3,
-    icon: "path/to/icon3.png",
+    icon: "mfpoCalculator.png",
     title: "Mutual Fund Portfolio Overlap Calculator",
     description:
       "Analyzes multiple mutual fund holdings to identify common stocks or securities.",
@@ -28,14 +29,14 @@ const calculators = [
   },
   {
     id: 4,
-    icon: "path/to/icon4.png",
+    icon: "mfEtfCalculator.png",
     title: "Mutual Fund to ETF Comparison Calculator",
     description: "To compare MF performance with ETF.",
     route: "mf-vs-etf-calculator",
   },
   {
     id: 5,
-    icon: "path/to/icon5.png",
+    icon: "assetAllocationTool.png",
     title: "Asset Allocation Tool",
     description:
       "Develop and recommend customized asset allocation strategies for clients based on their risk profiles, investment goals, and time horizons.",
@@ -43,7 +44,7 @@ const calculators = [
   },
   {
     id: 6,
-    icon: "path/to/icon6.png",
+    icon: "mfCfpCalculator.png",
     title: "Mutual Fund Cash Flow Planning Calculator",
     description:
       "Forecast and plan cash flows for clients by calculating expected dividends and capital gains.",
@@ -51,7 +52,7 @@ const calculators = [
   },
   {
     id: 7,
-    icon: "path/to/icon7.png",
+    icon: "GoalBasedInvestCalculator.png",
     title: "Goal-Based Investment Calculator",
     description:
       "Create investment plans for clients' specific financial goals.",
@@ -59,14 +60,14 @@ const calculators = [
   },
   {
     id: 8,
-    icon: "path/to/icon8.png",
+    icon: "mfCamparisonTool.png",
     title: "Mutual Fund Comparison Tool",
     description: "Compare various mutual funds based on multiple criteria.",
     route: "mf-comparison",
   },
   {
     id: 9,
-    icon: "path/to/icon9.png",
+    icon: "EduPlanningCalculator.png",
     title: "Education Planning Calculator",
     description:
       "Planning how much needs to be invested in mutual funds to cover future education costs.",
@@ -74,7 +75,7 @@ const calculators = [
   },
   {
     id: 10,
-    icon: "path/to/icon10.png",
+    icon: "mfWidthdrawalPlanCalculator.png",
     title: "Mutual Fund Withdrawal Plan Calculator",
     description:
       "Planning systematic withdrawals for clients who need regular income from their mutual fund investments.",
@@ -82,14 +83,14 @@ const calculators = [
   },
   {
     id: 11,
-    icon: "path/to/icon11.png",
+    icon: "RiskAnalyzer.png",
     title: "Risk Analyzer",
     description: "Analyze the risk associated with your investments.",
     route: "risk-analyzer",
   },
   {
     id: 12,
-    icon: "path/to/icon12.png",
+    icon: "mfPerformanceAttrCalculator.png",
     title: "Mutual Fund Performance Attribution Calculator",
     description: "Analyze the sources of a mutual fund's performance.",
     route: "mf-perfomance-source-calculator",
@@ -97,14 +98,14 @@ const calculators = [
 
   {
     id: 13,
-    icon: "path/to/icon11.png",
+    icon: "SipCalculator.png",
     title: "SIP Calculator",
     description: "To calculate the SIP required to achieve a certain target.",
     route: "sip-calculator",
   },
   {
     id: 14,
-    icon: "path/to/icon12.png",
+    icon: "LumpsumCalculator.png",
     title: "Lumpsum Calculator",
     description:
       "To calculate the Lumpsum investment required to achieve a certain target.",
