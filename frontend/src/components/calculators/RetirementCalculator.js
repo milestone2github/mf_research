@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "./RetirementCalculator.css";
+import TwoThumbRangeSlider from "../common/TwoThumbRangeSlider";
+import RangeSlider from "../common/RangeSlider";
+import BackButton from "../common/BackButton";
 
 const RetirementCalculator = () => {
-  const [currentAge, setCurrentAge] = useState("");
-  const [retirementAge, setRetirementAge] = useState("");
+  const [currentAge, setCurrentAge] = useState(22);
+  const [retirementAge, setRetirementAge] = useState(60);
   const [lifeExpectancy, setLifeExpectancy] = useState("");
   const [monthlyExpenses, setMonthlyExpenses] = useState("");
   const [annualInflation, setAnnualInflation] = useState("");
@@ -72,18 +75,18 @@ const RetirementCalculator = () => {
     monthlyExpenseAtRetirement: null,
   });
 
-  // useEffect(() => {
-  //   if (
-  //     !currentAge ||
-  //     !retirementAge ||
-  //     !monthlyExpenses ||
-  //     !annualInflation ||
-  //     !accumulationPhaseReturn ||
-  //     !withdrawalPhaseReturn
-  //   ) {
-  //     calculateRetirementSavings();
-  //   }
-  // }, [investmentMix]);
+  useEffect(() => {
+    if (
+      currentAge &&
+      retirementAge &&
+      monthlyExpenses &&
+      annualInflation &&
+      accumulationPhaseReturn &&
+      withdrawalPhaseReturn
+    ) {
+      calculateRetirementSavings();
+    }
+  }, [investmentMix]);
 
   const yearsToRetirement =
     retirementAge && currentAge ? retirementAge - currentAge : 0;
@@ -163,147 +166,370 @@ const RetirementCalculator = () => {
     });
   };
 
-  const handleSliderChange = (e) => {
-    setInvestmentMix(parseInt(e.target.value));
-  };
+  const handleCurrentAge = (e) => {
+    let value = e.target.value;
+    if (!isNaN(Number(value))) {
+      setCurrentAge(value)
+    }
+  }
+
+  const handleRetirementAge = (e) => {
+    let value = e.target.value;
+    if (!isNaN(Number(value))) {
+      setRetirementAge(value)
+    }
+  }
+
+  const handleLifeExpectancy = (e) => {
+    let value = e.target.value;
+    if (!isNaN(Number(value))) {
+      setLifeExpectancy(value)
+    }
+  }
+
+  const handleMonthlyExpences = (e) => {
+    let value = Number(e.target.value);
+    if (!isNaN(value) && value <= 300000) {
+      setMonthlyExpenses(value)
+    }
+  }
+
+  const handleAnnualInflation = (e) => {
+    let value = Number(e.target.value);
+    if (!isNaN(value) && value <= 100) {
+      setAnnualInflation(value)
+    }
+  }
+
+  const handleAccumulationPhaseReturn = (e) => {
+    let value = Number(e.target.value);
+    if (!isNaN(value) && value <= 100) {
+      setAccumulationPhaseReturn(value)
+    }
+  }
+
+  const hanldeWidthdrawalPhaseReturn = (e) => {
+    let value = Number(e.target.value);
+    if (!isNaN(value) && value <= 100) {
+      setWithdrawalPhaseReturn(value)
+    }
+  }
+
+  const handleExistingInvestments = (e) => {
+    let value = Number(e.target.value);
+    if (!isNaN(value)) {
+      setExistingInvestments(value)
+    }
+  }
+
+  const handleExistingSip = (e) => {
+    let value = Number(e.target.value);
+    if (!isNaN(value)) {
+      setExistingSIP(value)
+    }
+  }
+
+  const handlePostRetirementIncome = (e) => {
+    let value = Number(e.target.value);
+    if (!isNaN(value)) {
+      setPostRetirementIncome(value)
+    }
+  }
 
   return (
-    <div className="retirement-calculator">
-      <div className=" flex flex-col">
-        <h2>Retirement Savings Calculator</h2>'
-        <div className="form-cal flex flex-wrap justify-between gap-7 ">
-          <div >
-            <label htmlFor="currentAge">Current Age:</label>
-            <input
-              type="number"
-              placeholder="Current Age"
-              value={currentAge}
-              onChange={(e) => setCurrentAge(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="retirementAge">Retirement Age:</label>
-            <input
-              type="number"
-              placeholder="Retirement Age"
-              value={retirementAge}
-              onChange={(e) => setRetirementAge(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="lifeExpectancy">Life Expectancy:</label>
-            <input
-              type="number"
-              placeholder="Life Expectancy"
-              value={lifeExpectancy}
-              onChange={(e) => setLifeExpectancy(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="monthlyExpenses">Monthly Expenses:</label>
-            <input
-              type="number"
-              placeholder="Monthly Expenses"
-              value={monthlyExpenses}
-              onChange={(e) => setMonthlyExpenses(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="annualInflation">Annual Inflation (%):</label>
-            <input
-              type="number"
-              placeholder="Annual Inflation (%)"
-              value={annualInflation}
-              onChange={(e) => setAnnualInflation(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="accumulationPhaseReturn">
-              Accumulation Phase Return (%):
-            </label>
-            <input
-              type="number"
-              placeholder="Accumulation Phase Return (%)"
-              value={accumulationPhaseReturn}
-              onChange={(e) => setAccumulationPhaseReturn(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="withdrawalPhaseReturn">
-              Withdrawal Phase Return (%):
-            </label>
-            <input
-              type="number"
-              placeholder="Withdrawal Phase Return (%)"
-              value={withdrawalPhaseReturn}
-              onChange={(e) => setWithdrawalPhaseReturn(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="existingInvestments">Existing Investments:</label>
-            <input
-              type="number"
-              placeholder="Existing Investments"
-              value={existingInvestments}
-              onChange={(e) => setExistingInvestments(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="existingSIP">Existing SIP:</label>
-            <input
-              type="number"
-              placeholder="Existing SIP"
-              value={existingSIP}
-              onChange={(e) => setExistingSIP(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="postRetirementIncome">Post-Retirement Income:</label>
-            <input
-              type="number"
-              placeholder="Post-Retirement Income"
-              value={postRetirementIncome}
-              onChange={(e) => setPostRetirementIncome(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className=" flex justify-start">
-          <button onClick={calculateRetirementSavings}>Calculate</button>
+    <div className="retirement-calculator px-3">
+      <div className="relative flex">
+        <span className="absolute left-0 top-1/2 -translate-y-1/2">
+        <BackButton action={() => {window.history.back()}}/>
+        </span>
+
+        <div className="flex flex-col w-fit mx-auto">
+          <h2 className="text-2xl text-dark-blue md:text-3xl font-bold mx-auto my-1">Retirement Savings Calculator</h2>
+          <span className="w-full bg-yellow-600 h-2 text-start"></span>
 
         </div>
-      </div>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-7 mt-6">
+          <div className="border rounded-lg bg-slate-100 flex flex-wrap gap-x-4 gap-y-7 w-full p-4 px-6">
+            <div className="grow">
+              <label htmlFor="currentAge" className=" text-gray-600">Current Age</label>
+              <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+                <input
+                  className="px-3 py-2 text-gray-600 font-bold bg-transparent w-full pe-4 outline-none focus:outline-none"
+                  type="text"
+                  id="currentAge"
+                  placeholder="0"
+                  pattern="[0-9]"
+                  min={1}
+                  maxLength={2}
+                  value={currentAge}
+                  onChange={handleCurrentAge}
+                />
+                <span className="text-gray-400 text-sm absolute right-3 top-1/2 -translate-y-1/2">
+                  years
+                </span>
+
+              </div>
+            </div>
+
+            <div className="grow">
+              <label htmlFor="retirementAge" className="text-gray-600">Retirement Age</label>
+              <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+                <input
+                  className="px-3 text-gray-600 font-bold py-2 bg-transparent w-full pe-4 outline-none focus:outline-none"
+                  type="text"
+                  id="retirementAge"
+                  placeholder="0"
+                  pattern="[0-9]"
+                  min={1}
+                  maxLength={2}
+                  value={retirementAge}
+                  onChange={handleRetirementAge}
+                />
+                <span className="text-gray-400 text-sm absolute right-3 top-1/2 -translate-y-1/2">
+                  years
+                </span>
+
+              </div>
+            </div>
+            <div className="w-full m-0 p-0">
+              <TwoThumbRangeSlider
+                min={0}
+                max={100}
+                selectedMin={currentAge}
+                selectedMax={retirementAge}
+                updateMin={(value) => { setCurrentAge(value) }}
+                updateMax={(value) => { setRetirementAge(value) }} />
+            </div>
+
+          </div>
+
+          <div className="border grow shrink basis-72 md:basis-[40%] w-full md:w-1/2 rounded-lg bg-slate-100 p-4 px-6">
+            <label htmlFor="lifeExpectancy" className="text-gray-600">Life Expectancy</label>
+            <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+              <input
+                className="px-3 py-2 w-full text-gray-600 font-bold bg-transparent pe-4 outline-none focus:outline-none"
+                type="text"
+                id="lifeExpectancy"
+                placeholder="0"
+                pattern="[0-9]"
+                min={1}
+                maxLength={2}
+                value={lifeExpectancy}
+                onChange={handleLifeExpectancy}
+              />
+              <span className="text-gray-400 text-sm absolute right-3 top-1/2 -translate-y-1/2">
+                years
+              </span>
+            </div>
+
+            <div className="mt-4">
+              <RangeSlider min={0} max={120} updateValue={(value) => setLifeExpectancy(value)} />
+            </div>
+          </div>
+
+          <div className="border grow shrink basis-72 md:basis-[40%] w-full md:w-1/2 rounded-lg bg-slate-100 p-4 px-6">
+            <label htmlFor="monthlyExpences" className="text-gray-600">Monthly Expenses</label>
+            <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+              <span className="text-gray-400 text-sm absolute left-3 top-1/2 -translate-y-1/2">
+                ₹
+              </span>
+              <input
+                className="px-3 py-2 text-gray-600 font-bold w-full bg-transparent ps-6 outline-none focus:outline-none"
+                type="text"
+                id="monthlyExpences"
+                placeholder="0"
+                pattern="[0-9]"
+                min={0}
+                maxLength={6}
+                value={monthlyExpenses}
+                onChange={handleMonthlyExpences}
+              />
+            </div>
+            <div className="mt-4">
+              <RangeSlider min={0} max={300000} step={1000} updateValue={(value) => setMonthlyExpenses(value)} />
+            </div>
+          </div>
+
+          <div className="border grow shrink basis-72 rounded-lg bg-slate-100 p-4 px-6">
+            <label htmlFor="annualInflation" className="text-gray-600">Annual Inflation</label>
+            <div className="mt-1 border-2 bg-primary-white border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+              <input
+                className="ps-3 py-2 w-full text-gray-600 font-bold bg-transparent pe-4 outline-none focus:outline-none"
+                type="text"
+                id="annualInflation"
+                placeholder="0"
+                pattern="[0-9]"
+                min={0}
+                maxLength={3}
+                value={annualInflation}
+                onChange={handleAnnualInflation}
+              />
+              <span className="text-gray-400 font-bold bg-slate-100 text-center h-full w-12 border-s-2 border-s-gray-300 flex items-center justify-center text-sm rounded-e-md absolute right-0 top-1/2 -translate-y-1/2">
+                %
+              </span>
+            </div>
+          </div>
+
+          <div className="border grow shrink basis-72 rounded-lg bg-slate-100 p-4 px-6">
+            <label htmlFor="accumulationPhaseReturn" className="text-gray-600">Accumulation Phase Return</label>
+            <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+              <input
+                className="px-3 py-2 w-full text-gray-600 font-bold bg-transparent pe-4 outline-none focus:outline-none"
+                type="text"
+                id="accumulationPhaseReturn"
+                placeholder="0"
+                pattern="[0-9]"
+                min={0}
+                maxLength={3}
+                value={accumulationPhaseReturn}
+                onChange={handleAccumulationPhaseReturn}
+              />
+              <span className="text-gray-400 font-bold bg-slate-100 text-center h-full w-12 border-s-2 border-s-gray-300 flex items-center justify-center text-sm rounded-e-md absolute right-0 top-1/2 -translate-y-1/2">
+                %
+              </span>
+            </div>
+          </div>
+
+          <div className="border grow shrink basis-72 rounded-lg bg-slate-100 p-4 px-6">
+            <label htmlFor="withdrawalPhaseReturn" className="text-gray-600">
+              Withdrawal Phase Return
+            </label>
+
+            <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+              <input
+                className="ps-3 py-2 w-full text-gray-600 font-bold bg-transparent pe-4 outline-none focus:outline-none"
+                type="text"
+                id="withdrawalPhaseReturn"
+                placeholder="0"
+                pattern="[0-9]"
+                min={0}
+                maxLength={3}
+                value={withdrawalPhaseReturn}
+                onChange={hanldeWidthdrawalPhaseReturn}
+              />
+              <span className="text-gray-400 font-bold bg-slate-100 text-center h-full w-12 border-s-2 border-s-gray-300 flex items-center justify-center text-sm rounded-e-md absolute right-0 top-1/2 -translate-y-1/2">
+                %
+              </span>
+            </div>
+          </div>
+
+          <div className="border grow shrink basis-72 rounded-lg bg-slate-100 p-4 px-6">
+            <label htmlFor="existingInvestments" className="text-gray-600">Existing Investments</label>
+            <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+              <span className="text-gray-400 bg-slate-100 border-e-2 border-e-gray-300 h-full w-12 font-bold rounded-s-md text-sm absolute flex items-center justify-center left-0 top-1/2 -translate-y-1/2">
+                ₹
+              </span>
+              <input
+                className="ps-14 pe-3 py-2 w-full text-gray-600 font-bold bg-transparent outline-none focus:outline-none"
+                type="text"
+                id="existingInvestments"
+                placeholder="0"
+                pattern="[0-9]"
+                min={0}
+                maxLength={7}
+                value={existingInvestments}
+                onChange={handleExistingInvestments}
+              />
+            </div>
+          </div>
+
+          <div className="border grow shrink basis-72 rounded-lg bg-slate-100 p-4 px-6">
+            <label htmlFor="existingSIP" className="text-gray-600">Existing SIP</label>
+            <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+              <span className="text-gray-400 bg-slate-100 border-e-2 border-e-gray-300 h-full w-12 font-bold rounded-s-md text-sm absolute flex items-center justify-center left-0 top-1/2 -translate-y-1/2">
+                ₹
+              </span>
+              <input
+                className="ps-14 pe-3 py-2 w-full text-gray-600 font-bold bg-transparent outline-none focus:outline-none"
+                type="text"
+                id="existingSIP"
+                placeholder="0"
+                pattern="[0-9]"
+                min={0}
+                maxLength={7}
+                value={existingSIP}
+                onChange={handleExistingSip}
+              />
+            </div>
+          </div>
+
+          <div className="border grow shrink basis-72 rounded-lg bg-slate-100 p-4 px-6">
+            <label htmlFor="postRetirementIncome" className="text-gray-600">Post-Retirement Income</label>
+            <div className="mt-1 bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+              <span className="text-gray-400 bg-slate-100 border-e-2 border-e-gray-300 h-full w-12 font-bold rounded-s-md text-sm absolute flex items-center justify-center left-0 top-1/2 -translate-y-1/2">
+                ₹
+              </span>
+              <input
+                className="ps-14 pe-3 py-2 text-gray-600 font-bold w-full bg-transparent outline-none focus:outline-none"
+                type="text"
+                id="postRetirementIncome"
+                placeholder="0"
+                pattern="[0-9]"
+                min={0}
+                maxLength={7}
+                value={postRetirementIncome}
+                onChange={handlePostRetirementIncome}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-start my-2 mt-6">
+          <button
+            onClick={calculateRetirementSavings}
+            className="bg-yellow-600 rounded-md px-16 py-3 text-slate-100 hover:bg-[#b57b00]"
+          >Calculate</button>
+
+        </div>
+      
       {results.totalCorpusNeeded !== null && (
         <ul className="info grid grid-cols-3 justify-center  gap-2 mt-5">
-          <li><p>Years to Retirement</p><span>{yearsToRetirement}</span> </li>
+          <li><p>Years to Retirement</p><span className="values">{yearsToRetirement}</span> </li>
           <li>
-            <p>Total Corpus Needed</p> <span>{formatCurrency(results.totalCorpusNeeded)}</span>
+            <p>Total Corpus Needed</p> <span className="values">{formatCurrency(results.totalCorpusNeeded)}</span>
           </li>
-          <li> <p>Total SIP Required</p> <span>{formatCurrency(results.sipRequired)}</span></li>
+          <li> <p>Total SIP Required</p> <span className="values">{formatCurrency(results.sipRequired)}</span></li>
           <li>
-            <p>Total Lumpsum Required</p> <span>{formatCurrency(results.lumpSumRequired)}</span>
-          </li>
-          <li>
-           <p> Monthly Pension Amount{" "}</p>
-            <span>{formatCurrency(results.monthlyPensionAmount)}</span>
+            <p>Total Lumpsum Required</p> <span className="values">{formatCurrency(results.lumpSumRequired)}</span>
           </li>
           <li>
-           <p>Monthly Expense at Retirement{" "}</p> 
-            <span>{formatCurrency(results.monthlyExpenseAtRetirement)}</span>
+            <p> Monthly Pension Amount{" "}</p>
+            <span className="values">{formatCurrency(results.monthlyPensionAmount)}</span>
           </li>
-          <li className=" col-span-3  flex justify-center  items-center gap-2">
-            <input
-            style={{marginBottom: 0}}
-            className="mb-0 m-0 outline-none border-0"
-              type="range"
-              min="0"
-              max="100"
-              value={investmentMix}
-              onChange={handleSliderChange}
-            />
-            <label className=" ">
-              Investment Mix: {investmentMix}% SIP, {100 - investmentMix}% Lump
-              Sum
-            </label>
+          <li>
+            <p>Monthly Expense at Retirement{" "}</p>
+            <span className="values">{formatCurrency(results.monthlyExpenseAtRetirement)}</span>
+          </li>
+          <li className=" col-span-3 flex justify-center items-center gap-2 border">
+            <div className="flex justify-around w-full">
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold">{investmentMix}
+                  <span className="text-sm"> %</span>
+                </span>
+
+                <span className="text-sm text-center text-yellow-600">SIP</span>
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold">{100 - investmentMix}
+                  <span className="text-sm"> %</span>
+                </span>
+
+                <span className="text-sm text-center text-yellow-600">Lumpsum</span>
+              </div>
+            </div>
+            <div className="w-full px-6 relative">
+              <RangeSlider 
+                min={0} 
+                max={100} 
+                selectedValue={investmentMix} 
+                updateValue={(value) => setInvestmentMix(value)} 
+              />
+
+              <label className="absolute text-[#dadada] text-sm bottom-0 left-1/2 -translate-x-1/2">
+                Investment Mix
+              </label>
+            </div>
             {/* <button type="button" onClick={generatePublicLink}>
               Generate Public Link
             </button> */}
@@ -317,7 +543,7 @@ const RetirementCalculator = () => {
             </div>
           )}
         </ul>
-        )} 
+      )}
     </div> // This closes the main container div
   );
 };

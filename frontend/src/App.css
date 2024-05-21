@@ -20,10 +20,15 @@
 .App-header {
   background-color: #1a202c; /* Dark, professional header background */
   color: white;
-  padding: 0rem 1rem;
+  padding: 0.5rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 140px;
+  /* position: sticky;
+  position: -webkit-sticky;
+  top: 0; */
+  z-index: 1000;
 }
 .header-content h1{
   color: #5A51DF;
@@ -34,6 +39,11 @@
   color: #cbd5e0; /* Light text color for readability */
   width: 250px;
   padding: 1rem;
+  
+  overflow-y: auto;
+  /* position: sticky;
+  position: -webkit-sticky;
+  top: 57px; */
 }
 
 .app-sidebar ul li a {
@@ -66,7 +76,8 @@
   padding: 20px;
   /* background-color: #edf2f7;  */
     background-color: #FDFEFE; 
-  overflow: auto;
+    height: calc(100vh - 60px);
+  overflow-y: auto;
 }
 
 .header-content {
@@ -78,9 +89,9 @@
 }
 
 .mNivesh-logo {
-  max-width: 40%;
   max-height: 100px;
-  width: auto;
+  width: 160px;
+  margin: 0;
   height: auto;
   cursor: pointer; /* Indicates the logo is clickable */
   transition: transform 0.3s ease; /* Smooth scaling animation */
@@ -106,7 +117,7 @@
   background-color: #4a5568;
   color: white;
   border: none;
-  padding: 10px 15px;
+  padding: 8px 16px;
   cursor: pointer;
   transition: background-color 0.3s;
   border-radius: 0.25rem;

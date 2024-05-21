@@ -30,7 +30,7 @@ const Header = () => {
     return (
         <>
             {isLoggedIn && <header className="App-header">
-                <div className="flex justify-between w-full items-center ">
+                <div className="flex justify-between w-full items-center">
                     <NavLink to="/">
                         <img
                             src={mNiveshLogo}
@@ -38,7 +38,7 @@ const Header = () => {
                             className="mNivesh-logo"
                         />
                     </NavLink>
-                    <h1 className=" text-white text-xl mt-6">Mutual Fund Research Portal</h1>
+                    <h1 className="mb-0 m-0 text-white text-xl">Mutual Fund Research Portal</h1>
                     <div className="header-right">
                         {isLoggedIn && <span className="user-name">Welcome, {userData?.name}</span>}
                         <button className="logout-button" onClick={handleLogout}>Logout</button>

@@ -85,7 +85,7 @@ function App() {
                     path="retirement-calculator"
                     element={<RetirementCalculator />}
                   />
-                  <Route
+                  {/* <Route
                     path="target-date-calculator"
                     element={<TargetDateFundCalculator />}
                   />
@@ -130,7 +130,7 @@ function App() {
                   <Route
                     path="lumpsum-calculator"
                     element={<LumpsumCalculator />}
-                  />
+                  /> */}
                 </Route>
               </Routes>
             </main>
