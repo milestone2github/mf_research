@@ -1,4 +1,3 @@
-import getCurrentDate from "./getCurrentDate"
 
 export const hollowSystematicObj = {
   systematicTraxType: 'SIP',

@@ -3,7 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const userSlice = createSlice({
   name: 'user',
   initialState: {
-    isLoading: true,
+    isLoading: true ,//true
     isLoggedIn: false, //make it false while deployment
     userData: null,
   },

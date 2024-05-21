@@ -1,11 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
-  NavLink,
   useNavigate,
-  Outlet,
 } from "react-router-dom";
 import PortfolioReport from "./components/pages/PortfolioReport";
 import ExistingPortfolio from "./components/pages/ExistingPortfolio";
@@ -34,8 +31,6 @@ import AssociatePayoutAccounts from "./components/pages/associatePayout-accounts
 import DirClientPayouts from "./components/pages/DirClientPayout";
 import DirectClientPayouts from "./components/pages/DirClientPayout-accounts";
 import Loginpage from "./components/pages/Loginpage";
-import axios from 'axios';
-import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./components/common/Sidebar";
 import Header from "./components/common/Header";
 import CalculatorList from "./components/calculators/CalculatorList";
@@ -43,15 +38,12 @@ import MfTransForm from "./components/pages/MfTransForm";
 import Protected from "./components/common/Protected";
 
 function App() {
-  const dispatch = useDispatch()
-  const { isLoggedIn } = useSelector((state) => state.user)
-  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)// test
 
   if (loading) {
     return <h1>Loading...</h1>
   }
-  // if (isLoggedIn) {
+
     return (
       <>
         <div className="App">
@@ -138,13 +130,6 @@ function App() {
         </div>
       </>
     );
-  // }
-  // else {
-  //   return (
-  //     <Loginpage />
-
-  //   )
-  // }
 }
 
 export default App;
