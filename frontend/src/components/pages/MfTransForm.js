@@ -302,7 +302,7 @@ function MfTransForm() {
   }
 
   return (
-    <div className=''>
+    <div>
       <Alert alertState={alert} updateAlert={updateAlert} />
 
       {/* <Header /> */}

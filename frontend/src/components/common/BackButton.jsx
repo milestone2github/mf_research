@@ -6,6 +6,7 @@ function BackButton({action}) {
   return (
     <button 
       onClick={action}
+      title='Back'
       className='p-3 rounded-md border bg-gray-100 hover:-translate-x-1 hover:bg-gray-200'>
       <GoArrowLeft />
     </button>

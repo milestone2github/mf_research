@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Range, getTrackBackground } from 'react-range';
 
 const RangeSlider = ({min, max, selectedValue, step, updateValue}) => {
@@ -11,6 +11,11 @@ const RangeSlider = ({min, max, selectedValue, step, updateValue}) => {
     setValue(values)
     updateValue(values[0])
   }
+
+  useEffect(() => {
+    setValue([selectedValue])
+  }, [selectedValue])
+  
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>

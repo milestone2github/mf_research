@@ -1,6 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-const baseUrl = `${process.env.REACT_APP_API_BASE_URL}/api`
-console.log('baseurl: ', baseUrl) //test
+const baseUrl = `${process.env.REACT_APP_API_BASE_URL}/api/data`
 
 // Async thunk for fetching AMC name options
 export const fetchInvestorData = createAsyncThunk(

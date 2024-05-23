@@ -14,7 +14,7 @@ const Loginpage = () => {
   const googlelogin = async () => {
     try {
       const data = await loginwithgoogle()
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/checkuser`, {
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/auth/google/verify`, {
         method: "POST",
         credentials: 'include',
         headers: {
@@ -41,7 +41,7 @@ const Loginpage = () => {
       <header className='w-full'>
         <nav className='w-full flex'>
           <Link to='/' className='logo ms-auto'>
-            <img src={mNiveshlogo} alt="Niveshonline link Logo" style={{ height: '32px' }} />
+            <img src={mNiveshlogo} loading='lazy' alt="Niveshonline link Logo" style={{ height: '32px' }} />
           </Link>
         </nav>
       </header>

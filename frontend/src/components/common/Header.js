@@ -13,7 +13,7 @@ const Header = () => {
     // Method to handle logout
     const handleLogout = async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/logout`, {
+            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/auth/logout`, {
                 method: 'POST',
                 credentials: 'include',
             });

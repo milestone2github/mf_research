@@ -4,9 +4,15 @@ import TwoThumbRangeSlider from "../common/TwoThumbRangeSlider";
 import RangeSlider from "../common/RangeSlider";
 import BackButton from "../common/BackButton";
 
+const initialError = {
+  ageError: null,
+  lifeExpectancy: null
+}
+
 const RetirementCalculator = () => {
   const [currentAge, setCurrentAge] = useState(22);
   const [retirementAge, setRetirementAge] = useState(60);
+  const [currentAndRetirementAge, setCurrentAndRetirementAge] = useState([22, 60]);
   const [lifeExpectancy, setLifeExpectancy] = useState("");
   const [monthlyExpenses, setMonthlyExpenses] = useState("");
   const [annualInflation, setAnnualInflation] = useState("");
@@ -17,6 +23,7 @@ const RetirementCalculator = () => {
   const [postRetirementIncome, setPostRetirementIncome] = useState("");
   const [investmentMix, setInvestmentMix] = useState(50);
   const [publicLink, setPublicLink] = useState("");
+  const [error, setError] = useState(initialError);
 
   const generatePublicLink = () => {
     console.log("generatePublicLink function called");
@@ -98,7 +105,8 @@ const RetirementCalculator = () => {
       !monthlyExpenses ||
       !annualInflation ||
       !accumulationPhaseReturn ||
-      !withdrawalPhaseReturn
+      !withdrawalPhaseReturn ||
+      currentAge > retirementAge
     ) {
       alert("Please fill in all mandatory fields.");
     }
@@ -236,6 +244,39 @@ const RetirementCalculator = () => {
     }
   }
 
+  const handleCurrentAndRetirementAgeBlur = (e) => {
+    if(currentAge <= retirementAge) {
+      setCurrentAndRetirementAge([currentAge, retirementAge])
+    }
+  }
+
+  useEffect(() => {
+    if(currentAge > retirementAge) {
+      setError(prevError => ({...prevError, ageError: 'Retirement age cannot be less than Current age'}))
+    }
+    else {
+      setError(prevError => ({...prevError, ageError: null}))
+    }
+  
+    return () => {
+      setError(prevError => ({...prevError, ageError: null}))
+    }
+  }, [currentAge, retirementAge])
+
+  useEffect(() => {
+    if(lifeExpectancy < retirementAge) {
+      setError(prevError => ({...prevError, lifeExpectancy: 'Life expectancy age cannot be less than Retirement age'}))
+    }
+    else {
+      setError(prevError => ({...prevError, lifeExpectancy: null}))
+    }
+  
+    return () => {
+      setError(prevError => ({...prevError, lifeExpectancy: null}))
+    }
+  }, [lifeExpectancy])
+  
+
   return (
     <div className="retirement-calculator px-3">
       <div className="relative flex">
@@ -264,6 +305,7 @@ const RetirementCalculator = () => {
                   maxLength={2}
                   value={currentAge}
                   onChange={handleCurrentAge}
+                  onBlur={handleCurrentAndRetirementAgeBlur}
                 />
                 <span className="text-gray-400 text-sm absolute right-3 top-1/2 -translate-y-1/2">
                   years
@@ -285,6 +327,7 @@ const RetirementCalculator = () => {
                   maxLength={2}
                   value={retirementAge}
                   onChange={handleRetirementAge}
+                  onBlur={handleCurrentAndRetirementAgeBlur}
                 />
                 <span className="text-gray-400 text-sm absolute right-3 top-1/2 -translate-y-1/2">
                   years
@@ -292,12 +335,14 @@ const RetirementCalculator = () => {
 
               </div>
             </div>
+            
+            {error.ageError && <p className="w-full m-0 p-0 -mt-4 text-red-500 text-sm">{error.ageError}</p>}
+            
             <div className="w-full m-0 p-0">
               <TwoThumbRangeSlider
                 min={0}
                 max={100}
-                selectedMin={currentAge}
-                selectedMax={retirementAge}
+                selectedValues={currentAndRetirementAge}
                 updateMin={(value) => { setCurrentAge(value) }}
                 updateMax={(value) => { setRetirementAge(value) }} />
             </div>
@@ -323,8 +368,10 @@ const RetirementCalculator = () => {
               </span>
             </div>
 
+            {error.lifeExpectancy && <p className="w-full m-0 ms-1 mt-1 text-red-500 text-sm">{error.lifeExpectancy}</p>}
+
             <div className="mt-4">
-              <RangeSlider min={0} max={120} updateValue={(value) => setLifeExpectancy(value)} />
+              <RangeSlider min={0} max={120} selectedValue={lifeExpectancy} updateValue={(value) => setLifeExpectancy(value)} />
             </div>
           </div>
 
@@ -347,7 +394,7 @@ const RetirementCalculator = () => {
               />
             </div>
             <div className="mt-4">
-              <RangeSlider min={0} max={300000} step={1000} updateValue={(value) => setMonthlyExpenses(value)} />
+              <RangeSlider min={0} max={300000} step={1000} selectedValue={monthlyExpenses} updateValue={(value) => setMonthlyExpenses(value)} />
             </div>
           </div>
 

@@ -1,68 +1,8 @@
-// import React, { useState } from 'react';
-// // import '../calculators/RetirementCalculator.css';
-
-// const RangeSlider = ({min = 0, max = 100, updateMinValue, updateMaxValue}) => {
-//   const [minVal, setMinVal] = useState(10);
-//   const [maxVal, setMaxVal] = useState(50);
-//   // const min = 0;
-//   // const max = 100;
-
-//   const handleMinChange = (e) => {
-//     const value = Math.min(Number(e.target.value), maxVal - 1);
-//     setMinVal(value);
-//     updateMinValue(value)
-//   };
-
-//   const handleMaxChange = (e) => {
-//     const value = Math.max(Number(e.target.value), minVal + 1);
-//     setMaxVal(value);
-//     updateMaxValue(value)
-//   };
-
-//   return (
-//     <div className="range-slider flex flex-col">
-//       <input
-//         type="range"
-//         min={min}
-//         max={max}
-//         value={minVal}
-//         onChange={handleMinChange}
-//         className="thumb thumb-left"
-//         style={{ zIndex: minVal > max - 10 ? 5 : 'auto' }}
-//       />
-//       <input
-//         type="range"
-//         min={min}
-//         max={max}
-//         value={maxVal}
-//         onChange={handleMaxChange}
-//         className="thumb thumb-right"
-//       />
-
-//       <div className="slider">
-//         <div className="track" />
-//         <div className="range" style={{ left: `${(minVal / max) * 100}%`, right: `${100 - (maxVal / max) * 100}%` }} />
-//       </div>
-
-//       <div></div>
-//       {/* <output className="output">Start: {minVal}, End: {maxVal}</output> */}
-//       <div className="flex justify-between mt-8 text-gray-600">
-//       <span className='min-label'>{min}</span>
-//       <span className='max-label'>{max}</span>
-
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default RangeSlider;
-
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Range, getTrackBackground } from 'react-range';
 
-const TwoThumbRangeSlider = ({min, max, selectedMin, selectedMax, updateMin, updateMax}) => {
-  const [values, setValues] = useState([selectedMin || 0, selectedMax || 50]);
+const TwoThumbRangeSlider = ({min, max, selectedValues, updateMin, updateMax}) => {
+  const [values, setValues] = useState([selectedValues[0] || 0, selectedValues[1] || 50]);
   const STEP = 1;
   const MIN = min || 0;
   const MAX = max || 100;
@@ -72,6 +12,12 @@ const TwoThumbRangeSlider = ({min, max, selectedMin, selectedMax, updateMin, upd
     updateMin(values[0])
     updateMax(values[1])
   }
+
+  useEffect(() => {
+    setValues(selectedValues)
+  
+  }, [selectedValues])
+  
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>

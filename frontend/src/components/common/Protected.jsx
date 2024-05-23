@@ -13,7 +13,7 @@ function Protected({children}) {
     const checkLoggedIn = async () => {
       dispatch(setLoading(true));
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/user/checkLoggedIn`, {
+        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/auth/checkLoggedIn`, {
           method: "GET",
           credentials: 'include'
         });
