@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { default: axios } = require('axios');
 const User = require('../models/User');
+require('../models/Role');
 const jwt = require('jsonwebtoken');
 
 const loginWithZoho = (req, res) => {
@@ -30,10 +31,12 @@ const zohoCallback = async (req, res) => {
     // Store user data in session
 
     const userExist = await User.findOne({ email: decode.email }).populate("role")
+    console.log('user:', userExist)//test
     if (userExist) {
       req.session.user = {
         name: `${decode.first_name} ${decode.last_name}`,
-        userdata: userExist,
+        email: userExist.email,
+        role: userExist.role
       };
       res.redirect(`${process.env.ORIGIN}`);
     }
@@ -84,7 +87,8 @@ const verifyGoogleUser = async (req, res) => {
     if (userExist) {
       req.session.user = {
         name: req.body.fullname,
-        userdata: userExist,
+        email: userExist.email,
+        role: userExist.role
       };
 
       return res.status(200).json({success:true , msg:"logged in successfull" , user:{
