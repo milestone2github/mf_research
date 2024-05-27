@@ -31,7 +31,7 @@ const zohoCallback = async (req, res) => {
     // Store user data in session
 
     const userExist = await User.findOne({ email: decode.email }).populate("role")
-    console.log('user:', userExist)//test
+
     if (userExist) {
       req.session.user = {
         name: `${decode.first_name} ${decode.last_name}`,
