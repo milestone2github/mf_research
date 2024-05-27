@@ -8,7 +8,7 @@ const MFTransRequest = () => {
   const permissions = userData?.role?.permissions;
 
   // Component code here
-  if(!permissions.find(perm => perm === 'MF Transaction')) 
+  if(!permissions.find(perm => perm === 'MF Trans Request')) 
     return (<AccessDenied />)
 
   return <div>MF Trans Request Page</div>;
