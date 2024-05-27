@@ -3,11 +3,12 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 // import "./styles.css"; // Ensure you have some basic CSS for styling
 import { MdOutlineCurrencyRupee } from "react-icons/md";
+import { useSelector } from "react-redux";
+import AccessDenied from "./AccessDenied";
 
 const AssociatePayoutAccounts = () => {
   const [originalData, setOriginalData] = useState([])
   const [data, setData] = useState({});
-  console.log(Object.entries(data));
   const [total, setTotal] = useState(null)
   const [load, setLoad] = useState(false)
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,10 @@ const AssociatePayoutAccounts = () => {
     const today = new Date();
     return today.toISOString().substring(0, 10);
   });
+
+  const { userData } = useSelector(state => state.user);
+  const permissions = userData?.role?.permissions;
+
   useEffect(() => {
     if (originalData.length) {
       let filteredData = originalData.filter(function (item) {
@@ -51,6 +56,7 @@ const AssociatePayoutAccounts = () => {
     gettotalsum(data)
   }, [data])
   useEffect(() => {
+    if(!permissions.find(perm => perm === 'Associate Payout Accounts')){ return; }
     setLoading(true);
     axios
       .get(
@@ -389,6 +395,9 @@ const AssociatePayoutAccounts = () => {
     }
   };
 
+  if(!permissions.find(perm => perm === 'Associate Payout Accounts')) 
+    return (<AccessDenied />)
+  
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div className="loader"></div>
   </div>
   if (error) return <div>Error: {error}</div>;

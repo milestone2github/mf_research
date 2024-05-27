@@ -64,7 +64,7 @@ function App() {
                 <Route path="/associate-payout" element={<Protected><AssociatePayout /></Protected>} />
                 <Route path="/associate-payout-accounts" element={<Protected><AssociatePayoutAccounts /></Protected>} />
                 <Route path="/dir-client-payout" element={<Protected><DirClientPayouts /></Protected>} />
-                <Route path="/dir-clientPayout-accounts" element={<Protected><DirectClientPayouts /></Protected>} />
+                <Route path="/dir-client-payout-accounts" element={<Protected><DirectClientPayouts /></Protected>} />
                 <Route path="/mf-trans-form" element={<Protected><MfTransForm /></Protected>} />
                 <Route path="/login" element={<Loginpage />} />
 

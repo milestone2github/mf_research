@@ -3,6 +3,8 @@ import axios from "axios";
 // import * as XLSX from "xlsx";
 // import "./styles.css"; // Ensure you have some basic CSS for styling
 import { MdOutlineCurrencyRupee } from "react-icons/md";
+import { useSelector } from "react-redux";
+import AccessDenied from "./AccessDenied";
 
 const DirClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -14,6 +16,10 @@ const DirClientPayouts = () => {
     const today = new Date();
     return today.toISOString().substring(0, 10);
   });
+
+  const { userData } = useSelector(state => state.user);
+  const permissions = userData?.role?.permissions;
+
   const gettotalsum = async () => {
     try {
       setLoad(true)
@@ -33,6 +39,7 @@ const DirClientPayouts = () => {
     gettotalsum(data)
   }, [data])
   useEffect(() => {
+    if(!permissions.find(perm => perm === 'Direct Client Payout')){ return; }
     setLoading(true);
     axios
       .get(
@@ -129,6 +136,9 @@ const DirClientPayouts = () => {
         );
       });
   };
+
+  if(!permissions.find(perm => perm === 'Direct Client Payout')) 
+    return (<AccessDenied />)
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div> 
   </div>

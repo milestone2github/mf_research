@@ -6,7 +6,6 @@ import { setLoggedIn } from '../../Reducers/UserSlice'
 
 const Header = () => {
     const { isLoggedIn, userData } = useSelector((state) => state.user)
-    console.log(userData);
     const navigate = useNavigate()
     const dispatch = useDispatch()
     

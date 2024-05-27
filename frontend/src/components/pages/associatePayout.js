@@ -2,15 +2,18 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 // import * as XLSX from "xlsx";
-// Ensure you have some basic CSS for styling
 import { useSelector } from "react-redux";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
+import AccessDenied from "./AccessDenied";
 
 const AssociatePayout = () => {
   const navigate = useNavigate()
   const [total, setTotal] = useState(null)
   const [load, setLoad] = useState(false)
   const [data, setData] = useState({});
+  const { userData } = useSelector(state => state.user);
+  const permissions = userData?.role?.permissions;
+
   const gettotalsum = async () => {
     try {
       setLoad(true)
@@ -69,6 +72,7 @@ const AssociatePayout = () => {
   //    }
   // }, [userstate])
   useEffect(() => {
+    if(!permissions.find(perm => perm === 'Associate Payout')){ return; }
     setLoading(true);
     axios
       .get(
@@ -441,6 +445,9 @@ const AssociatePayout = () => {
   //     // You can add additional error handling logic here, such as showing an error message to the user
   //   }
   // };
+
+  if(!permissions.find(perm => perm === 'Associate Payout')) 
+    return (<AccessDenied />)
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>

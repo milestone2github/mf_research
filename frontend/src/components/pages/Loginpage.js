@@ -11,6 +11,7 @@ const Loginpage = () => {
   const handleLogin = async () => {
     window.location.href = `${process.env.REACT_APP_API_BASE_URL}/auth/zoho`
   }
+
   const googlelogin = async () => {
     try {
       const data = await loginwithgoogle()
@@ -49,7 +50,7 @@ const Loginpage = () => {
       <div className='flex items-center justify-center rounded-md shadow-lg'>
         <section className='w-full flex flex-col items-center h-full px-6 py-6'>
           <h1 className='text-dark-blue text-4xl m-0 my-2'>Welcome to mNivesh</h1>
-          <p className='text-base text-gray-500'>Login to cotinue</p>
+          <p className='text-base text-gray-500'>Login to continue</p>
 
           <button
             className='mt-12 px-5 py-0 text-dark-blue border-dark-blue hover:shadow-md hover:shadow-blue-200 gap-x-3 rounded-md border flex items-center'

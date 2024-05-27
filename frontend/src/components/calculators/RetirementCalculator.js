@@ -3,6 +3,8 @@ import "./RetirementCalculator.css";
 import TwoThumbRangeSlider from "../common/TwoThumbRangeSlider";
 import RangeSlider from "../common/RangeSlider";
 import BackButton from "../common/BackButton";
+import { useSelector } from "react-redux";
+import AccessDenied from "../pages/AccessDenied";
 
 const initialError = {
   ageError: null,
@@ -24,6 +26,9 @@ const RetirementCalculator = () => {
   const [investmentMix, setInvestmentMix] = useState(50);
   const [publicLink, setPublicLink] = useState("");
   const [error, setError] = useState(initialError);
+
+  const { userData } = useSelector(state => state.user);
+  const permissions = userData?.role?.permissions;
 
   const generatePublicLink = () => {
     console.log("generatePublicLink function called");
@@ -276,6 +281,8 @@ const RetirementCalculator = () => {
     }
   }, [lifeExpectancy])
   
+  if(!permissions.find(perm => perm === 'Retirement Calculator')) 
+    return (<AccessDenied />)
 
   return (
     <div className="retirement-calculator px-3">
