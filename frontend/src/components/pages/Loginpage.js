@@ -1,13 +1,30 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { SiZoho } from "react-icons/si";
 import { FcGoogle } from "react-icons/fc";
 import mNiveshlogo from '../../assets/mNiveshLogo.png'
 import { loginwithgoogle } from '../../firebase/googleauthenticate';
 import { Link, useNavigate } from 'react-router-dom';
 import illustration from '../../assets/illustration.png'
+import Alert from '../mfTransaction/common/Alert';
 
 const Loginpage = () => {
   const navigate = useNavigate()
+  const [alert, setAlert] = useState({isOn: false, message: 'Access Denied', type: ''})
+
+  useEffect(() => {
+    let query = window.location.search;
+    // Create a test URLSearchParams object
+    const searchParams = new URLSearchParams(query);
+
+    // set error to the state
+    if(searchParams.get('error'))
+      setAlert({isOn: true, type: 'error', message: 'Permission Denied'})
+}, [])
+
+  const updateAlert = (value) => {
+    setAlert(value)
+  }
+
   const handleLogin = async () => {
     window.location.href = `${process.env.REACT_APP_API_BASE_URL}/auth/zoho`
   }
@@ -46,12 +63,13 @@ const Loginpage = () => {
           </Link>
         </nav>
       </header>
+      <Alert alertState={alert} updateAlert={updateAlert}/>
 
       <div className='flex items-center justify-center rounded-md shadow-lg'>
         <section className='w-full flex flex-col items-center h-full px-6 py-6'>
           <h1 className='text-dark-blue text-4xl m-0 my-2'>Welcome to mNivesh</h1>
           <p className='text-base text-gray-500'>Login to continue</p>
-
+          
           <button
             className='mt-12 px-5 py-0 text-dark-blue border-dark-blue hover:shadow-md hover:shadow-blue-200 gap-x-3 rounded-md border flex items-center'
             onClick={handleLogin}
