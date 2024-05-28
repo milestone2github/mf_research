@@ -38,10 +38,10 @@ const zohoCallback = async (req, res) => {
         email: userExist.email,
         role: userExist.role
       };
-      res.redirect(`${process.env.ORIGIN}`);
+      res.redirect(process.env.FRONTEND_URL ?`${process.env.FRONTEND_URL}/` : '/');
     }
     else {
-      res.redirect(`${process.env.ORIGIN}/login?error=permissiondenied`)
+      res.redirect(process.env.FRONTEND_URL ?`${process.env.FRONTEND_URL}/login?error=permissiondenied` :`/login?error=permissiondenied`)
     }
   } catch (error) {
     console.error(
