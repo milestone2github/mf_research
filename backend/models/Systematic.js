@@ -6,10 +6,7 @@ const systematicTransactionSchema = new mongoose.Schema({
     trim: true,
     default: ""
   },
-  transactionPreference: {
-    type: String,
-    default: ""
-  },
+  transactionPreference: {type: Date, default: Date.now},
   registrant: {
     type: String,
     trim: true,
@@ -49,26 +46,37 @@ const systematicTransactionSchema = new mongoose.Schema({
     trim: true,
     default: ""
   },
-  systematicSchemeOption: {
-    type: String,
-    required: true,
-  },
   systematicFolio: {
     type: String,
     trim: true,
   },
-  sip_swp_stpAmount: { type: Number },
-  tenureOfSip_swp_stp: { type: Number },
   sipPauseMonths: {
     type: String,
     trim: true
   },
-  sip_stp_swpDate: {
-    type: Date,
-  },
-  firstTransactionAmount: {
-    type: Number,
-  }
+  systematicSchemeOption: String,
+  sip_swp_stpAmount: Number,
+  tenureOfSip_swp_stp: Number,
+  sip_stp_swpDate: Date,
+  firstTransactionAmount: Number,
+  status: {type: String, 
+    enum: [
+        'PENDING', 
+        'REQUESTED', 
+        '2FA_VALIDATED', 
+        'EXPIRED', 
+        '2FA_VALIDATED_PAYMENT_PENDING', 
+        'PAYMENT_PROCESSED', 
+        'PAYMENT_STATUS_PENDING', 
+        'SYSTEM_UPDATE_AWAITING',
+        'SEND_TO_RTA',
+        'INVALID_TRANSACTION',
+        'RTA_PROCESSED',
+        'RTA_REJECTED',
+        'ALLOTTED',
+        'ALLOTMENT_PENDING'
+    ]},
+  sessionId: String
 }, {timestamps: true});
 
 module.exports = mongoose.model('systematic', systematicTransactionSchema);

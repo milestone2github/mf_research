@@ -5,7 +5,9 @@ const Switch = require('../models/Switch')
 const transactionFieldsMap = require('../utils/transFieldMap');
 const schemeMap = require("../utils/schemeMap");
 const sendToZohoSheet = require("../utils/sendToZohoSheet");
-
+const { default: axios } = require("axios");
+const NewFundOffer = require("../models/NewFundOffer");
+require('dotenv').config()
 
 const getInvestors = async (req, res) => {
   try {
@@ -19,7 +21,7 @@ const getInvestors = async (req, res) => {
     }
 
     let query = {};
-    const rmName = req.session.user.name;
+    // const rmName = req.session.user.name;
 
     // Add query parameters based on the presence of 'name', 'pan', or 'fh'
     if (name) {
@@ -34,7 +36,7 @@ const getInvestors = async (req, res) => {
 
     // Add "RELATIONSHIP MANAGER" to the query if searchAll is false
     if (!searchAll) {
-      query["RELATIONSHIP  MANAGER"] = rmName.toUpperCase();
+      query["RELATIONSHIP  MANAGER"] = req.session.user.name.toUpperCase();
     }
 
     const result = await collection.find(query).toArray();
@@ -119,7 +121,7 @@ const getFolios = async (req, res) => {
       "ACCOUNT NO": 1
     };
     var result = await collection.find(query, { projection }).toArray();
-   
+
     if (result) {
       res.status(200).json(result);
     } else {
@@ -166,13 +168,20 @@ const postTransForm = async (req, res) => {
       registrantEmail: email
     };
 
+    // create unique session id 
+    let date = Date.now();
+    let randomDigits = Math.floor(Math.random() * 9000 + 1000);
+    let sessionId = date.toString() + email.slice(0, 3) + randomDigits.toString()
+
+
     if (formData.systematicData) {
       for (let i = 0; i < formData.systematicData.length; i++) {
         // combine common data and systematic data
         const combinedSystematic = Object.assign(
           {},
           formData.commonData,
-          formData.systematicData[i]
+          formData.systematicData[i],
+          { sessionId: sessionId }
         );
 
         // store systematic data in database
@@ -199,7 +208,8 @@ const postTransForm = async (req, res) => {
         const combinedRedemption = Object.assign(
           {},
           formData.commonData,
-          formData.purchRedempData[i]
+          formData.purchRedempData[i],
+          { sessionId: sessionId }
         );
 
         // store data in database
@@ -227,10 +237,11 @@ const postTransForm = async (req, res) => {
         const combinedSwitch = Object.assign(
           {},
           formData.commonData,
-          formData.switchData[i]
+          formData.switchData[i],
+          { sessionId: sessionId }
         );
 
-        // store switch data to database
+        // store switch data to database 
         const resswit = await Switch.create(combinedSwitch);
         if (resswit) {
           console.log("Data stored successfully in Switch");
@@ -277,5 +288,460 @@ const postTransForm = async (req, res) => {
   }
 }
 
-module.exports = { getInvestors, getAmcNames, getFolios, getSchemeNames, postTransForm }
+const getFoliosFromFolios = async (req, res) => {
+  try {
+    const {folio, firstHolder, joint1, joint2, pan} = req.query;
+
+    const collection = req.milestoneDb.collection("folioMasterDb");
+
+    let query = {};
+    
+    if(folio) {
+      query["FOLIO NO"] = {$in : Array.isArray(folio) ? folio : [folio]}
+    }
+    if(firstHolder) {
+      query["NAME AS IN FOLIO"] = firstHolder
+    }
+    if(pan) {
+      query["PAN AS IN FOLIO"] = pan
+    }
+    if(joint1) {
+      query["JOINT1 NAME"] = joint1
+    }
+    if(joint2) {
+      query["JOINT2 NAME"] = joint2
+    }
+    
+    const projection = {
+      "_id": 0,
+      "FOLIO NO": 1,
+      "NAME AS IN FOLIO": 1,
+      "JOINT1 NAME": 1,
+      "JOINT2 NAME": 1
+    };
+    var result = await collection.find(query, { projection }).toArray();
+
+    if (result) {
+      res.status(200).json(result);
+    } else {
+      res.status(404).send("Folio not found");
+    }
+  } catch (error) {
+    console.error("Error fetching folios", error);
+    res.status(500).send("Error while fetching folios");
+  }
+}
+
+const getNfoAmc = async (req, res) => {
+  try {
+    const bseCollection = req.milestoneDb.collection('bseschemes')
+
+    const today = new Date();
+    const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
+
+    const formatDateString = (date) => {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const day = String(date.getDate());
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      return `${month} ${day} ${year}`;
+    }
+
+    const nextDayString = formatDateString(nextDay);
+    const nextMonthString = formatDateString(nextMonth);
+
+    // console.log('current date: ', nextDayString) //test
+    // console.log('next month end date: ', nextMonthString) //test
+
+    const data = await bseCollection.aggregate([
+      {
+        $match: {
+          "ReOpening Date": { $exists: true, $type: "string" }
+        }
+      },
+      {
+        $addFields: {
+          "ReOpeningDateCleaned": {
+            $replaceAll: {
+              input: "$ReOpening Date",
+              find: "  ",
+              replacement: " "
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          "ReOpeningDateParsed": {
+            $dateFromString: {
+              dateString: "$ReOpeningDateCleaned",
+              format: "%b %d %Y"
+            }
+          }
+        }
+      },
+      {
+        $match: {"ReOpeningDateParsed": {
+          $gt: new Date(nextDayString),
+          $lt: new Date(nextMonthString)
+        }}
+      },
+      { $sort: { "ReOpeningDateParsed": 1 } },
+      {
+        $group: {
+          _id: "$AMC Code",
+          count: { $sum: 1 }
+        }
+      }
+    ]).toArray();
+
+    if (!data) {
+      return res.status(400).json({ message: 'Error getting NFO AMC', data: null })
+    }
+
+    res.status(200).json({ message: 'Found NFO AMC', data })
+  } catch (error) {
+    console.log('Error while getting NFO AMC', error.message)
+    res.status(500).json({ error: `Error getting NFO AMC: ${error.message}` })
+  }
+}
+
+const getNfoSchemes = async (req, res) => { // accepts amc in query
+  const {amc, schemePlan, purchaseTrxMode} = req.query;
+  try {
+    const bseCollection = req.milestoneDb.collection('bseschemes')
+
+    const today = new Date();
+    const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
+
+    const formatDateString = (date) => {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const day = String(date.getDate());
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      return `${month} ${day} ${year}`;
+    }
+
+    const nextDayString = formatDateString(nextDay);
+    const nextMonthString = formatDateString(nextMonth);
+
+    // console.log('current date: ', nextDayString) //test
+    // console.log('next month end date: ', nextMonthString) //test
+    let matchStage = {"ReOpeningDateParsed": {
+      $gt: new Date(nextDayString),
+      $lt: new Date(nextMonthString)
+    }}
+
+    if(amc) {
+      matchStage['AMC Code'] = { $in : Array.isArray(amc) ? amc: [amc]}
+    }
+    if(schemePlan) {
+      matchStage['Scheme Plan'] = { $in : Array.isArray(schemePlan) ? schemePlan: [schemePlan]}
+    }
+    if(purchaseTrxMode) {
+      matchStage['Purchase Transaction mode'] = { $in : Array.isArray(purchaseTrxMode) ? purchaseTrxMode: [purchaseTrxMode]}
+    }
+
+    const data = await bseCollection.aggregate([
+      {
+        $match: {
+          "ReOpening Date": { $exists: true, $type: "string" }
+        }
+      },
+      {
+        $addFields: {
+          "ReOpeningDateCleaned": {
+            $replaceAll: {
+              input: "$ReOpening Date",
+              find: "  ",
+              replacement: " "
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          "ReOpeningDateParsed": {
+            $dateFromString: {
+              dateString: "$ReOpeningDateCleaned",
+              format: "%b %d %Y"
+            }
+          }
+        }
+      },
+      {
+        $match: matchStage
+      },
+      { $sort: { "ReOpeningDateParsed": 1 } },
+      // {
+      //   $project: {
+      //     _id: 0,
+      //     "Scheme Name": 1,
+      //     "ReOpeningDateParsed": 1
+      //     "ISIN": 1
+      //   }
+      // }
+    ]).toArray();
+
+    if (!data) {
+      return res.status(400).json({ message: 'Error getting NFO schemes', data: null })
+    }
+
+    res.status(200).json({ message: 'Found NFO schemes', data })
+  } catch (error) {
+    console.log('Error while getting NFO schemes', error.message)
+    res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` })
+  }
+}
+// const getNfoSchemes = async (req, res) => { // accepts amc in query
+//   try {
+//     const bseCollection = req.milestoneDb.collection('bseschemes')
+
+//     const today = new Date();
+//     const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+//     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
+
+//     const formatDateString = (date) => {
+//       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+//       const day = String(date.getDate());
+//       const month = monthNames[date.getMonth()];
+//       const year = date.getFullYear();
+//       return `${month} ${day} ${year}`;
+//     }
+
+//     const nextDayString = formatDateString(nextDay);
+//     const nextMonthString = formatDateString(nextMonth);
+
+//     // console.log('current date: ', nextDayString) //test
+//     // console.log('next month end date: ', nextMonthString) //test
+
+//     const data = await bseCollection.aggregate([
+//       {
+//         $match: {
+//           "ReOpening Date": { $exists: true, $type: "string" }
+//         }
+//       },
+//       {
+//         $addFields: {
+//           "ReOpeningDateCleaned": {
+//             $replaceAll: {
+//               input: "$ReOpening Date",
+//               find: "  ",
+//               replacement: " "
+//             }
+//           }
+//         }
+//       },
+//       {
+//         $addFields: {
+//           "ReOpeningDateParsed": {
+//             $dateFromString: {
+//               dateString: "$ReOpeningDateCleaned",
+//               format: "%b %d %Y"
+//             }
+//           }
+//         }
+//       },
+//       {
+//         $match: {
+//           "ReOpeningDateParsed": {
+//             $gt: new Date(nextDayString),
+//             $lt: new Date(nextMonthString)
+//           },
+//           "AMC Code": req.query.amc
+//         }
+//       },
+//       { $sort: { "ReOpeningDateParsed": 1 } },
+//       {
+//         $project: {
+//           _id: 0,
+//           "Scheme Name": 1,
+//           "ReOpeningDateParsed": 1
+//         }
+//       }
+//     ]).toArray();
+
+//     if (!data) {
+//       return res.status(400).json({ message: 'Error getting NFO schemes', data: null })
+//     }
+
+//     res.status(200).json({ message: 'Found NFO schemes', data })
+//   } catch (error) {
+//     console.log('Error while getting NFO schemes', error.message)
+//     res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` })
+//   }
+// }
+
+const getUcc = async (req, res) => {
+  let pan = req.query.pan;
+  if (!pan) {
+    return res.status(400).json({ error: "PAN is required" })
+  }
+
+  try {
+    const clientMasterCollection = req.milestoneDb.collection('BSEclientmaster');
+    const data = await clientMasterCollection.find({ $or: [
+      { "Primary_Holder_PAN": pan }, 
+      { "Second_Holder_PAN": pan }, 
+      { "Third_Holder_PAN": pan }
+    ]}).toArray();
+
+    res.status(200).json({ message: 'UCC data found', data })
+  } catch (error) {
+    console.log('Error while getting UCC data', error.message)
+    res.status(500).json({ error: `Error while getting UCC data: ${error.message}` })
+  }
+}
+
+const postNewFundOfferForm = async (req, res) => {
+  console.log('POST /api/data/nfo') //test
+  const {investorName, pan, familyHead, ucc, amc, scheme, folio, amount} = req.body;
+  console.log('form data: ', investorName, pan, familyHead, ucc, amc, scheme, folio, amount)
+
+  // create unique session id 
+  let date = Date.now();
+  let randomDigits = Math.floor(Math.random() * 9000 + 1000);
+  let sessionId = date.toString() + investorName.slice(0, 3) + randomDigits.toString()
+
+  // if (!req.session || !req.session.user) {
+  //   return res.status(401).json({ message: "User not logged in" });
+  // }
+  // const { name, email } = req.session.user;
+  let email = "example@gmail.com" //test temporary
+
+  const nfoUrl = `https://bsetransaction.azurewebsites.net/api/NFOTransact?ucc=${ucc}&rmemail=${email}&schm=${scheme}&amt=${amount}&fol=${folio}&uuid=${sessionId}`
+  try {
+    const nfo = await NewFundOffer.create({
+      sessionId,
+      investorName,
+      panNumber: pan,
+      familyHead,
+      ucc,
+      amcName: amc,
+      schemeName: scheme,
+      folioNumber: folio,
+      amount,
+      nfoUrl: `${nfoUrl}`
+    });
+    if(!nfo) {
+      return res.status(400).json({error: "Error saving NFO data to DB"})
+    }
+
+    res.status(201).json({message: "NFO saved", data: nfo})
+  } catch (error) {
+    console.error("Error savig NFO :", error.message)
+    res.status(500).json({error: `Error saving NFO: ${error.message}`})
+  }
+}
+// const getUcc = async (req, res) => {
+
+//   try {
+//     const clientMasterCollection = req.milestoneDb.collection('BSEclientmaster');
+//     const data = await clientMasterCollection.aggregate([
+//       {$group: {
+//         "_id": "$Holding_Nature"
+//       }}
+//     ]).toArray();
+
+//     res.status(200).json({ message: 'UCC data found', data })
+//   } catch (error) {
+//     console.log('Error while getting UCC data', error.message)
+//     res.status(500).json({ error: `Error while getting UCC data: ${error.message}` })
+//   }
+// }
+
+const getFoliosFromInvestwell = async (req, res) => {
+  let pan = req.query.pan;
+  if (!pan) {
+    return res.status(400).json({ error: "PAN is required" })
+  }
+  // console.log('pan: ', pan)//test
+  // console.log('authName: ', process.env.INVESTWELL_AUTHNAME)//test
+  // console.log('password: ', process.env.INVESTWELL_PASSWORD)//test
+
+  try {
+    const authResponse = await axios.post("https://mnivesh.investwell.app/api/aggregator/auth/getAuthorizationToken", {
+      "authName": process.env.INVESTWELL_AUTHNAME,
+      "password": process.env.INVESTWELL_PASSWORD
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    }
+    )
+    // console.log('auth data:', authResponse.data) //test
+
+    let date = new Date()
+    let endDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    // console.log('endDate: ', endDate) //test
+
+    const filters = JSON.stringify([
+      { "endDate": endDate },
+      { "pan": pan },
+      { "panWiseData": 0 }
+    ]);
+
+    const folioUrl = `https://mnivesh.investwell.app/api/aggregator/reports/getPortfolioReturns?group=folioid&filters=${encodeURIComponent(filters)}&token=${authResponse.data?.result?.token}`;
+
+    const folioData = await axios.get(folioUrl);
+    // console.log('folioData: ', folioData.data.status, folioData.data.message) //test
+
+    if (folioData.data.status == -1 || folioData.data.message === 'User not authorized') {
+      res.status(400).json({ error: `Error while getting folios: not authorized` })
+    }
+    // let folios = folioData.data.result.data.map(item => ({
+    //   folioNo: item.folioNo,
+    //   isin: item.isinNo
+    // }))
+    let folios = folioData.data.result.data.map(item => (item.folioNo))
+    res.status(200).json({ message: 'Folios found', data: folios })
+  } catch (error) {
+    console.log('Error while getting folios', error.message)
+    res.status(500).json({ error: `Error while getting folios: ${error.message}` })
+  }
+}
+
+
+// temporary controller to get all amcs 
+const getAllNfoAmc = async (req, res) => {
+  try {
+    const bseCollection = req.milestoneDb.collection('bseschemes')
+
+    const data = await bseCollection.aggregate([
+      {
+        $group: {
+          "_id": "$AMC Code",
+          count: { $sum: 1 }
+        }
+      }
+    ]).toArray();
+
+    if (!data) {
+      return res.status(400).json({ message: 'Error getting NFO AMC', data: null })
+    }
+
+    res.status(200).json({ message: 'Found NFO AMC', data })
+  } catch (error) {
+    console.log('Error while getting NFO AMC', error.message)
+    res.status(500).json({ error: `Error getting NFO AMC: ${error.message}` })
+  }
+}
+
+module.exports = {
+  getInvestors,
+  getAmcNames,
+  getFolios,
+  getSchemeNames,
+  postTransForm,
+  getNfoSchemes,
+  getUcc,
+  getFoliosFromInvestwell,
+  getNfoAmc,
+  postNewFundOfferForm,
+  getFoliosFromFolios,
+  getAllNfoAmc
+}
 
