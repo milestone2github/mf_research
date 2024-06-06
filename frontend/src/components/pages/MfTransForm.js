@@ -264,6 +264,7 @@ function MfTransForm() {
     // api call to submit form data 
     const requestOptions = {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ formData: allTransactions })
     };
