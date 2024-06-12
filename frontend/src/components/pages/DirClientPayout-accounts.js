@@ -39,7 +39,7 @@ const DirectClientPayouts = () => {
     gettotalsum(data)
   }, [data])
   useEffect(() => {
-    if(!permissions.find(perm  => perm === 'Direct Client Payout')){
+    if(!permissions.find(perm  => perm === 'Direct Client Payout Accounts')){
       return;
     }
     setLoading(true);
@@ -251,7 +251,7 @@ const DirectClientPayouts = () => {
     }
   };
 
-  if(!permissions.find(perm => perm === 'Direct Client Payout')) 
+  if(!permissions.find(perm => perm === 'Direct Client Payout Accounts')) 
     return (<AccessDenied />)
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div> 
