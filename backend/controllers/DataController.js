@@ -7,6 +7,8 @@ const schemeMap = require("../utils/schemeMap");
 const sendToZohoSheet = require("../utils/sendToZohoSheet");
 const { default: axios } = require("axios");
 const NewFundOffer = require("../models/NewFundOffer");
+const generateHtmlContent = require("../utils/generateHtmlContent");
+const generateHtmlOfNfo = require("../utils/generateHtmlOfNfo");
 require('dotenv').config()
 
 const getInvestors = async (req, res) => {
@@ -156,11 +158,24 @@ const postTransForm = async (req, res) => {
   try {
     let formData = req.body.formData;
     let allFormsData = []; // to post all entries at once to zoho flow
+
+    // modify transaction preference from string to Date 
+    const { transactionPreference } = formData.commonData;
+    if (transactionPreference === 'ASAP') {
+      formData.commonData.transactionPreference = new Date()
+    }
+    else if (transactionPreference === 'Next Working Day') {
+      let tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      formData.commonData.transactionPreference = tomorrow
+    }
+
     let results = [];
     if (!req.session || !req.session.user) {
       return res.status(401).json({ message: "User not logged in" });
     }
     const { name, email } = req.session.user;
+
     // Include name and email in commonData
     formData.commonData = {
       ...formData.commonData,
@@ -276,7 +291,7 @@ const postTransForm = async (req, res) => {
       });
 
       // send email to user 
-      sendEmail("MF Transactions", mailData, email);
+      sendEmail("MF Transactions", generateHtmlContent(mailData), email);
 
       res.status(200).json(results);
     } else {
@@ -290,39 +305,55 @@ const postTransForm = async (req, res) => {
 
 const getFoliosFromFolios = async (req, res) => {
   try {
-    const {folio, firstHolder, joint1, joint2, pan} = req.query;
+    const { folio, firstHolder, joint1, joint2, pan } = req.query;
 
     const collection = req.milestoneDb.collection("folioMasterDb");
 
-    let query = {};
-    
-    if(folio) {
-      query["FOLIO NO"] = {$in : Array.isArray(folio) ? folio : [folio]}
-    }
-    if(firstHolder) {
-      query["NAME AS IN FOLIO"] = firstHolder
-    }
-    if(pan) {
-      query["PAN AS IN FOLIO"] = pan
-    }
-    if(joint1) {
-      query["JOINT1 NAME"] = joint1
-    }
-    if(joint2) {
-      query["JOINT2 NAME"] = joint2
-    }
-    
-    const projection = {
-      "_id": 0,
-      "FOLIO NO": 1,
-      "NAME AS IN FOLIO": 1,
-      "JOINT1 NAME": 1,
-      "JOINT2 NAME": 1
-    };
-    var result = await collection.find(query, { projection }).toArray();
+    let matchStage = {};
 
-    if (result) {
-      res.status(200).json(result);
+    if (folio) {
+      matchStage["cleanedFolioNo"] = { $in: Array.isArray(folio) ? folio : [folio] };
+    }
+    if (firstHolder) {
+      matchStage["NAME AS IN FOLIO"] = firstHolder;
+    }
+    if (pan) {
+      matchStage["PAN AS IN FOLIO"] = pan;
+    }
+    if (joint1) {
+      matchStage["JOINT1 NAME"] = joint1;
+    }
+    if (joint2) {
+      matchStage["JOINT2 NAME"] = joint2;
+    }
+
+    const result = await collection.aggregate([
+      {
+        $addFields: {
+          "cleanedFolioNo": {
+            $cond: {
+              if: { $eq: [{ $substrCP: ["$FOLIO NO", 0, 1] }, "'"] },
+              then: { $substrCP: ["$FOLIO NO", 1, { $strLenCP: "$FOLIO NO" }] },
+              else: "$FOLIO NO"
+            }
+          }
+        }
+      },
+      {
+        $match: matchStage
+      },
+      {
+        $group: {
+          "_id": "$cleanedFolioNo",
+          "name": { $first: "$NAME AS IN FOLIO" },
+          "joint1Name": { $first: "$JOINT1 NAME" },
+          "joint2Name": { $first: "$JOINT2 NAME" },
+        }
+      }
+    ]).toArray();
+
+    if (result.length > 0) {
+      res.status(200).json({ message: "Folios found", data: result });
     } else {
       res.status(404).send("Folio not found");
     }
@@ -331,6 +362,7 @@ const getFoliosFromFolios = async (req, res) => {
     res.status(500).send("Error while fetching folios");
   }
 }
+
 
 const getNfoAmc = async (req, res) => {
   try {
@@ -382,10 +414,12 @@ const getNfoAmc = async (req, res) => {
         }
       },
       {
-        $match: {"ReOpeningDateParsed": {
-          $gt: new Date(nextDayString),
-          $lt: new Date(nextMonthString)
-        }}
+        $match: {
+          "ReOpeningDateParsed": {
+            $gt: new Date(nextDayString),
+            $lt: new Date(nextMonthString)
+          }
+        }
       },
       { $sort: { "ReOpeningDateParsed": 1 } },
       {
@@ -408,7 +442,7 @@ const getNfoAmc = async (req, res) => {
 }
 
 const getNfoSchemes = async (req, res) => { // accepts amc in query
-  const {amc, schemePlan, purchaseTrxMode} = req.query;
+  const { amc, schemePlan, purchaseTrxMode } = req.query;
   try {
     const bseCollection = req.milestoneDb.collection('bseschemes')
 
@@ -429,19 +463,21 @@ const getNfoSchemes = async (req, res) => { // accepts amc in query
 
     // console.log('current date: ', nextDayString) //test
     // console.log('next month end date: ', nextMonthString) //test
-    let matchStage = {"ReOpeningDateParsed": {
-      $gt: new Date(nextDayString),
-      $lt: new Date(nextMonthString)
-    }}
+    let matchStage = {
+      "ReOpeningDateParsed": {
+        $gt: new Date(nextDayString),
+        $lt: new Date(nextMonthString)
+      }
+    }
 
-    if(amc) {
-      matchStage['AMC Code'] = { $in : Array.isArray(amc) ? amc: [amc]}
+    if (amc) {
+      matchStage['AMC Code'] = { $in: Array.isArray(amc) ? amc : [amc] }
     }
-    if(schemePlan) {
-      matchStage['Scheme Plan'] = { $in : Array.isArray(schemePlan) ? schemePlan: [schemePlan]}
+    if (schemePlan) {
+      matchStage['Scheme Plan'] = { $in: Array.isArray(schemePlan) ? schemePlan : [schemePlan] }
     }
-    if(purchaseTrxMode) {
-      matchStage['Purchase Transaction mode'] = { $in : Array.isArray(purchaseTrxMode) ? purchaseTrxMode: [purchaseTrxMode]}
+    if (purchaseTrxMode) {
+      matchStage['Purchase Transaction mode'] = { $in: Array.isArray(purchaseTrxMode) ? purchaseTrxMode : [purchaseTrxMode] }
     }
 
     const data = await bseCollection.aggregate([
@@ -582,11 +618,13 @@ const getUcc = async (req, res) => {
 
   try {
     const clientMasterCollection = req.milestoneDb.collection('BSEclientmaster');
-    const data = await clientMasterCollection.find({ $or: [
-      { "Primary_Holder_PAN": pan }, 
-      { "Second_Holder_PAN": pan }, 
-      { "Third_Holder_PAN": pan }
-    ]}).toArray();
+    const data = await clientMasterCollection.find({
+      $or: [
+        { "Primary_Holder_PAN": pan },
+        { "Second_Holder_PAN": pan },
+        { "Third_Holder_PAN": pan }
+      ]
+    }).toArray();
 
     res.status(200).json({ message: 'UCC data found', data })
   } catch (error) {
@@ -597,42 +635,47 @@ const getUcc = async (req, res) => {
 
 const postNewFundOfferForm = async (req, res) => {
   console.log('POST /api/data/nfo') //test
-  const {investorName, pan, familyHead, ucc, amc, scheme, folio, amount} = req.body;
-  console.log('form data: ', investorName, pan, familyHead, ucc, amc, scheme, folio, amount)
+  const { investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount } = req.body;
+  console.log('form data: ', investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount)
 
   // create unique session id 
   let date = Date.now();
   let randomDigits = Math.floor(Math.random() * 9000 + 1000);
   let sessionId = date.toString() + investorName.slice(0, 3) + randomDigits.toString()
 
-  // if (!req.session || !req.session.user) {
-  //   return res.status(401).json({ message: "User not logged in" });
-  // }
-  // const { name, email } = req.session.user;
-  let email = "example@gmail.com" //test temporary
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({ error: "User not logged in" });
+  }
+  const { name, email } = req.session.user;
 
-  const nfoUrl = `https://bsetransaction.azurewebsites.net/api/NFOTransact?ucc=${ucc}&rmemail=${email}&schm=${scheme}&amt=${amount}&fol=${folio}&uuid=${sessionId}`
+
+  const nfoUrl = `https://bsetransaction.azurewebsites.net/api/NFOTransact?uuid=${sessionId}`
   try {
     const nfo = await NewFundOffer.create({
       sessionId,
       investorName,
       panNumber: pan,
       familyHead,
+      registrantName: name,
+      registrantEmail: email,
       ucc,
       amcName: amc,
-      schemeName: scheme,
+      schemeCode,
       folioNumber: folio,
       amount,
       nfoUrl: `${nfoUrl}`
     });
-    if(!nfo) {
-      return res.status(400).json({error: "Error saving NFO data to DB"})
+    if (!nfo) {
+      return res.status(400).json({ error: "Error saving NFO data to DB" })
     }
 
-    res.status(201).json({message: "NFO saved", data: nfo})
+    // send email to user 
+    let mailBody = generateHtmlOfNfo(nfo.investorName, schemeName, nfo.nfoUrl)
+    sendEmail(`NFO | ${schemeName} | ${nfo.investorName}`, mailBody, email, 'pramod@niveshonline.com,vilakshan@niveshonline.com');
+    res.status(201).json({ message: "NFO saved", data: nfo })
   } catch (error) {
     console.error("Error savig NFO :", error.message)
-    res.status(500).json({error: `Error saving NFO: ${error.message}`})
+    res.status(500).json({ error: `Error saving NFO: ${error.message}` })
   }
 }
 // const getUcc = async (req, res) => {
@@ -662,16 +705,30 @@ const getFoliosFromInvestwell = async (req, res) => {
   // console.log('password: ', process.env.INVESTWELL_PASSWORD)//test
 
   try {
-    const authResponse = await axios.post("https://mnivesh.investwell.app/api/aggregator/auth/getAuthorizationToken", {
-      "authName": process.env.INVESTWELL_AUTHNAME,
-      "password": process.env.INVESTWELL_PASSWORD
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+    let authResponse;
+    let attempt = 2;
+    while (attempt--) {
+      authResponse = await axios.post("https://mnivesh.investwell.app/api/aggregator/auth/getAuthorizationToken",
+        {
+          "authName": process.env.INVESTWELL_AUTHNAME,
+          "password": process.env.INVESTWELL_PASSWORD
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      )
+
+      if (authResponse.data?.status === 0) {
+        break;
       }
     }
-    )
+
+    if (authResponse.data?.status === -1) {
+      throw new Error("Unable to generate token")
+    }
     // console.log('auth data:', authResponse.data) //test
 
     let date = new Date()
@@ -689,14 +746,14 @@ const getFoliosFromInvestwell = async (req, res) => {
     const folioData = await axios.get(folioUrl);
     // console.log('folioData: ', folioData.data.status, folioData.data.message) //test
 
-    if (folioData.data.status == -1 || folioData.data.message === 'User not authorized') {
+    if (folioData.data.status === -1 || folioData.data.message === 'User not authorized') {
       res.status(400).json({ error: `Error while getting folios: not authorized` })
     }
-    // let folios = folioData.data.result.data.map(item => ({
-    //   folioNo: item.folioNo,
-    //   isin: item.isinNo
-    // }))
-    let folios = folioData.data.result.data.map(item => (item.folioNo))
+    let folios = folioData.data.result.data.map(item => ({
+      folioNo: item.folioNo,
+      isin: item.isinNo
+    }))
+    // let folios = folioData.data.result.data.map(item => (item.folioNo))
     res.status(200).json({ message: 'Folios found', data: folios })
   } catch (error) {
     console.log('Error while getting folios', error.message)
@@ -704,6 +761,47 @@ const getFoliosFromInvestwell = async (req, res) => {
   }
 }
 
+const getIsin = async (req, res) => { // accepts amc in query
+  const { amc, schemePlan, purchaseTrxMode } = req.query;
+  try {
+    const bseCollection = req.milestoneDb.collection('bseschemes')
+
+    let matchStage = {}
+
+    if (amc) {
+      matchStage['AMC Code'] = { $in: Array.isArray(amc) ? amc : [amc] }
+    }
+    if (schemePlan) {
+      matchStage['Scheme Plan'] = { $in: Array.isArray(schemePlan) ? schemePlan : [schemePlan] }
+    }
+    if (purchaseTrxMode) {
+      matchStage['Purchase Transaction mode'] = { $in: Array.isArray(purchaseTrxMode) ? purchaseTrxMode : [purchaseTrxMode] }
+    }
+
+    const data = await bseCollection.aggregate([
+      {
+        $match: matchStage
+      },
+      {
+        $project: {
+          _id: 0,
+          "Scheme Name": 1,
+          "ReOpeningDateParsed": 1,
+          "ISIN": 1
+        }
+      }
+    ]).toArray();
+
+    if (!data) {
+      return res.status(400).json({ message: 'Error getting ISIN', data: null })
+    }
+
+    res.status(200).json({ message: 'Found ISIN', data })
+  } catch (error) {
+    console.log('Error while getting ISIN', error.message)
+    res.status(500).json({ error: `Error getting ISIN: ${error.message}` })
+  }
+}
 
 // temporary controller to get all amcs 
 const getAllNfoAmc = async (req, res) => {
@@ -742,6 +840,7 @@ module.exports = {
   getNfoAmc,
   postNewFundOfferForm,
   getFoliosFromFolios,
+  getIsin,
   getAllNfoAmc
 }
 

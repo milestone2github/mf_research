@@ -1,4 +1,4 @@
-const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios } = require('../controllers/DataController');
+const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin } = require('../controllers/DataController');
 
 const router = require('express').Router();
 
@@ -31,6 +31,9 @@ router.get("/ucc", getUcc);
 
 // route to get ucc data 
 router.post("/nfo", postNewFundOfferForm);
+
+// route to get ucc data 
+router.get("/isin", getIsin);
 
 // temporary route to get all amcs 
 router.get("/get-all-amc", getAllNfoAmc);

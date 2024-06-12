@@ -13,7 +13,7 @@ const purchaseRedemptionTransactionSchema = new mongoose.Schema({
     purch_redempSchemeName: String,
     purch_redempSchemeOption: String,
     purch_redempFolio: String,
-    purch_redempTransactionUnits_Amount: Number,
+    purch_redempTransactionUnits_Amount: String,
     purch_redempTransactionAmount: Number,
     sessionId: String,
     status: {type: String, 

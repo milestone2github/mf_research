@@ -13,7 +13,7 @@ const switchTransactionSchema = new mongoose.Schema({
     switchToScheme: String,
     switchSchemeOption: String,
     switchFolio: String,
-    switchTransactionUnits_Amount: Number,
+    switchTransactionUnits_Amount: String,
     switchTransactionAmount: Number,
     orderNo: String,
     sessionId: String,

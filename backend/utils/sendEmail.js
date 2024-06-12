@@ -14,14 +14,15 @@ const mailConfig = {
 
 
 // Function to send email
-async function sendEmail(subject, data, toAddress) {
+async function sendEmail(subject, body, toAddress, ccAddress) {
   let transporter = nodemailer.createTransport(mailConfig);
 
   let mailOptions = {
     from: "noreply@mnivesh.niveshonline.com",
     to: toAddress,
+    cc: ccAddress,
     subject: subject,
-    html: generateHtmlContent(data),
+    html: body,
   };
 
   try {
