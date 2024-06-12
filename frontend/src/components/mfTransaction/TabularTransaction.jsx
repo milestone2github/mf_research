@@ -5,10 +5,10 @@ import PurchRedempForm from './PurchRedempForm';
 import SwitchForm from './SwitchForm';
 import MinusButton from './common/MinusButton';
 import Badge from './common/Badge';
-import { handleAdd, handleRemove, handleUpdate as handleTransactionUpdate} from '../../Reducers/TransactionSlice'
-import { handleAdd as systematicAdd, handleRemove as systematicRemove } from '../../Reducers/SystematicDataSlice'
-import { handleAdd as purchRedempAdd, handleRemove as purchRedempRemove } from '../../Reducers/PurchRedempDataSlice'
-import { handleAdd as switchAdd, handleRemove as switchRemove } from '../../Reducers/SwitchDataSlice'
+import { handleAdd, handleRemove, handleUpdate as handleTransactionUpdate} from '../../reducers/TransactionSlice'
+import { handleAdd as systematicAdd, handleRemove as systematicRemove } from '../../reducers/SystematicDataSlice'
+import { handleAdd as purchRedempAdd, handleRemove as purchRedempRemove } from '../../reducers/PurchRedempDataSlice'
+import { handleAdd as switchAdd, handleRemove as switchRemove } from '../../reducers/SwitchDataSlice'
 import { useDispatch, useSelector } from 'react-redux';
 
 // Tabs for form types 

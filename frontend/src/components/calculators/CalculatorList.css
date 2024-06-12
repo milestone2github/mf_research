@@ -42,7 +42,7 @@ h1 {
   margin-bottom: 30px;
 }
 
-h2 {
+.calculator-card h2 {
   color: #1a1a1a;
   font-size: 1.5rem;
   font-weight: bold;
@@ -50,7 +50,9 @@ h2 {
   margin: 8px 16px 0;
 }
 
-p {
+#no-calc-card h2 {color: #F87171;}
+
+.calculator-card p {
   color: #666666;
   font-size: 1rem;
   margin: 16px 8px;

@@ -2,7 +2,7 @@ import React from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import mNiveshLogo from "../../assets/mNiveshLogo.png";
 import { useDispatch, useSelector } from 'react-redux';
-import { setLoggedIn } from '../../Reducers/UserSlice'
+import { setLoggedIn } from '../../reducers/UserSlice'
 
 const Header = () => {
     const { isLoggedIn, userData } = useSelector((state) => state.user)

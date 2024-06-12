@@ -39,12 +39,67 @@
   color: #cbd5e0; /* Light text color for readability */
   width: 250px;
   padding: 1rem;
-  
+  height: calc(100vh - 60px);
   overflow-y: auto;
   /* position: sticky;
   position: -webkit-sticky;
   top: 57px; */
 }
+
+/* Custom scrollbar for Webkit browsers (Chrome, Safari, etc.) */
+.app-sidebar::-webkit-scrollbar {
+  width: 6px; /* Width of the scrollbar */
+}
+
+.app-sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(22, 33, 51, 0.5); /* Color of the scrollbar thumb */
+  border-radius: 8px; /* Rounded corners for the thumb */
+}
+
+.app-sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(22, 33, 51, 0.7); /* Color when hovering over the thumb */
+}
+
+.app-sidebar::-webkit-scrollbar-track {
+  background-color: rgba(130, 130, 130, 0.15); /* Background color of the scrollbar track */
+  border-radius: 8px; /* Rounded corners for the track */
+}
+
+/* Custom scrollbar for Firefox */
+.app-sidebar {
+  scrollbar-width: thin; /* Thin scrollbar */
+  scrollbar-color: rgba(22, 33, 51, 0.5) rgba(130, 130, 130, 0.15); /* Thumb and track colors */
+}
+
+/* Custom scrollbar for Internet Explorer and Edge */
+@-ms-viewport {
+  width: device-width;
+}
+
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+  .app-sidebar {
+    -ms-overflow-style: -ms-autohiding-scrollbar; /* Hide scrollbar until it's used */
+  }
+}
+
+.app-sidebar::-ms-scrollbar {
+  width: 6px;
+}
+
+.app-sidebar::-ms-scrollbar-thumb {
+  background-color: rgba(22, 33, 51, 0.5);
+  border-radius: 8px;
+}
+
+.app-sidebar::-ms-scrollbar-thumb:hover {
+  background-color: rgba(22, 33, 51, 0.7);
+}
+
+.app-sidebar::-ms-scrollbar-track {
+  background-color: rgba(130, 130, 130, 0.15);
+  border-radius: 8px;
+}
+
 
 .app-sidebar ul li a {
   display: block;
@@ -78,6 +133,8 @@
     background-color: #FDFEFE; 
     height: calc(100vh - 60px);
   overflow-y: auto;
+  background-image: linear-gradient(to top, #dfe9f3 0%, white 100%);
+  /* background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%); */
 }
 
 .header-content {
@@ -546,3 +603,12 @@ h2 {
   animation: l7 1s infinite;
 }
 @keyframes l7 {to{transform: rotate(.5turn)}}
+
+
+.ellipsis {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

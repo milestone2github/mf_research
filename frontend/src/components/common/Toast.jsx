@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { IoMdClose } from "react-icons/io";
 import { FaCircleInfo } from "react-icons/fa6";
+import { useDispatch, useSelector } from 'react-redux';
+import { resetToast } from '../../reducers/ToastSlice';
 
-function Alert({ alertState, updateAlert }) {
-  const { isOn, type, header, message } = alertState;
+function Toast() {
+  const { isOn, type, header, message } = useSelector(state => state.toast);
   const [visible, setVisible] = useState(false);
+  const dispatch = useDispatch()
 
   useEffect(() => {
     if (isOn) {
@@ -24,12 +27,7 @@ function Alert({ alertState, updateAlert }) {
   const dismissAlert = () => {
     setVisible(false);
     setTimeout(() => {
-      updateAlert({
-        isOn: false,
-        type: '',
-        header: '',
-        message: ''
-      });
+      dispatch(resetToast());
     }, 300);
   };
 
@@ -67,4 +65,4 @@ function Alert({ alertState, updateAlert }) {
   );
 }
 
-export default Alert;
+export default Toast;

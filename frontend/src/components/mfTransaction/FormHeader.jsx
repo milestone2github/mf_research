@@ -1,15 +1,15 @@
 import React, { useCallback, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { handleChange } from '../../Reducers/CommonDataSlice'
-import { resetAllOptionLists, setInvestorNameOptions } from '../../Reducers/OptionListsSlice'
+import { handleChange } from '../../reducers/CommonDataSlice'
+import { resetAllOptionLists, setInvestorNameOptions } from '../../reducers/OptionListsSlice'
 import { fetchInvestorData } from '../../Actions/OptionListsAction'
 import debounce from '../../utils/debounce'
 import CustomInputList from './common/CustomInputList'
 import InputListWithFilter from './common/InputListWithFilter'
 import RadioInputWithDate from './common/RadioInputWithDate'
-import { resetSystematicData } from '../../Reducers/SystematicDataSlice'
-import { resetPurchRedempData } from '../../Reducers/PurchRedempDataSlice'
-import { resetSwitchData } from '../../Reducers/SwitchDataSlice'
+import { resetSystematicData } from '../../reducers/SystematicDataSlice'
+import { resetPurchRedempData } from '../../reducers/PurchRedempDataSlice'
+import { resetSwitchData } from '../../reducers/SwitchDataSlice'
 
 function FormHeader() {
   // get common data state from store

@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom';
 // import logo from '../../../assets/mNiveshLogo.png';
 import { useDispatch } from 'react-redux';
-import { setLoggedIn } from '../../../Reducers/UserSlice'
+import { setLoggedIn } from '../../../reducers/UserSlice'
 
 function Header() {
   // const navigate = useNavigate();

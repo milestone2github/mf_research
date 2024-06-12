@@ -1,28 +1,23 @@
 import { useState } from 'react'
 import PrimaryButton from '../mfTransaction/common/PrimaryButton';
-import Alert from '../mfTransaction/common/Alert';
+import Toast from '../common/Toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { resetSystematicData } from '../../Reducers/SystematicDataSlice';
-import { resetPurchRedempData } from '../../Reducers/PurchRedempDataSlice';
-import { resetSwitchData } from '../../Reducers/SwitchDataSlice';
-import { resetCommonData } from '../../Reducers/CommonDataSlice';
-import { resetAllOptionLists } from '../../Reducers/OptionListsSlice';
+import { resetSystematicData } from '../../reducers/SystematicDataSlice';
+import { resetPurchRedempData } from '../../reducers/PurchRedempDataSlice';
+import { resetSwitchData } from '../../reducers/SwitchDataSlice';
+import { resetCommonData } from '../../reducers/CommonDataSlice';
+import { resetAllOptionLists } from '../../reducers/OptionListsSlice';
 // import Modal from '../mfTransaction/common/Modal';
 // import { IoMdCheckmarkCircle } from 'react-icons/io';
 import TabularTransaction from '../mfTransaction/TabularTransaction';
 import FormHeader from '../mfTransaction/FormHeader';
 import Header from '../mfTransaction/common/Header';
-import { resetTransactions } from '../../Reducers/TransactionSlice';
+import { resetTransactions } from '../../reducers/TransactionSlice';
 import { FaCheck } from "react-icons/fa";
 import AccessDenied from './AccessDenied';
+import { updateToast } from '../../reducers/ToastSlice';
 
 function MfTransForm() {
-  const [alert, setAlert] = useState({
-    isOn: false,
-    type: 'error',
-    header: 'Systematic Form error',
-    message: 'Missing field in systematic form'
-  })
 
   const [hasReviewed, setHasReviewed] = useState(false);
 
@@ -41,11 +36,6 @@ function MfTransForm() {
 
   const dispatch = useDispatch();
 
-  // method to update alert 
-  const updateAlert = (alert) => {
-    setAlert(alert)
-  }
-
   // method to update hasReviewed 
   const updateHasReviewed = (value) => {
     setHasReviewed(value)
@@ -55,7 +45,6 @@ function MfTransForm() {
   const validateSystematic = (data, number) => {
     // default alert state 
     let alert = {
-      isOn: true,
       type: 'error',
       header: 'Validation Error in Systematic Form ' + number,
       message: ''
@@ -63,37 +52,37 @@ function MfTransForm() {
 
     if (!data.systematicMfAmcName) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>MF (AMC) Name</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert));
       return;
     }
     else if (['STP' , 'Capital Appreciation STP', 'SWP', 'Capital Appreciation SWP'].includes(data.systematicTraxType) && !data.systematicSourceScheme) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>Source Scheme</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (['SIP', 'STP' , 'Capital Appreciation STP'].includes(data.systematicTraxType) && !data.systematicSchemeName) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>Scheme Name (Target Scheme)</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.systematicFolio) {
       alert.message = <span>Select a <strong className='text-xs'>Folio</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.systematicSchemeOption) {
       alert.message = <span>Select <strong className='text-xs'>Scheme Option</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (data.systematicTraxFor === 'Pause' && !data.sipPauseMonths) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>SIP Pause Months</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (data.systematicTraxType === 'SIP' && data.systematicTraxFor === 'Registration' && !data.systematicPaymentMode) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>First Installment Payment Mode</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
 
@@ -105,7 +94,6 @@ function MfTransForm() {
 
     // default alert state 
     let alert = {
-      isOn: true,
       type: 'error',
       header: 'Validation Error in Purchase/Redemption Form ' + number,
       message: ''
@@ -113,32 +101,32 @@ function MfTransForm() {
 
     if (!data.purch_RedempTraxType) {
       alert.message = <span><strong className='text-xs'>Transaction Type</strong> is required</span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.purch_redempMfAmcName) {
       alert.message = <span><strong className='text-xs'>MF (AMC) Name</strong> is required</span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.purch_redempFolio) {
       alert.message = <span>Select a <strong className='text-xs'>Folio</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.purch_redempSchemeName) {
       alert.message = <span><strong className='text-xs'>Scheme Name</strong> is required</span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.purch_redempSchemeOption) {
       alert.message = <span>Select <strong className='text-xs'>Scheme Option</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (data.purch_RedempTraxType === 'Purchase' && !data.purch_redempPaymentMode) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>Payment Mode</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
 
@@ -150,7 +138,6 @@ function MfTransForm() {
 
     // default alert state
     let alert = {
-      isOn: true,
       type: 'error',
       header: 'Validation Error in Switch Form ' + number,
       message: ''
@@ -158,32 +145,32 @@ function MfTransForm() {
 
     if (!data.switchMfAmcName) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>MF (AMC) Name</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.switchFolio) {
       alert.message = <span>Select a <strong className='text-xs'>Folio</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.switchFromScheme) {
       alert.message = <span><strong className='text-xs'>From Scheme</strong> is required</span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.switchToScheme) {
       alert.message = <span><strong className='text-xs'>To Scheme</strong> is required</span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.switchFromSchemeOption) {
       alert.message = <span>Select <strong className='text-xs'>From Scheme Option</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
     else if (!data.switchToSchemeOption) {
       alert.message = <span>Select <strong className='text-xs'>To Scheme Option</strong></span>
-      updateAlert(alert);
+      dispatch(updateToast(alert))
       return false;
     }
 
@@ -207,7 +194,6 @@ function MfTransForm() {
     let validationErrorOccurred = false;
 
     let alert = {
-      isOn: true,
       type: 'error',
       header: 'Submission Error',
       message: ''
@@ -256,7 +242,7 @@ function MfTransForm() {
     // show error alert if no form data has been filled or saved 
     if (!allTransactions.purchRedempData.length && !allTransactions.systematicData.length && !allTransactions.switchData.length) {
       alert.message = <span>Please complete any one transaction before submission</span>;
-      updateAlert(alert)
+      dispatch(updateToast(alert))
       setIsLoadingSubmission(false);
       return;
     }
@@ -274,17 +260,16 @@ function MfTransForm() {
 
       if (!response.ok) {
         alert.message = data?.message ? <span>{data.message}</span> : <span>Server error! Try again later</span>;
-        updateAlert(alert)
+        dispatch(updateToast(alert))
         return;
       }
 
       console.log('submitted')
-      updateAlert({
-        isOn: true,
+      dispatch(updateToast({
         type: 'success',
         header: 'Form submitted',
         message: ''
-      })
+      }))
 
       // clear the form 
       dispatch(resetTransactions());
@@ -298,7 +283,7 @@ function MfTransForm() {
     } catch (error) {
       console.log(error);
       alert.message = <span>Server error! Try again later</span>;
-      updateAlert(alert)
+      dispatch(updateToast(alert))
     }
     finally {
       setIsLoadingSubmission(false)
@@ -310,7 +295,7 @@ function MfTransForm() {
 
   return (
     <div>
-      <Alert alertState={alert} updateAlert={updateAlert} />
+      <Toast />
 
       {/* <Header /> */}
 

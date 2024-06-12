@@ -3,13 +3,13 @@ import RadioInput from './common/RadioInput';
 import PreFilledSelect from './common/PreFilledSelect';
 import NumberInput from './common/NumberInput';
 import { useDispatch, useSelector } from 'react-redux';
-import { handleChange, handleSelect } from '../../Reducers/SwitchDataSlice';
+import { handleChange, handleSelect } from '../../reducers/SwitchDataSlice';
 import CustomInputList from './common/CustomInputList';
 import { fetchAmcNameOptions, fetchFolioOptions, fetchSchemeNameOptions } from '../../Actions/OptionListsAction';
 import debounce from '../../utils/debounce';
 import TextInput from './common/TextInput';
 import FolioSelectMenu from './common/FolioSelectMenu';
-import { setAmcNameOptions, setSchemeNameOptions } from '../../Reducers/OptionListsSlice';
+import { setAmcNameOptions, setSchemeNameOptions } from '../../reducers/OptionListsSlice';
 
 function SwitchForm({ index, updateCollapsed }) {
   // get switchData state from store 

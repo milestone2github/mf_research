@@ -5,12 +5,14 @@ import mNiveshlogo from '../../assets/mNiveshLogo.png'
 import { loginwithgoogle } from '../../firebase/googleauthenticate';
 import { Link, useNavigate } from 'react-router-dom';
 import illustration from '../../assets/illustration.png'
-import Alert from '../mfTransaction/common/Alert';
+import Toast from '../common/Toast';
+import { useDispatch } from 'react-redux';
+import { updateToast } from '../../reducers/ToastSlice';
 
 const Loginpage = () => {
   const navigate = useNavigate()
-  const [alert, setAlert] = useState({isOn: false, message: 'Access Denied', type: ''})
-
+  const dispatch = useDispatch()
+  
   useEffect(() => {
     let query = window.location.search;
     // Create a test URLSearchParams object
@@ -18,12 +20,8 @@ const Loginpage = () => {
 
     // set error to the state
     if(searchParams.get('error'))
-      setAlert({isOn: true, type: 'error', message: 'Permission Denied'})
+      dispatch(updateToast({type: 'error', message: 'Permission Denied'}))
 }, [])
-
-  const updateAlert = (value) => {
-    setAlert(value)
-  }
 
   const handleLogin = async () => {
     window.location.href = `${process.env.REACT_APP_API_BASE_URL}/auth/zoho`
@@ -48,7 +46,7 @@ const Loginpage = () => {
         navigate("/", { replace: true })
       }
       else {
-        window.alert(res.msg)
+        dispatch(updateToast({message: res.msg, type: 'error'}))
       }
     } catch (error) {
       console.log(error);
@@ -63,7 +61,7 @@ const Loginpage = () => {
           </Link>
         </nav>
       </header>
-      <Alert alertState={alert} updateAlert={updateAlert}/>
+      <Toast />
 
       <div className='flex items-center justify-center rounded-md shadow-lg'>
         <section className='w-full flex flex-col items-center h-full px-6 py-6'>

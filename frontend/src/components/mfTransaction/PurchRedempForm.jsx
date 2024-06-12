@@ -3,13 +3,13 @@ import PreFilledSelect from './common/PreFilledSelect';
 import RadioInput from './common/RadioInput';
 import NumberInput from './common/NumberInput';
 import { useDispatch, useSelector } from 'react-redux';
-import { handleChange, handleSelect } from '../../Reducers/PurchRedempDataSlice';
+import { handleChange, handleSelect } from '../../reducers/PurchRedempDataSlice';
 import CustomInputList from './common/CustomInputList';
 import { fetchAmcNameOptions, fetchFolioOptions, fetchSchemeNameOptions } from '../../Actions/OptionListsAction';
 import debounce from '../../utils/debounce';
 import TextInput from './common/TextInput';
 import FolioSelectMenu from './common/FolioSelectMenu';
-import { setAmcNameOptions, setSchemeNameOptions } from '../../Reducers/OptionListsSlice';
+import { setAmcNameOptions, setSchemeNameOptions } from '../../reducers/OptionListsSlice';
 
 function PurchRedempForm({ index, updateCollapsed }) {
   // get purchRedempData state from store
@@ -73,7 +73,7 @@ function PurchRedempForm({ index, updateCollapsed }) {
   // method to handle change in scheme name
   const handleSchemeNameChange = (value, name, index) => {
     dispatch(handleSelect({ name, value, index })); // dispatch the change
-    dispatch(setSchemeNameOptions(value)) 
+    dispatch(setSchemeNameOptions([value])) 
   };
 
   // method to handle change in inputs 

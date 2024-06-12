@@ -12,6 +12,7 @@ const tabs = [
     { name: 'Direct Client Payout', to: '/dir-client-payout', label: 'Direct Client Payout' },
     { name: 'Direct Client Payout Accounts', to: '/dir-client-payout-accounts', label: 'Direct Client Payout Accounts' },
     { name: 'MF Transaction', to: '/mf-trans-form', label: 'MF Transaction' },
+    { name: 'NFO', to: '/nfo-form', label: 'NFO Transaction' },
 ]
 
 const Sidebar = () => {
@@ -19,14 +20,14 @@ const Sidebar = () => {
     const permissions = userData?.role?.permissions;
 
     const allowedTabs = tabs.filter(tab => 
-        tab.name === 'Calculator' || tab.name === 'Home' || permissions?.find(permission => permission == tab.name)
+        tab.name === 'Calculator' || tab.name === 'Home' || permissions?.find(permission => permission === tab.name)
     )
 
     return (
         <>
-            {isLoggedIn && <nav className="app-sidebar min-w-64">
-                <ul className=" ">{
-                    allowedTabs.map(tab => (
+            {isLoggedIn && <nav className="app-sidebar min-w-64"> 
+                <ul>{
+                    allowedTabs.map(tab => (  //test temp
                         <li key={tab.to}>
                             <NavLink
                                 to={tab.to}

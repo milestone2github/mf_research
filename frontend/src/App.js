@@ -36,6 +36,7 @@ import Header from "./components/common/Header";
 import CalculatorList from "./components/calculators/CalculatorList";
 import MfTransForm from "./components/pages/MfTransForm";
 import Protected from "./components/common/Protected";
+import NfoForm from "./components/pages/NfoForm";
 
 function App() {
   const [loading, setLoading] = useState(false)// test
@@ -66,6 +67,7 @@ function App() {
                 <Route path="/dir-client-payout" element={<Protected><DirClientPayouts /></Protected>} />
                 <Route path="/dir-client-payout-accounts" element={<Protected><DirectClientPayouts /></Protected>} />
                 <Route path="/mf-trans-form" element={<Protected><MfTransForm /></Protected>} />
+                <Route path="/nfo-form" element={<Protected><NfoForm /></Protected>} />
                 <Route path="/login" element={<Loginpage />} />
 
                 <Route path="/calculator" element={<Protected><Calculators /></Protected>} >

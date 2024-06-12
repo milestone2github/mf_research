@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom';
-import { setLoading, setLoggedIn, setUser } from '../../Reducers/UserSlice';
+import { setLoading, setLoggedIn, setUser } from '../../reducers/UserSlice';
 
 function Protected({children}) {
   const {isLoggedIn, isLoading} = useSelector(state => state.user);

@@ -1,11 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
-import systematicDataReducer from '../Reducers/SystematicDataSlice'
-import purchRedempDataReducer from '../Reducers/PurchRedempDataSlice'
-import switchDataReducer from '../Reducers/SwitchDataSlice'
-import commonDataReducer from '../Reducers/CommonDataSlice'
-import userReducer from '../Reducers/UserSlice'
-import optionListsReducer from '../Reducers/OptionListsSlice'
-import transactionReducer from '../Reducers/TransactionSlice'
+import systematicDataReducer from '../reducers/SystematicDataSlice'
+import purchRedempDataReducer from '../reducers/PurchRedempDataSlice'
+import switchDataReducer from '../reducers/SwitchDataSlice'
+import commonDataReducer from '../reducers/CommonDataSlice'
+import userReducer from '../reducers/UserSlice'
+import optionListsReducer from '../reducers/OptionListsSlice'
+import transactionReducer from '../reducers/TransactionSlice'
+import toastSlice from "../reducers/ToastSlice";
 
 export default configureStore({
     reducer: {
@@ -15,6 +16,7 @@ export default configureStore({
         commonData: commonDataReducer,
         user: userReducer,
         optionLists: optionListsReducer,
-        transactions: transactionReducer
+        transactions: transactionReducer,
+        toast: toastSlice 
     }
 })

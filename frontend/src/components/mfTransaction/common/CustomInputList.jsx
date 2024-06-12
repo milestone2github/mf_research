@@ -129,7 +129,7 @@ function CustomInputList({
         onInvalid={handleInvalidInput}
       />
 
-      {isOpen && !!listOptions.length && <ul className="absolute top-full w-full max-h-[328px] overflow-y-auto snap-y scroll-p-1 text-sm rounded-md mt-1 py-1 bg-primary-white list-none shadow-md z-10 border">
+      {isOpen && !!listOptions?.length && <ul className="absolute top-full w-full max-h-[328px] overflow-y-auto snap-y scroll-p-1 text-sm rounded-md mt-1 py-1 bg-primary-white list-none shadow-md z-10 border">
         {listOptions.map((option, idx) => (
           <li 
           key={idx} 
