@@ -9,6 +9,7 @@ const { default: axios } = require("axios");
 const NewFundOffer = require("../models/NewFundOffer");
 const generateHtmlContent = require("../utils/generateHtmlContent");
 const generateHtmlOfNfo = require("../utils/generateHtmlOfNfo");
+const Transactions = require("../models/Transactions");
 require('dotenv').config()
 
 const getInvestors = async (req, res) => {
@@ -176,37 +177,48 @@ const postTransForm = async (req, res) => {
     }
     const { name, email } = req.session.user;
 
-    // Include name and email in commonData
-    formData.commonData = {
-      ...formData.commonData,
-      registrantName: name,
-      registrantEmail: email
-    };
-
     // create unique session id 
     let date = Date.now();
     let randomDigits = Math.floor(Math.random() * 9000 + 1000);
     let sessionId = date.toString() + email.slice(0, 3).toUpperCase() + randomDigits.toString()
 
+    // Include name, email and sessionId in commonData
+    formData.commonData = {
+      ...formData.commonData,
+      registrantName: name,
+      registrantEmail: email,
+      sessionId
+    };
 
-    if (formData.systematicData) {
-      for (let i = 0; i < formData.systematicData.length; i++) {
+    const { systematicData, purchRedempData, switchData } = formData
+
+    if (systematicData?.length) {
+      for (const element of systematicData) {
         // combine common data and systematic data
-        const combinedSystematic = Object.assign(
-          {},
-          formData.commonData,
-          formData.systematicData[i],
-          { sessionId: sessionId }
-        );
+        const combinedSystematic = {
+          ...formData.commonData,
+          category: 'systematic',
+          transactionType: element.systematicTraxType,
+          transactionFor: element.systematicTraxFor,
+          amcName: element.systematicMfAmcName,
+          schemeName: element.systematicSchemeName || element.systematicSourceScheme,
+          folioNumber: element.systematicFolio,
+          amount: element.sip_swp_stpAmount,
+          paymentMode: element.systematicPaymentMode,
+          schemeOption: element.systematicSchemeOption,
+          firstTransactionAmount: element.firstTransactionAmount,
+          sipSwpStpDate: element.sip_stp_swpDate,
+          sipPauseMonths: element.sipPauseMonths,
+          tenure: element.tenureOfSip_swp_stp,
+          chequeNumber: element.systematicChequeNumber,
+          status: 'PENDING',
+        }
 
         // store systematic data in database
-        const ressys = await Systematic.create(combinedSystematic); // Corrected variable name
+        const ressys = await Transactions.create(combinedSystematic); // Corrected variable name
         if (ressys) {
           console.log("Data stored successfully in systematic");
-          results.push({
-            message: "Data stored successfully in systematic", // Corrected message
-            formsub: i,
-          });
+          results.push("Data stored successfully in systematic");
 
           // add mongo's id field to systematic data
           combinedSystematic._id = ressys._id.toString();
@@ -215,26 +227,33 @@ const postTransForm = async (req, res) => {
           allFormsData.push(combinedSystematic);
 
         }
-      }
+      };
     }
 
-    if (formData.purchRedempData) {
-      for (let i = 0; i < formData.purchRedempData.length; i++) {
-        const combinedRedemption = Object.assign(
-          {},
-          formData.commonData,
-          formData.purchRedempData[i],
-          { sessionId: sessionId }
-        );
+
+    if (purchRedempData?.length) {
+      for (const element of purchRedempData) {
+
+        const combinedRedemption = {
+          ...formData.commonData,
+          category: 'purchredemp',
+          transactionType: element.purch_RedempTraxType,
+          amcName: element.purch_redempMfAmcName,
+          schemeName: element.purch_redempSchemeName,
+          folioNumber: element.purch_redempFolio,
+          amount: element.purch_redempTransactionAmount,
+          paymentMode: element.purch_redempPaymentMode,
+          schemeOption: element.purch_redempSchemeOption,
+          transactionUnits: element.purch_redempTransactionUnits_Amount,
+          chequeNumber: element.purchaseChequeNumber,
+          status: 'PENDING',
+        }
 
         // store data in database
-        const resp = await PurchRedemp.create(combinedRedemption);
+        const resp = await Transactions.create(combinedRedemption);
         if (resp) {
           console.log("Data stored successfully in predemption");
-          results.push({
-            message: "Data stored successfully in predemption",
-            formsub: i,
-          });
+          results.push("Data stored successfully in predemption");
 
           // add mongo's id field to purchase/redemption data
           combinedRedemption._id = resp._id.toString();
@@ -246,24 +265,28 @@ const postTransForm = async (req, res) => {
       }
     }
 
-    if (formData.switchData) {
-      for (let i = 0; i < formData.switchData.length; i++) {
+    if (switchData?.length) {
+      for (const element of switchData) {
         // combine common data and switch data
-        const combinedSwitch = Object.assign(
-          {},
-          formData.commonData,
-          formData.switchData[i],
-          { sessionId: sessionId }
-        );
+        const combinedSwitch = {
+          ...formData.commonData,
+          category: 'switch',
+          amcName: element.switchMfAmcName,
+          schemeName: element.switchToScheme,
+          fromSchemeName: element.switchFromScheme,
+          folioNumber: element.switchFolio,
+          transactionUnits: element.switchTransactionUnits_Amount,
+          amount: element.switchTransactionAmount,
+          schemeOption: element.switchToSchemeOption,
+          fromSchemeOption: element.switchFromSchemeOption,
+          status: 'PENDING',
+        }
 
         // store switch data to database 
-        const resswit = await Switch.create(combinedSwitch);
+        const resswit = await Transactions.create(combinedSwitch);
         if (resswit) {
           console.log("Data stored successfully in Switch");
-          results.push({
-            message: "Data stored successfully in Switch",
-            formsub: i,
-          });
+          results.push("Data stored successfully in Switch");
 
           // add mongo's id field to purchase/redemption data
           combinedSwitch._id = resswit._id.toString();
@@ -291,7 +314,7 @@ const postTransForm = async (req, res) => {
       });
 
       // send email to user 
-      sendEmail("MF Transactions", generateHtmlContent(mailData), email);
+      sendEmail("MF Transactions", generateHtmlContent(mailData), email); //test include cc address
 
       res.status(200).json(results);
     } else {

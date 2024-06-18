@@ -29,7 +29,7 @@ async function sendEmail(subject, body, toAddress, ccAddress) {
     let mailResponse = await transporter.sendMail(mailOptions);
     console.log("Email sent: %s", mailResponse.messageId);
   } catch (error) {
-    console.error("Failed to send email:", error);
+    console.error("Failed to send email:", error.message);
   }
 }
 
