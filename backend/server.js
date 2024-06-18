@@ -8,6 +8,7 @@ const session = require("express-session");
 const { connectToMilestoneDB, connetToTransactionsDb } = require("./dbConfig/connection");
 const authRoutes = require('./routes/Auth')
 const dataRoutes = require('./routes/Data')
+const opsRoutes = require('./routes/OpsTransactions')
 
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
@@ -56,6 +57,7 @@ app.use(dbAccess); // Use the middleware
 
 app.use('/auth', authRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/ops-dash', opsRoutes);
 
 // wildcard route to serve react using express
 app.get("*", (req, res) => {

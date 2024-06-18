@@ -1,13 +1,14 @@
 const mongoose = require('mongoose');
+const statusEnum = require('../utils/statusEnum')
 
 const systematicTransactionSchema = new mongoose.Schema({
-  email: {
+  registrantEmail: {
     type: String,
     trim: true,
     default: ""
   },
   transactionPreference: {type: Date, default: Date.now},
-  registrant: {
+  registrantName: {
     type: String,
     trim: true,
     default: ""
@@ -59,23 +60,12 @@ const systematicTransactionSchema = new mongoose.Schema({
   tenureOfSip_swp_stp: Number,
   sip_stp_swpDate: Date,
   firstTransactionAmount: Number,
-  status: {type: String, 
-    enum: [
-        'PENDING', 
-        'REQUESTED', 
-        '2FA_VALIDATED', 
-        'EXPIRED', 
-        '2FA_VALIDATED_PAYMENT_PENDING', 
-        'PAYMENT_PROCESSED', 
-        'PAYMENT_STATUS_PENDING', 
-        'SYSTEM_UPDATE_AWAITING',
-        'SEND_TO_RTA',
-        'INVALID_TRANSACTION',
-        'RTA_PROCESSED',
-        'RTA_REJECTED',
-        'ALLOTTED',
-        'ALLOTMENT_PENDING'
-    ]},
+  firstInstallmentPaymentMode: String,
+  transactionFractions: [{
+    fractionAmount: Number, 
+    status: {type: String, enum: statusEnum}
+  }],
+  status: {type: String, enum: statusEnum},
   sessionId: String
 }, {timestamps: true});
 

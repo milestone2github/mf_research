@@ -186,7 +186,7 @@ const postTransForm = async (req, res) => {
     // create unique session id 
     let date = Date.now();
     let randomDigits = Math.floor(Math.random() * 9000 + 1000);
-    let sessionId = date.toString() + email.slice(0, 3) + randomDigits.toString()
+    let sessionId = date.toString() + email.slice(0, 3).toUpperCase() + randomDigits.toString()
 
 
     if (formData.systematicData) {
@@ -641,7 +641,7 @@ const postNewFundOfferForm = async (req, res) => {
   // create unique session id 
   let date = Date.now();
   let randomDigits = Math.floor(Math.random() * 9000 + 1000);
-  let sessionId = date.toString() + investorName.slice(0, 3) + randomDigits.toString()
+  let sessionId = date.toString() + investorName.toUpperCase().slice(0, 3) + randomDigits.toString()
 
   if (!req.session || !req.session.user) {
     return res.status(401).json({ error: "User not logged in" });

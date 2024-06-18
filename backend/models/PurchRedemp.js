@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const statusEnum = require('../utils/statusEnum');
 
 const purchaseRedemptionTransactionSchema = new mongoose.Schema({
     transactionPreference: {type: Date, default: Date.now},
@@ -15,24 +16,13 @@ const purchaseRedemptionTransactionSchema = new mongoose.Schema({
     purch_redempFolio: String,
     purch_redempTransactionUnits_Amount: String,
     purch_redempTransactionAmount: Number,
+    paymentMode: String,
     sessionId: String,
-    status: {type: String, 
-        enum: [
-            'PENDING', 
-            'REQUESTED', 
-            '2FA_VALIDATED', 
-            'EXPIRED', 
-            '2FA_VALIDATED_PAYMENT_PENDING', 
-            'PAYMENT_PROCESSED', 
-            'PAYMENT_STATUS_PENDING', 
-            'SYSTEM_UPDATE_AWAITING',
-            'SEND_TO_RTA',
-            'INVALID_TRANSACTION',
-            'RTA_PROCESSED',
-            'RTA_REJECTED',
-            'ALLOTTED',
-            'ALLOTMENT_PENDING'
-        ]}
+    transactionFractions: [{
+        fractionAmount: Number, 
+        status: {type: String, enum: statusEnum}
+    }],
+    status: {type: String, enum: statusEnum},
 }, {timestamps: true});
 
 module.exports = mongoose.model('predemption', purchaseRedemptionTransactionSchema);
