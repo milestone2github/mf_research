@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
-// import "./styles.css"; // Ensure you have some basic CSS for styling
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import { useSelector } from "react-redux";
 import AccessDenied from "./AccessDenied";
 
 const AssociatePayoutAccounts = () => {
-  const [originalData, setOriginalData] = useState([])
+  const [originalData, setOriginalData] = useState([]);
   const [data, setData] = useState({});
-  const [total, setTotal] = useState(null)
-  const [load, setLoad] = useState(false)
+  const [total, setTotal] = useState(null);
+  const [load, setLoad] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [expanded, setExpanded] = useState(null); // Track the expanded associate
+  const [expanded, setExpanded] = useState(null);
   const [filterDate, setFilterDate] = useState(() => {
     const today = new Date();
     return today.toISOString().substring(0, 10);
   });
+  const [buttonStates, setButtonStates] = useState({}); // Add state for button status
 
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
@@ -29,34 +29,33 @@ const AssociatePayoutAccounts = () => {
           new Date(item["Payout_Release_Date"])
             .toISOString()
             .substring(0, 10) <= filterDate
-      })
-      setData(groupData(filteredData))
+      });
+      setData(groupData(filteredData));
     }
-  }, [originalData, filterDate])
+  }, [originalData, filterDate]);
 
   const gettotalsum = async () => {
     try {
-      setLoad(true)
-      let sum = 800
-      const arrdata = Object.entries(data).flat()
+      setLoad(true);
+      let sum = 800;
+      const arrdata = Object.entries(data).flat();
       arrdata.forEach((item) => {
         if (item.totalPayout) {
-          sum = sum + item.totalPayout
+          sum = sum + item.totalPayout;
         }
-      })
-      setLoad(false)
-      setTotal(sum)
-      // console.log(sum);
+      });
+      setLoad(false);
+      setTotal(sum);
     } catch (error) {
-      setLoad(false)
-      setTotal(null)
+      setLoad(false);
+      setTotal(null);
     }
-  }
+  };
   useEffect(() => {
-    gettotalsum(data)
-  }, [data])
+    gettotalsum(data);
+  }, [data]);
   useEffect(() => {
-    if(!permissions.find(perm => perm === 'Associate Payout Accounts')){ return; }
+    if (!permissions.find(perm => perm === 'Associate Payout Accounts')) { return; }
     setLoading(true);
     axios
       .get(
@@ -82,7 +81,7 @@ const AssociatePayoutAccounts = () => {
           data: [],
           totalPayout: 0,
           entryCount: 0,
-          processableCount: 0, // count of records with priority 2 or below
+          processableCount: 0,
           highestStatus: statusDetails,
         };
       }
@@ -92,7 +91,7 @@ const AssociatePayoutAccounts = () => {
       );
       acc[curr["Associate Name"]].entryCount++;
       if (statusDetails.priority <= 1) {
-        acc[curr["Associate Name"]].processableCount++; // Increment if priority is 2 or below
+        acc[curr["Associate Name"]].processableCount++;
       }
       if (
         statusDetails.priority <
@@ -108,7 +107,6 @@ const AssociatePayoutAccounts = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const releaseDate = new Date(record["Payout_Release_Date"]);
-
     releaseDate.setHours(0, 0, 0, 0);
 
     if (record.Payout_Approval !== "Approved") {
@@ -128,7 +126,7 @@ const AssociatePayoutAccounts = () => {
   };
 
   const toggleDetail = (name, event) => {
-    event.stopPropagation(); // Prevent triggering any parent event
+    event.stopPropagation();
     setExpanded(expanded === name ? null : name);
   };
 
@@ -313,7 +311,6 @@ const AssociatePayoutAccounts = () => {
     const allAssociatesData = Object.values(data)
       .map((assoc) => assoc.data)
       .flat();
-    console.log("All Associates Data for Excel:", allAssociatesData);
     if (action === "download") {
       handleDownloadExcel(allAssociatesData);
     } else if (action === "releasePayout") {
@@ -336,39 +333,31 @@ const AssociatePayoutAccounts = () => {
       (assoc) => assoc.Associate.name === associateName
     );
 
-    console.log("Filtered Data for Excel:", filteredData);
     if (action === "download") {
       handleDownloadExcel(filteredData);
     } else if (action === "releasePayout") {
-      handleReleasePayout(filteredData);
+      handleReleasePayout(filteredData, associateName); // Pass associateName to handleReleasePayout
     }
   };
 
-  const handleReleasePayout = async (data) => {
-    console.log("Releasing Payout...");
-
+  const handleReleasePayout = async (data, associateName) => {
     try {
-      // Check if data is empty or undefined
       if (!data || data.length === 0) {
         throw new Error("No data provided for payout release.");
       }
 
-      // Filter records with priority 1 and payout release date before the filter date
       const filteredRecords = data.filter((record) => {
         const priority = record.statusDetails.priority;
         const payoutDate = new Date(record["Payout_Release_Date"])
           .toISOString()
           .substring(0, 10);
-        // console.log(payoutDate);
-        // console.log(filterDate);
 
         return priority === 1 && payoutDate <= filterDate;
       });
 
-      // Extract the list of record IDs from the filtered data
       const recordIds = filteredRecords.map((record) => record.id);
 
-      // Send a POST request to your Flask endpoint with the list of filtered record IDs
+      // const response = await fetch('https://jsonplaceholder.typicode.com/posts')
       const response = await fetch(
         "https://milestone-api.azurewebsites.net/api/UpdateInsuracePayout_Accounts?code=zaCGvV0xsN5tMHJfSos0km4FRT3RH784csNXGRpC6P1bAzFu2Aj-6w==",
         {
@@ -380,26 +369,27 @@ const AssociatePayoutAccounts = () => {
         }
       );
 
-      // Check if response status is not okay
       if (!response.ok) {
         const errorMessage = `Failed to release payout. Status: ${response.status} ${response.statusText}`;
         throw new Error(errorMessage);
       }
 
-      // Log success message
+      setButtonStates(prevState => ({
+        ...prevState,
+        [associateName]: { text: "Payout Released", color: "#60a5fa", disabled: true }
+      }));
+
       console.log("Payout released successfully.");
     } catch (error) {
-      // Log and handle errors
       console.error("Error releasing payout:", error.message);
-      // You can add additional error handling logic here, such as showing an error message to the user
     }
   };
 
-  if(!permissions.find(perm => perm === 'Associate Payout Accounts')) 
-    return (<AccessDenied />)
-  
+  if (!permissions.find(perm => perm === 'Associate Payout Accounts'))
+    return (<AccessDenied />);
+
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div className="loader"></div>
-  </div>
+  </div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
@@ -409,19 +399,13 @@ const AssociatePayoutAccounts = () => {
         {load ? <p>Calclating</p> : total ? <p className=" text-xl flex items-center">Overall Payout :
           &nbsp; <MdOutlineCurrencyRupee />{total}</p> : <p>Total : Error Occured while Calculating</p>}
       </div>
-      <button className=" bg-blue-600 rounded text-white py-3 px-3 hover:bg-blue-500"
+      <button className=" bg-blue-600 rounded text-white py-3 px-3 hover:bg-blue-700"
         onClick={() => downloadAllData("download")}
         style={{ float: "right" }}
       >
         Download Kotak CMS File
       </button>
 
-      {/* <button
-        onClick={() => downloadAllData("releasePayout")}
-        style={{ float: "right" }}
-      >
-        Release Payout
-      </button> */}
       <label htmlFor="payoutDate">Set Payout Release Date : </label>
       <input
         className=" py-2 px-2 rounded outline-blue-500 border-[2px] border-solid border-slate-300"
@@ -465,12 +449,16 @@ const AssociatePayoutAccounts = () => {
                   </button>
                 </td>
                 <td>
-                  <button className=" bg-blue-500 rounded whitespace-nowrap  p-3 m-3 text-white"
-                    onClick={() =>
-                      downloadSingleAssociate(name, "releasePayout")
-                    }
+                  <button
+                    className="rounded whitespace-nowrap p-3 m-3 text-white"
+                    style={{
+                      backgroundColor: buttonStates[name]?.color || "#2563eb",
+                      cursor: buttonStates[name]?.disabled ? "not-allowed" : "pointer"
+                    }}
+                    disabled={buttonStates[name]?.disabled}
+                    onClick={() => downloadSingleAssociate(name, "releasePayout")}
                   >
-                    Released Payout
+                    {buttonStates[name]?.text || "Release Payout"}
                   </button>
                 </td>
               </tr>
@@ -512,6 +500,7 @@ const AssociatePayoutAccounts = () => {
           ))}
         </tbody>
       </table>
+      
     </div>
   );
 };

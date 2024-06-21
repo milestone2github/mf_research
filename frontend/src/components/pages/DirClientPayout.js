@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-// import * as XLSX from "xlsx";
-// import "./styles.css"; // Ensure you have some basic CSS for styling
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import { useSelector } from "react-redux";
 import AccessDenied from "./AccessDenied";
@@ -19,12 +17,12 @@ const DirClientPayouts = () => {
 
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
+  const [buttonStates, setButtonStates] = useState({}); // Add state for button status
 
   const gettotalsum = async () => {
     try {
       setLoad(true)
       let sum = 0
-      console.log(data);
       data.forEach((item)=>{
         sum = sum + item.Referral_Amount
       })
@@ -128,6 +126,11 @@ const DirClientPayouts = () => {
       .post(`${apiUrl}/api/send_mail`, emailData)
       .then((response) => {
         console.log("Email sent:", response.data.message);
+
+        setButtonStates(prevState => ({
+          ...prevState,
+          [id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
+        }));
       })
       .catch((error) => {
         console.error(
@@ -184,7 +187,12 @@ const DirClientPayouts = () => {
                 <td style={{ color: item.statusDetails.color , textAlign:"center" , fontWeight:"700" }}>
                   {item.statusDetails.status}
                 </td>
-                <button className=" bg-blue-500 rounded  p-3 m-3 text-white"
+                <button className="rounded  p-3 m-3 text-white"
+                  style={{
+                    backgroundColor: buttonStates[item["id"]]?.color || "#2563eb",
+                    cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
+                  }}
+                  disabled={buttonStates[item["id"]]?.disabled}
                   onClick={() =>
                     requestEarlyRelease(
                       item["id"], // Assuming item.id is the ID of the record
@@ -198,7 +206,7 @@ const DirClientPayouts = () => {
                     )
                   }
                 >
-                  Request Early Release
+                  {buttonStates[item["id"]]?.text || "Request Early Release"}
                 </button>
               </tr>
             ))}

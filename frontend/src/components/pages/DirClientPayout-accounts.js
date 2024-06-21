@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
-// import "./styles.css"; // Ensure you have some basic CSS for styling
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import AccessDenied from "./AccessDenied";
 import { useSelector } from "react-redux";
@@ -9,37 +8,39 @@ import { useSelector } from "react-redux";
 const DirectClientPayouts = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(null)
-  const [load, setLoad] = useState(false)
+  const [total, setTotal] = useState(null);
+  const [load, setLoad] = useState(false);
   const [error, setError] = useState(null);
   const [filterDate, setFilterDate] = useState(() => {
     const today = new Date();
     return today.toISOString().substring(0, 10);
   });
+  const [buttonStates, setButtonStates] = useState({}); // Add state for button status
 
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
 
   const gettotalsum = async () => {
     try {
-      setLoad(true)
-      let sum = 0
-      console.log(data);
-      data.forEach((item)=>{
-        sum = sum + item.Referral_Amount
-      })
-      setLoad(false)
-      setTotal(sum)
+      setLoad(true);
+      let sum = 0;
+      data.forEach((item) => {
+        sum = sum + item.Referral_Amount;
+      });
+      setLoad(false);
+      setTotal(sum);
     } catch (error) {
-      setLoad(false)
-      setTotal(null)
+      setLoad(false);
+      setTotal(null);
     }
-  }
+  };
+
   useEffect(() => {
-    gettotalsum(data)
-  }, [data])
+    gettotalsum(data);
+  }, [data]);
+
   useEffect(() => {
-    if(!permissions.find(perm  => perm === 'Direct Client Payout Accounts')){
+    if (!permissions.find(perm => perm === 'Direct Client Payout Accounts')) {
       return;
     }
     setLoading(true);
@@ -85,11 +86,8 @@ const DirectClientPayouts = () => {
   };
 
   const handleDownloadExcel = (event) => {
-    if (event) event.stopPropagation(); // Prevent row toggle
+    if (event) event.stopPropagation();
 
-    console.log("Received data for Excel processing:", data);
-
-    // Filter records to include only priority 1
     const priorityOneRecords = data.filter(
       (assoc) => assoc.statusDetails && assoc.statusDetails.priority === 1
     );
@@ -100,9 +98,6 @@ const DirectClientPayouts = () => {
       return;
     }
 
-    console.log("Filtered data for Excel:", priorityOneRecords);
-
-    // Convert the filtered data into the format needed for the spreadsheet
     const excelData = priorityOneRecords.map((assoc) => ({
       Client_Code: "MILESTONEP",
       Product_Code: "RPAY",
@@ -111,7 +106,7 @@ const DirectClientPayouts = () => {
       Payment_Date: "",
       Instrument_Date: "",
       Dr_Ac_No: "2111623031",
-      Amount: assoc.Referral_Amount, // Sum of all Associate_Payout1 for priority 1
+      Amount: assoc.Referral_Amount,
       Bank_Code_Indicator: "M",
       Beneficiary_Code: "",
       Beneficiary_Name: assoc.A_c_Holder_name,
@@ -155,9 +150,6 @@ const DirectClientPayouts = () => {
       Enrichment_20: "",
     }));
 
-    console.log("Excel data to be written:", excelData);
-
-    // Create the worksheet and workbook
     const worksheet = XLSX.utils.json_to_sheet(excelData, {
       skipHeader: false,
     });
@@ -188,10 +180,10 @@ const DirectClientPayouts = () => {
       "Beneficiary_Mobile",
       "Debit_Narration",
       "Credit_Narration",
-      "Payment_Details_1",
-      "Payment_Details_2",
-      "Payment_Details_3",
-      "Payment_Details_4",
+      "Payment Details 1",
+      "Payment Details 2",
+      "Payment Details 3",
+      "Payment Details 4",
       "Enrichment_1",
       "Enrichment_2",
       "Enrichment_3",
@@ -224,7 +216,6 @@ const DirectClientPayouts = () => {
     console.log("Releasing Payout...");
 
     try {
-      // Send a POST request to your Flask endpoint with the list of filtered record IDs
       const response = await fetch(
         "https://milestone-api.azurewebsites.net/api/UpdateInsuracePayout_Accounts?code=zaCGvV0xsN5tMHJfSos0km4FRT3RH784csNXGRpC6P1bAzFu2Aj-6w==",
         {
@@ -236,51 +227,51 @@ const DirectClientPayouts = () => {
         }
       );
 
-      // Check if response status is not okay
       if (!response.ok) {
         const errorMessage = `Failed to release payout. Status: ${response.status} ${response.statusText}`;
         throw new Error(errorMessage);
       }
 
-      // Log success message
+      setButtonStates(prevState => ({
+        ...prevState,
+        [id]: { text: "Payout Released", color: "#60a5fa", disabled: true }
+      }));
+
       console.log("Payout released successfully.");
     } catch (error) {
-      // Log and handle errors
       console.error("Error releasing payout:", error.message);
-      // You can add additional error handling logic here, such as showing an error message to the user
     }
   };
 
-  if(!permissions.find(perm => perm === 'Direct Client Payout Accounts')) 
-    return (<AccessDenied />)
+  if (!permissions.find(perm => perm === 'Direct Client Payout Accounts'))
+    return (<AccessDenied />);
 
-  if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div> 
-  </div>
+  if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
+  </div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
-       <div className=" flex justify-between">
-          <h1 className="text-2xl font-semibold">Dir Client Payouts - Accounts</h1>
-        { load ? <p>Calclating</p>: total ? <p className=" text-xl flex items-center">Overall Payout : 
-         &nbsp; <MdOutlineCurrencyRupee/>{String(total).slice(0,8)}</p>  : <p>Total : Error Occured while Calculating</p>}
-        </div>
+      <div className="flex justify-between">
+        <h1 className="text-2xl font-semibold">Dir Client Payouts - Accounts</h1>
+        {load ? <p>Calclating</p> : total ? <p className="text-xl flex items-center">Overall Payout :
+          &nbsp; <MdOutlineCurrencyRupee />{String(total).slice(0, 8)}</p> : <p>Total : Error Occured while Calculating</p>}
+      </div>
       <label htmlFor="payoutDate text-lg">Set Payout Release Date :  </label>
       <input
-       className=" py-2 px-2 rounded outline-blue-500 border-[2px] border-solid border-slate-300"
+        className="py-2 px-2 rounded outline-blue-500 border-[2px] border-solid border-slate-300"
         type="date"
         value={filterDate}
         id="payoutDate"
         onChange={(e) => setFilterDate(e.target.value)}
-        // style={{ margin: "10px 0" }}
       />
-      <button  className=" bg-blue-600 rounded text-white py-3 px-3 hover:bg-blue-500" onClick={() => handleDownloadExcel()} style={{ float: "right" , transition:"0.5s" }}>
+      <button className="bg-blue-600 rounded text-white py-3 px-3 hover:bg-blue-700" onClick={() => handleDownloadExcel()} style={{ float: "right", transition: "0.5s" }}>
         Download Kotak CMS File
       </button>
       <table className="main-table w-full mt-4">
         <thead className="bg-black text-white">
           <tr>
-            <th className=" text-left py-6 pl-4">Client Name</th>
+            <th className="text-left py-6 pl-4">Client Name</th>
             <th>Lead UCC</th>
             <th>Payout %</th>
             <th>Payout ₹</th>
@@ -300,18 +291,26 @@ const DirectClientPayouts = () => {
                   .substring(0, 10) <= filterDate
             )
             .map((item, index) => (
-              <tr  key={index} className="border-b-[1px] border-solid border-black detail-row w-[50rem]  text-center text-sm  ">
-                <td className=" py-5  w-[12rem] text-left pl-4">{item["Insurance_Lead_Name"]}</td>
-                <td className=" w-[7rem] ">{item["Lead_ID"]}</td>
-                <td className=" w-[7rem] ">{item["Merged_Referral_Fee"]}%</td>
+              <tr key={index} className="border-b-[1px] border-solid border-black detail-row w-[50rem] text-center text-sm">
+                <td className="py-5 w-[12rem] text-left pl-4">{item["Insurance_Lead_Name"]}</td>
+                <td className="w-[7rem]">{item["Lead_ID"]}</td>
+                <td className="w-[7rem]">{item["Merged_Referral_Fee"]}%</td>
                 <td>₹ {item["Referral_Amount"]}</td>
-                <td className="  w-[9rem] mx-6">{item["Insurance_Type"]}</td>
+                <td className="w-[9rem] mx-6">{item["Insurance_Type"]}</td>
                 <td>{item["Payout_Release_Date"]}</td>
-                <td style={{ color: item.statusDetails.color , fontWeight:"700" }}>
+                <td style={{ color: item.statusDetails.color, fontWeight: "700" }}>
                   {item.statusDetails.status}
                 </td>
-                <button  className=" bg-blue-500 rounded  p-3 m-3 text-white" onClick={() => handleReleasePayout(item["id"])}>
-                  Released Payout
+                <button
+                  className="rounded p-3 m-3 text-white"
+                  style={{
+                    backgroundColor: buttonStates[item["id"]]?.color || "#2563eb",
+                    cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
+                  }}
+                  disabled={buttonStates[item["id"]]?.disabled}
+                  onClick={() => handleReleasePayout(item["id"])}
+                >
+                  {buttonStates[item["id"]]?.text || "Release Payout"}
                 </button>
               </tr>
             ))}
