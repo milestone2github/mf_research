@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import AccessDenied from "./AccessDenied";
 import { useSelector } from "react-redux";
+import PayoutConfirmModal from "../common/PayoutConfirmModal";
 
 const DirectClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -16,6 +17,10 @@ const DirectClientPayouts = () => {
     return today.toISOString().substring(0, 10);
   });
   const [buttonStates, setButtonStates] = useState({}); // Add state for button status
+  
+  const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
+  const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
+  const [payoutModalError, setPayoutModalError] = useState(null)
 
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
@@ -243,6 +248,18 @@ const DirectClientPayouts = () => {
     }
   };
 
+  const handleProceedPayout = (name) => {
+    if(name?.toLowerCase() !== selectedPayoutItem?.clientName?.toLowerCase()) {
+      setPayoutModalError('Client name does not match!')
+      return
+    }
+
+    handleReleasePayout(selectedPayoutItem.id)
+    setIsConfimPayoutModalOpen(false)
+    setPayoutModalError(null)
+    setSelectedPayoutItem(null)
+  }
+
   if (!permissions.find(perm => perm === 'Direct Client Payout Accounts'))
     return (<AccessDenied />);
 
@@ -308,7 +325,11 @@ const DirectClientPayouts = () => {
                     cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
                   }}
                   disabled={buttonStates[item["id"]]?.disabled}
-                  onClick={() => handleReleasePayout(item["id"])}
+                  // onClick={() => handleReleasePayout(item["id"])}
+                  onClick={() => {
+                    setIsConfimPayoutModalOpen(true); 
+                    setSelectedPayoutItem({clientName: item["Insurance_Lead_Name"], id: item["id"]})
+                  }}
                 >
                   {buttonStates[item["id"]]?.text || "Release Payout"}
                 </button>
@@ -316,6 +337,17 @@ const DirectClientPayouts = () => {
             ))}
         </tbody>
       </table>
+      <PayoutConfirmModal 
+        isOpen={isConfirmPayoutModalOpen}
+        title={'Enter client name to release payout'}
+        handleCancel={() => {
+          setIsConfimPayoutModalOpen(false); 
+          setSelectedPayoutItem(null);
+          setPayoutModalError(null)
+        }}
+        handleProceed={handleProceedPayout}
+        error={payoutModalError}
+      />
     </div>
   );
 };

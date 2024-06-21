@@ -3,6 +3,7 @@ import axios from "axios";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import { useSelector } from "react-redux";
 import AccessDenied from "./AccessDenied";
+import PayoutConfirmModal from "../common/PayoutConfirmModal";
 
 const DirClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -18,6 +19,10 @@ const DirClientPayouts = () => {
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
   const [buttonStates, setButtonStates] = useState({}); // Add state for button status
+
+  const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
+  const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
+  const [payoutModalError, setPayoutModalError] = useState(null)
 
   const gettotalsum = async () => {
     try {
@@ -125,7 +130,7 @@ const DirClientPayouts = () => {
     axios
       .post(`${apiUrl}/api/send_mail`, emailData)
       .then((response) => {
-        console.log("Email sent:", response.data.message);
+        console.log("Email sent:", response.data?.message);
 
         setButtonStates(prevState => ({
           ...prevState,
@@ -139,6 +144,20 @@ const DirClientPayouts = () => {
         );
       });
   };
+
+  const handleProceedPayout = (name) => {
+    if(name?.toLowerCase() !== selectedPayoutItem?.leadName?.toLowerCase()) {
+      setPayoutModalError('Client name does not match!')
+      return
+    }
+
+    let {id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate} = selectedPayoutItem
+    requestEarlyRelease(id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate)
+    
+    setIsConfimPayoutModalOpen(false)
+    setPayoutModalError(null)
+    setSelectedPayoutItem(null)
+  }
 
   if(!permissions.find(perm => perm === 'Direct Client Payout')) 
     return (<AccessDenied />)
@@ -193,18 +212,31 @@ const DirClientPayouts = () => {
                     cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
                   }}
                   disabled={buttonStates[item["id"]]?.disabled}
-                  onClick={() =>
-                    requestEarlyRelease(
-                      item["id"], // Assuming item.id is the ID of the record
-                      item["Lead_ID"],
-                      item["Insurance_Lead_Name"], // Lead Name
-                      item["Associate_Name"], // Lead ID
-                      item["Insurance_Type"], // Insurance Type
-                      item["Merged_Referral_Fee"], // Associate Payout percentage
-                      item["Referral_Amount"], // Associate Payout1 amount
-                      item["Payout_Release_Date"] // Payout Release Date
-                    )
-                  }
+                  onClick={() => {
+                    setIsConfimPayoutModalOpen(true); 
+                    setSelectedPayoutItem({
+                      id: item.id,
+                      leadID: item.Lead_ID,
+                      leadName: item.Insurance_Lead_Name,
+                      insuranceType: item.Insurance_Type,
+                      Associate_Name: item.Associate_Name,
+                      Merged_Referral_Fee: item.Merged_Referral_Fee,
+                      Referral_Amount: item.Referral_Amount,
+                      payoutReleaseDate: item.Payout_Release_Date,
+                    })
+                  }}
+                  // onClick={() =>
+                  //   requestEarlyRelease(
+                  //     item["id"], // Assuming item.id is the ID of the record
+                  //     item["Lead_ID"],
+                  //     item["Insurance_Lead_Name"], // Lead Name
+                  //     item["Associate_Name"], // Lead ID
+                  //     item["Insurance_Type"], // Insurance Type
+                  //     item["Merged_Referral_Fee"], // Associate Payout percentage
+                  //     item["Referral_Amount"], // Associate Payout1 amount
+                  //     item["Payout_Release_Date"] // Payout Release Date
+                  //   )
+                  // }
                 >
                   {buttonStates[item["id"]]?.text || "Request Early Release"}
                 </button>
@@ -212,6 +244,17 @@ const DirClientPayouts = () => {
             ))}
         </tbody>
       </table>
+      <PayoutConfirmModal 
+        isOpen={isConfirmPayoutModalOpen}
+        title={'Enter client name to request early release'}
+        handleCancel={() => {
+          setIsConfimPayoutModalOpen(false); 
+          setSelectedPayoutItem(null);
+          setPayoutModalError(null)
+        }}
+        handleProceed={handleProceedPayout}
+        error={payoutModalError}
+      />
     </div>
   );
 };

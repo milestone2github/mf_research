@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import AccessDenied from "./AccessDenied";
+import PayoutConfirmModal from "../common/PayoutConfirmModal";
 
 const AssociatePayout = () => {
   const navigate = useNavigate()
@@ -46,8 +47,12 @@ const AssociatePayout = () => {
   });
   const [buttonStates, setButtonStates] = useState({}); // Add state for button status
 
+  const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
+  const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
+  const [payoutModalError, setPayoutModalError] = useState(null)
+
   useEffect(() => {
-    if(!permissions.find(perm => perm === 'Associate Payout')){ return; }
+    if (!permissions.find(perm => perm === 'Associate Payout')) { return; }
     setLoading(true);
     axios
       .get(
@@ -125,27 +130,18 @@ const AssociatePayout = () => {
     setExpanded(expanded === name ? null : name);
   };
 
-  const requestEarlyRelease = (
-    id,
-    leadID,
-    leadName,
-    Associate_Name,
-    insuranceType,
-    associatePayout,
-    associatePayout1,
-    payoutReleaseDate
-  ) => {
+  const requestEarlyRelease = (record) => {
     const apiUrl = "http://127.0.0.1:5000"; // This should be the correct URL of your server
     const baseUrl =
       "https://milestone-api.azurewebsites.net/api/InsuranceEarlyPayout?code=ALwp8tdA-jpWhKhmbT7rfd1XG8ZA3jSypCsMHPoSho4cAzFu4WX-Cw==";
 
     // Construct the query parameters
     const queryParams = new URLSearchParams({
-      id,
-      Lead_Name: leadName, // Update parameter names as needed
-      Associate_Name,
-      Associate_Payout: associatePayout,
-      Associate_Payout1: associatePayout1,
+      id: record.id,
+      Lead_Name: record.Lead_Name, // Update parameter names as needed
+      Associate_Name : record.Associate_Name,
+      Associate_Payout: record.Associate_Payout,
+      Associate_Payout1: record.Associate_Payout1,
     }).toString();
 
     console.log(baseUrl, "&", queryParams);
@@ -154,12 +150,12 @@ const AssociatePayout = () => {
       message_body: `
         <p>Dear Sir/Madam,</p>
         <p>I am requesting an early release of payout for the following record:</p>
-        <p>Lead Name: ${leadName}</p>
-        <p>Lead ID: ${leadID}</p>
-        <p>Insurance Type: ${insuranceType}</p>
-        <p>Associate Payout: ${associatePayout}%</p>
-        <p>Associate Payout1: ₹ ${associatePayout1}</p>
-        <p>Payout Release Date: ${payoutReleaseDate}</p>
+        <p>Lead Name: ${record.Lead_Name}</p>
+        <p>Lead ID: ${record.Lead_ID}</p>
+        <p>Insurance Type: ${record.Insurance_Type}</p>
+        <p>Associate Payout: ${record.Associate_Payout}%</p>
+        <p>Associate Payout1: ₹ ${record.Associate_Payout1}</p>
+        <p>Payout Release Date: ${record.Payout_Release_Date}</p>
         <p><a href="${baseUrl}&${queryParams}">Approve Early Payout</a></p>
         <p>Please process the payout at your earliest convenience.</p>
         <p>Regards,<br/>Milestone Team</p>
@@ -170,11 +166,11 @@ const AssociatePayout = () => {
     axios
       .post(`${apiUrl}/api/send_mail`, emailData)
       .then((response) => {
-        console.log("Email sent:", response.data.message);
+        console.log("Email sent:", response.data?.message);
 
         setButtonStates(prevState => ({
           ...prevState,
-          [id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
+          [record.id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
         }));
       })
       .catch((error) => {
@@ -185,7 +181,19 @@ const AssociatePayout = () => {
       });
   };
 
-  if(!permissions.find(perm => perm === 'Associate Payout')) 
+  const handleProceedPayout = (name) => {
+    if (name?.toLowerCase() !== selectedPayoutItem?.Lead_Name?.toLowerCase()) {
+      setPayoutModalError('Lead name does not match!')
+      return
+    }
+
+    requestEarlyRelease(selectedPayoutItem)
+    setIsConfimPayoutModalOpen(false)
+    setPayoutModalError(null)
+    setSelectedPayoutItem(null)
+  }
+
+  if (!permissions.find(perm => perm === 'Associate Payout'))
     return (<AccessDenied />)
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
@@ -197,8 +205,8 @@ const AssociatePayout = () => {
       <div>
         <div className=" flex justify-between">
           <h1 className="text-2xl font-semibold">Associate Payouts</h1>
-        { load ? <p>Calclating</p>: total ? <p className=" text-xl flex items-center">Overall Payout : 
-         &nbsp; <MdOutlineCurrencyRupee/>{total}</p>  : <p>Total : Error Occured while Calculating</p>}
+          {load ? <p>Calclating</p> : total ? <p className=" text-xl flex items-center">Overall Payout :
+            &nbsp; <MdOutlineCurrencyRupee />{total}</p> : <p>Total : Error Occured while Calculating</p>}
         </div>
         <div className=" rounded-2xl p-2 ">
           <table className="main-table  w-full mt-4">
@@ -258,18 +266,19 @@ const AssociatePayout = () => {
                                 cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
                               }}
                               disabled={buttonStates[item["id"]]?.disabled}
-                              onClick={() =>
-                                requestEarlyRelease(
-                                  item["id"], // Assuming item.id is the ID of the record
-                                  item["Lead_ID"],
-                                  item["Insurance_Lead_Name"], // Lead Name
-                                  item["Associate_Name"], // Lead ID
-                                  item["Insurance_Type"], // Insurance Type
-                                  item["Associate_Payout"], // Associate Payout percentage
-                                  item["Associate_Payout1"], // Associate Payout1 amount
-                                  item["Payout_Release_Date"] // Payout Release Date
-                                )
-                              }
+                              onClick={() => {
+                                setIsConfimPayoutModalOpen(true); 
+                                setSelectedPayoutItem({
+                                  id: item.id,
+                                  Lead_ID: item.Lead_ID,
+                                  Lead_Name: item.Insurance_Lead_Name,
+                                  Insurance_Type: item.Insurance_Type,
+                                  Associate_Name: item.Associate_Name,
+                                  Associate_Payout: item.Associate_Payout,
+                                  Associate_Payout1: item.Associate_Payout1,
+                                  Payout_Release_Date: item.Payout_Release_Date,
+                                })
+                              }}
                             >
                               {buttonStates[item["id"]]?.text || "Request Early Release"}
                             </button>
@@ -284,8 +293,18 @@ const AssociatePayout = () => {
             </tbody>
           </table>
         </div>
-
-      </div> 
+        <PayoutConfirmModal
+          isOpen={isConfirmPayoutModalOpen}
+          title={'Enter lead name to request early release'}
+          handleCancel={() => {
+            setIsConfimPayoutModalOpen(false);
+            setSelectedPayoutItem(null);
+            setPayoutModalError(null)
+          }}
+          handleProceed={handleProceedPayout}
+          error={payoutModalError}
+        />
+      </div>
     </>
 
   );

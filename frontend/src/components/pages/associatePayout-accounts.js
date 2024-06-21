@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import { useSelector } from "react-redux";
 import AccessDenied from "./AccessDenied";
+import PayoutConfirmModal from "../common/PayoutConfirmModal";
 
 const AssociatePayoutAccounts = () => {
   const [originalData, setOriginalData] = useState([]);
@@ -18,6 +19,9 @@ const AssociatePayoutAccounts = () => {
     return today.toISOString().substring(0, 10);
   });
   const [buttonStates, setButtonStates] = useState({}); // Add state for button status
+  const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
+  const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
+  const [payoutModalError, setPayoutModalError] = useState(null)
 
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
@@ -385,6 +389,18 @@ const AssociatePayoutAccounts = () => {
     }
   };
 
+  const handleProceedPayout = (name) => {
+    if(name?.toLowerCase() !== selectedPayoutItem?.toLowerCase()) {
+      setPayoutModalError('Associate name does not match!')
+      return
+    }
+
+    downloadSingleAssociate(selectedPayoutItem, "releasePayout")
+    setIsConfimPayoutModalOpen(false)
+    setPayoutModalError(null)
+    setSelectedPayoutItem(null)
+  }
+
   if (!permissions.find(perm => perm === 'Associate Payout Accounts'))
     return (<AccessDenied />);
 
@@ -456,7 +472,7 @@ const AssociatePayoutAccounts = () => {
                       cursor: buttonStates[name]?.disabled ? "not-allowed" : "pointer"
                     }}
                     disabled={buttonStates[name]?.disabled}
-                    onClick={() => downloadSingleAssociate(name, "releasePayout")}
+                    onClick={() => {setIsConfimPayoutModalOpen(true); setSelectedPayoutItem(name)}}
                   >
                     {buttonStates[name]?.text || "Release Payout"}
                   </button>
@@ -500,7 +516,17 @@ const AssociatePayoutAccounts = () => {
           ))}
         </tbody>
       </table>
-      
+      <PayoutConfirmModal 
+        isOpen={isConfirmPayoutModalOpen}
+        title={'Enter associate name to release payout'}
+        handleCancel={() => {
+          setIsConfimPayoutModalOpen(false); 
+          setSelectedPayoutItem(null);
+          setPayoutModalError(null)
+        }}
+        handleProceed={handleProceedPayout}
+        error={payoutModalError}
+      />
     </div>
   );
 };
