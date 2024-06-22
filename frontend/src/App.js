@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 import PortfolioReport from "./components/pages/PortfolioReport";
 import ExistingPortfolio from "./components/pages/ExistingPortfolio";
@@ -39,11 +40,8 @@ import Protected from "./components/common/Protected";
 import NfoForm from "./components/pages/NfoForm";
 
 function App() {
-  const [loading, setLoading] = useState(false)// test
+  const location = useLocation().pathname
 
-  if (loading) {
-    return <h1>Loading...</h1>
-  }
 
     return (
       <>
@@ -51,7 +49,7 @@ function App() {
           <Header />
           <div className="app-body">
             <Sidebar />
-            <main className="app-content">
+            <main style={location.endsWith('/login') && {height: 'auto'}} className="app-content">
               <Routes>
                 <Route path="/" element={<Protected><Home /></Protected>} />
                 <Route path="/portfolio-analysis" element={<Protected><PortfolioReport /></Protected>} />
