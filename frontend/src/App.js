@@ -49,7 +49,7 @@ function App() {
           <Header />
           <div className="app-body">
             <Sidebar />
-            <main style={location.endsWith('/login') && {height: 'auto'}} className="app-content">
+            <main style={{height: location.endsWith('/login') ? 'auto' : 'calc(100vh - 60px)'}} className="app-content">
               <Routes>
                 <Route path="/" element={<Protected><Home /></Protected>} />
                 <Route path="/portfolio-analysis" element={<Protected><PortfolioReport /></Protected>} />
