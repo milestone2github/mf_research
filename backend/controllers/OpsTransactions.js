@@ -141,10 +141,90 @@ const removeFraction = async (req, res) => {
   }
 }
 
+// get transactions group by family head + rm 
+const getTransactionsGroupByFhAndRm = async (req, res) => {
+  try {
+    // get all transactions group by "family head + rm" 
+    const pipeline = [
+      {$addFields: {familyHeadRegistrantName: {$concat: [ "$familyHead", "-", "$registrantName" ]}}},
+      { $group: {
+        "_id": '$familyHeadRegistrantName',
+        count: {$sum : 1 },
+        investorName: {$first: "$investorName"},
+        familyHead: {$first: "$familyHead"},
+        registrantName: {$first: "$registrantName"},
+        createdAt: {$first: "$createdAt"},
+        totalPending: {$sum: {
+          $cond : [{$eq: ["$status", 'PENDING']}, 1, 0]
+        }},
+        sysPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'systematic']}
+          ]}, 1, 0]
+        }},
+        purchRedempPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'purchredemp']}
+          ]}, 1, 0]
+        }},
+        switchPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'switch']}
+          ]}, 1, 0]
+        }},
+      }},
+      {
+        $sort: { createdAt: 1 },
+      }
+    ];
+
+    const transactions = await Transactions.aggregate(pipeline)
+
+    res.status(200).json({
+      message: 'found grouped transactions', 
+      data: transactions
+    })
+  } catch (error) {
+    console.log('Error finding grouped transactions', error.message)
+    res.status(500).json({error: `Error finding grouped transactions: ${error.message}`})
+  }
+}
+
+// get transactions of matching family head and RM group by category 
+const getTransactionsByFamilyHeadAndRm = async (req, res) => {
+  const { fh, rm } = req.query;
+  if(!fh || !rm) {
+    return res.status(400).json({error: 'family head and registrant name are required to get transactions'})
+  }
+
+  try {
+    const transactions = await Transactions.aggregate([
+      {$match: {$and: [{familyHead: fh}, {registrantName: rm}]}},
+      {$group: {
+        _id: '$category',
+        transactions: {$push: '$$ROOT'}
+      }}
+    ])
+
+    if(!transactions) {
+      throw new Error('Transactions not found!')
+    }
+
+    res.status(200).json({message: 'Found transactions', data: transactions})
+  } catch (error) {
+    res.status(500).json({error: `Error getting transactions: ${error.message}`})
+  }
+}
+
 
 module.exports = {
   getGroupedTransactions,
   getTransactionsBySession,
   addNewFraction,
-  removeFraction
+  removeFraction,
+  getTransactionsGroupByFhAndRm,
+  getTransactionsByFamilyHeadAndRm
 }
