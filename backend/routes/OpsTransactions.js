@@ -1,8 +1,12 @@
-const { getGroupedTransactions, getSystematicTransactions, getPurchRedempTransactions, getSwitchTransactions, addSystematicFractions, addPurchRedempFractions, addSwitchFractions } = require('../controllers/OpsTransactions');
+const { getGroupedTransactions, getSystematicTransactions, getPurchRedempTransactions, getSwitchTransactions, addSystematicFractions, addPurchRedempFractions, addSwitchFractions, getTransactionsBySession, addNewFraction, removeFraction } = require('../controllers/OpsTransactions');
 
 const router = require('express').Router();
 
 router.get('/', getGroupedTransactions);
+router.get('/transactions-by-session', getTransactionsBySession);
+router.patch('/fraction/add/:id', addNewFraction);
+router.patch('/fraction/remove/:id', removeFraction);
+
 router.get('/systematic', getSystematicTransactions);
 router.get('/purchredemp', getPurchRedempTransactions);
 router.get('/switch', getSwitchTransactions);

@@ -31,7 +31,7 @@ const transactionSchema = new mongoose.Schema({
   status: {type: String, enum: statusEnum},
   transactionFractions: [{
     fractionAmount: Number,
-    transactionDate: Date,
+    transactionDate: {type: Date, default: Date.now},
     addedBy: String, 
     linkStatus: {type: String, enum: ['generated', 'deleted']},
     status: {type: String, enum: statusEnum}
