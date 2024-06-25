@@ -28,6 +28,7 @@ async function sendEmail(subject, body, toAddress, ccAddress) {
   try {
     let mailResponse = await transporter.sendMail(mailOptions);
     console.log("Email sent: %s", mailResponse.messageId);
+    return mailResponse.messageId
   } catch (error) {
     console.error("Failed to send email:", error);
   }
