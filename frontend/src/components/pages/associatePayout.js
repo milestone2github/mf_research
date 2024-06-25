@@ -159,7 +159,7 @@ const AssociatePayout = () => {
         <p>Please process the payout at your earliest convenience.</p>
         <p>Regards,<br/>Milestone Team</p>
       `,
-      toAddress: "kishan@niveshonline.com",
+      toAddress: "error@niveshonline.com",
     };
 
     fetch(`${process.env.REACT_APP_API_BASE_URL}/api/send-mail`, {
