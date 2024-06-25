@@ -131,7 +131,6 @@ const AssociatePayout = () => {
   };
 
   const requestEarlyRelease = (record) => {
-    const apiUrl = "http://127.0.0.1:5000"; // This should be the correct URL of your server
     const baseUrl =
       "https://milestone-api.azurewebsites.net/api/InsuranceEarlyPayout?code=ALwp8tdA-jpWhKhmbT7rfd1XG8ZA3jSypCsMHPoSho4cAzFu4WX-Cw==";
 
@@ -147,7 +146,7 @@ const AssociatePayout = () => {
     console.log(baseUrl, "&", queryParams);
     const emailData = {
       subject: "Request for Early Payout Release",
-      message_body: `
+      body: `
         <p>Dear Sir/Madam,</p>
         <p>I am requesting an early release of payout for the following record:</p>
         <p>Lead Name: ${record.Lead_Name}</p>
@@ -160,11 +159,15 @@ const AssociatePayout = () => {
         <p>Please process the payout at your earliest convenience.</p>
         <p>Regards,<br/>Milestone Team</p>
       `,
-      to_email: "error@niveshonline.com",
+      toAddress: "kishan@niveshonline.com",
     };
 
-    axios
-      .post(`${apiUrl}/api/send_mail`, emailData)
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/api/send-mail`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(emailData)
+    })
       .then((response) => {
         console.log("Email sent:", response.data?.message);
 
@@ -196,7 +199,7 @@ const AssociatePayout = () => {
   if (!permissions.find(perm => perm === 'Associate Payout'))
     return (<AccessDenied />)
 
-  if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
+  if (loading) return <div className=" h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>
   if (error) return <div>Error: {error}</div>;
 
