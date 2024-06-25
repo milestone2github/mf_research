@@ -1,7 +1,4 @@
 const sendEmail = require("../utils/sendEmail");
-const Systematic = require('../models/Systematic')
-const PurchRedemp = require('../models/PurchRedemp')
-const Switch = require('../models/Switch')
 const transactionFieldsMap = require('../utils/transFieldMap');
 const schemeMap = require("../utils/schemeMap");
 const sendToZohoSheet = require("../utils/sendToZohoSheet");

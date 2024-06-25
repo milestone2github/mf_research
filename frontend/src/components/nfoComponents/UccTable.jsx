@@ -61,7 +61,7 @@ function UccTable({ data, selectedOption, updateSelected }) {
             <td className='p-1 pe-6 py-2'>{item["Tax_Status"]}</td>
             <td className='p-1 pe-6 py-2'>{holdingMap.get(item["Holding_Nature"])}</td>
             <td className='p-1 pe-6 py-2'>Active</td>
-            <td className='p-1 pe-6 py-2'>{item["Bank_Name_1"]? `${item["Bank_Name_1"]?.split(' ')[0]}/${item["Account_No_1"]?.slice(-4)}` : 'N/A'}</td>
+            <td className='p-1 pe-6 py-2'>{item["Bank_Name_1"]? `${item["Bank_Name_1"]?.split(' ')[0]}/${item["Account_No_1"]?.toString().slice(-4)}` : 'N/A'}</td>
             <td className='p-1 py-2 relative'>
               <div className='flex items-center justify-between gap-x-4'>
               {
