@@ -11,7 +11,7 @@ function sendToZohoSheet(data, successMsg) {
   }).then(response => {
     console.log(successMsg)
   }).catch(error => {
-    console.log('zoho request error: ', error)
+    console.log('zoho request error: ', error.message)
   })
 }
 

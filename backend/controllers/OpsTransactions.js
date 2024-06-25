@@ -1,142 +1,84 @@
-const PurchRedemp = require("../models/PurchRedemp");
-const Switch = require("../models/Switch");
-const Systematic = require("../models/Systematic")
+const Transactions = require("../models/Transactions");
 
 const getGroupedTransactions = async (req, res) => {
   try {
     // const systematicTransactions = await Systematic.findOneAndUpdate({sessionId: '1718177502407kis7907'}, {status: 'PENDING'}, {new: true})
-    // get all systematic transactions group by "sessionId" 
-    const pipeline = (pendingFieldName) => [
-      {
-        $sort: { transactionPreference: 1 },
-      },
+    // get all transactions group by "sessionId" 
+    const pipeline = [
       { $group: {
         "_id": '$sessionId',
         count: {$sum : 1 },
         investorName: {$first: "$investorName"},
+        // investorNames: {$addToSet: "$investorName"},
         familyHead: {$first: "$familyHead"},
         createdAt: {$first: "$createdAt"},
-        [pendingFieldName]: {$sum: {
+        totalPending: {$sum: {
           $cond : [{$eq: ["$status", 'PENDING']}, 1, 0]
-        }}
-      }}
+        }},
+        sysPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'systematic']}
+          ]}, 1, 0]
+        }},
+        purchRedempPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'purchredemp']}
+          ]}, 1, 0]
+        }},
+        switchPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'switch']}
+          ]}, 1, 0]
+        }},
+      }},
+      {
+        $sort: { createdAt: 1 },
+      }
     ];
 
-    const systematicTransactions = await Systematic.aggregate(pipeline('sysPending'))
-
-    // get all purchredemp transactions group by "sessionId" 
-    const purchRedempTransactions = await PurchRedemp.aggregate(pipeline('purchRedempPending'))
-
-    // get all switch transactions group by "sessionId" 
-    const switchTransactions = await Switch.aggregate(pipeline('switchPending'))
-
-    // Combine all transactions into one array
-    const combinedTransactions = [
-      ...systematicTransactions,
-      ...purchRedempTransactions,
-      ...switchTransactions,
-    ];
-
-    // Group the combined transactions by sessionId
-    const groupedTransactions = combinedTransactions.reduce((acc, transaction) => {
-      const sessionId = transaction._id;
-      if (!acc[sessionId]) {
-        acc[sessionId] = {
-          _id: sessionId,
-          count: 0,
-          investorName: transaction.investorName,
-          familyHead: transaction.familyHead,
-          createdAt: transaction.createdAt,
-          sysPending: 0,
-          purchRedempPending: 0,
-          switchPending: 0,
-        };
-      }
-      acc[sessionId].count += transaction.count;
-      if (transaction.sysPending !== undefined) {
-        acc[sessionId].sysPending += transaction.sysPending;
-      }
-      if (transaction.purchRedempPending !== undefined) {
-        acc[sessionId].purchRedempPending += transaction.purchRedempPending;
-      }
-      if (transaction.switchPending !== undefined) {
-        acc[sessionId].switchPending += transaction.switchPending;
-      }
-      return acc;
-    }, {});
-
-    // Convert the grouped transactions object to an array
-    const result = Object.values(groupedTransactions);
-    const sortedResult = result.sort((a, b) => a.createdAt - b.createdAt);
+    const transactions = await Transactions.aggregate(pipeline)
 
     res.status(200).json({
       message: 'found grouped transactions', 
-      data: sortedResult
+      data: transactions
     })
   } catch (error) {
     console.log('Error finding grouped transactions', error.message)
-    res.status(500).json({error: `Error finding grouped transactions, ${error.message}`})
+    res.status(500).json({error: `Error finding grouped transactions: ${error.message}`})
   }
 }
 
-const getSystematicTransactions = async (req, res) => {
+// get transactions of a sessionId group by category 
+const getTransactionsBySession = async (req, res) => {
   const { sessionId } = req.query;
   if(!sessionId) {
     return res.status(400).json({error: 'sessionId is required get find transactions'})
   }
 
   try {
-    const transactions = await Systematic.find({sessionId})
+    const transactions = await Transactions.aggregate([
+      {$match: {sessionId: sessionId}},
+      {$group: {
+        _id: '$category',
+        transactions: {$push: '$$ROOT'}
+      }}
+    ])
+
     if(!transactions) {
-      throw new Error("Unable to find transactions")
+      throw new Error('Transactions not found!')
     }
-  
-    res.status(200).json({message: 'Systematic transactions found', data: transactions})
+
+    res.status(200).json({message: 'Found transactions of a sessionId', data: transactions})
   } catch (error) {
-    console.error("Error while getting systematic transactions, ", error.message)
-    res.status(500).json({error: `Error while getting systematic transactions, ${error.message}`})
+    res.status(500).json({error: `Error getting transactions of a sessionId: ${error.message}`})
   }
 }
 
-const getPurchRedempTransactions = async (req, res) => {
-  const { sessionId } = req.query;
-  if(!sessionId) {
-    return res.status(400).json({error: 'sessionId is required get transactions'})
-  }
-
-  try {
-    const transactions = await PurchRedemp.find({sessionId})
-    if(!transactions) {
-      throw new Error("Unable to find transactions")
-    }
-  
-    res.status(200).json({message: 'Purchase/Redemption transactions found', data: transactions})
-  } catch (error) {
-    console.error("Error while getting purchase/redemption transactions, ", error.message)
-    res.status(500).json({error: `Error while getting purchase/redemption transactions, ${error.message}`})
-  }
-}
-
-const getSwitchTransactions = async (req, res) => {
-  const { sessionId } = req.query;
-  if(!sessionId) {
-    return res.status(400).json({error: 'sessionId is required get transactions'})
-  }
-
-  try {
-    const transactions = await Switch.find({sessionId})
-    if(!transactions) {
-      throw new Error("Unable to find transactions")
-    }
-  
-    res.status(200).json({message: 'Switch transactions found', data: transactions})
-  } catch (error) {
-    console.error("Error while getting switch transactions, ", error.message)
-    res.status(500).json({error: `Error while getting switch transactions, ${error.message}`})
-  }
-}
-
-const addSystematicFractions = async (req, res) => {
+// add a new fraction to a transaction (by trx id)
+const addNewFraction = async (req, res) => {
   let {fractionAmount, status} = req.body;
   fractionAmount = Number(fractionAmount)
 
@@ -147,8 +89,13 @@ const addSystematicFractions = async (req, res) => {
     }
 
     // Update the document by pushing the new fraction to the array
-    const transaction = await Systematic.findByIdAndUpdate(req.params.id, {
-      $push: {transactionFractions : {fractionAmount, status}}
+    const transaction = await Transactions.findByIdAndUpdate(req.params.id, {
+      $push: {transactionFractions : {
+        fractionAmount, 
+        status, 
+        addedBy: 'RM name', //test
+        linkStatus: 'generated'
+      }}
     }, {new: true})
 
     if (!transaction) {
@@ -157,69 +104,127 @@ const addSystematicFractions = async (req, res) => {
 
     res.status(200).json({message: 'Fraction added', data: transaction});
   } catch (error) {
-    console.error("Error adding fraction in systematic: ", error.message);
-    res.status(500).json({ error: `Error adding fraction in systematic: ${error.message}` });
+    console.error("Error adding fraction: ", error.message);
+    res.status(500).json({ error: `Error adding fraction: ${error.message}` });
   }
 }
 
-const addPurchRedempFractions = async (req, res) => {
-  let {fractionAmount, status} = req.body;
-  fractionAmount = Number(fractionAmount)
+// remove a fraction from a transaction (by trx id)
+const removeFraction = async (req, res) => {
+  let {fractionId} = req.body;
 
   try {
     // Ensure the new fraction is provided
-    if (!fractionAmount) {
-      return res.status(400).json({ error: 'New fraction amount is required' });
+    if (!fractionId) {
+      return res.status(400).json({ error: 'Fraction id is required to delete' });
     }
 
     // Update the document by pushing the new fraction to the array
-    const transaction = await PurchRedemp.findByIdAndUpdate(req.params.id, {
-      $push: {transactionFractions : {fractionAmount, status}}
-    }, {new: true})
+    const transaction = await Transactions.findOneAndUpdate(
+      { _id: req.params.id, 'transactionFractions._id': fractionId },
+      {
+        $set: {
+          'transactionFractions.$.linkStatus': 'deleted'
+        }
+      },
+      { new: true }
+    );
 
     if (!transaction) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    res.status(200).json({message: 'Fraction added', data: transaction});
+    res.status(200).json({message: 'Fraction deleted', data: transaction});
   } catch (error) {
-    console.error("Error adding fraction in purhase/redemption: ", error.message);
-    res.status(500).json({ error: `Error adding fraction in purhase/redemption: ${error.message}` });
+    console.error("Error deleting fraction: ", error.message);
+    res.status(500).json({ error: `Error deleting fraction: ${error.message}` });
   }
 }
 
-const addSwitchFractions = async (req, res) => {
-  let {fractionAmount, status} = req.body;
-  fractionAmount = Number(fractionAmount)
+// get transactions group by family head + rm 
+const getTransactionsGroupByFhAndRm = async (req, res) => {
+  try {
+    // get all transactions group by "family head + rm" 
+    const pipeline = [
+      {$addFields: {familyHeadRegistrantName: {$concat: [ "$familyHead", "-", "$registrantName" ]}}},
+      { $group: {
+        "_id": '$familyHeadRegistrantName',
+        count: {$sum : 1 },
+        investorName: {$first: "$investorName"},
+        familyHead: {$first: "$familyHead"},
+        registrantName: {$first: "$registrantName"},
+        createdAt: {$first: "$createdAt"},
+        totalPending: {$sum: {
+          $cond : [{$eq: ["$status", 'PENDING']}, 1, 0]
+        }},
+        sysPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'systematic']}
+          ]}, 1, 0]
+        }},
+        purchRedempPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'purchredemp']}
+          ]}, 1, 0]
+        }},
+        switchPending: {$sum: {
+          $cond: [{$and: [
+            {$eq: ["$status", 'PENDING']},
+            {$eq: ["$category", 'switch']}
+          ]}, 1, 0]
+        }},
+      }},
+      {
+        $sort: { createdAt: 1 },
+      }
+    ];
+
+    const transactions = await Transactions.aggregate(pipeline)
+
+    res.status(200).json({
+      message: 'found grouped transactions', 
+      data: transactions
+    })
+  } catch (error) {
+    console.log('Error finding grouped transactions', error.message)
+    res.status(500).json({error: `Error finding grouped transactions: ${error.message}`})
+  }
+}
+
+// get transactions of matching family head and RM group by category 
+const getTransactionsByFamilyHeadAndRm = async (req, res) => {
+  const { fh, rm } = req.query;
+  if(!fh || !rm) {
+    return res.status(400).json({error: 'family head and registrant name are required to get transactions'})
+  }
 
   try {
-    // Ensure the new fraction is provided
-    if (!fractionAmount) {
-      return res.status(400).json({ error: 'New fraction amount is required' });
+    const transactions = await Transactions.aggregate([
+      {$match: {$and: [{familyHead: fh}, {registrantName: rm}]}},
+      {$group: {
+        _id: '$category',
+        transactions: {$push: '$$ROOT'}
+      }}
+    ])
+
+    if(!transactions) {
+      throw new Error('Transactions not found!')
     }
 
-    // Update the document by pushing the new fraction to the array
-    const transaction = await Switch.findByIdAndUpdate(req.params.id, {
-      $push: {transactionFractions : {fractionAmount, status}}
-    }, {new: true})
-
-    if (!transaction) {
-      return res.status(404).json({ error: 'Transaction not found' });
-    }
-
-    res.status(200).json({message: 'Fraction added', data: transaction});
+    res.status(200).json({message: 'Found transactions', data: transactions})
   } catch (error) {
-    console.error("Error adding fraction in switch: ", error.message);
-    res.status(500).json({ error: `Error adding fraction in switch: ${error.message}` });
+    res.status(500).json({error: `Error getting transactions: ${error.message}`})
   }
 }
+
 
 module.exports = {
   getGroupedTransactions,
-  getSystematicTransactions,
-  getPurchRedempTransactions,
-  getSwitchTransactions,
-  addSystematicFractions,
-  addPurchRedempFractions,
-  addSwitchFractions
+  getTransactionsBySession,
+  addNewFraction,
+  removeFraction,
+  getTransactionsGroupByFhAndRm,
+  getTransactionsByFamilyHeadAndRm
 }

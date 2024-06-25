@@ -30,7 +30,7 @@ async function sendEmail(subject, body, toAddress, ccAddress) {
     console.log("Email sent: %s", mailResponse.messageId);
     return mailResponse.messageId
   } catch (error) {
-    console.error("Failed to send email:", error);
+    console.error("Failed to send email:", error.message);
   }
 }
 
