@@ -29,11 +29,12 @@ const transactionSchema = new mongoose.Schema({
   chequeNumber: {type: String, maxLength: 6},
   sessionId: String,
   status: {type: String, enum: statusEnum},
+  linkStatus: {type: String, enum: ['generated', 'locked', 'unlocked'], default: 'unlocked'},
   transactionFractions: [{
     fractionAmount: Number,
     transactionDate: {type: Date, default: Date.now},
     addedBy: String, 
-    linkStatus: {type: String, enum: ['generated', 'deleted']},
+    linkStatus: {type: String, enum: ['initialized', 'generated', 'deleted']},
     status: {type: String, enum: statusEnum}
   }],
 }, {timestamps: true})

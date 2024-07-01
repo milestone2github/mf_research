@@ -143,9 +143,18 @@ const removeFraction = async (req, res) => {
 
 // get transactions group by family head + rm 
 const getTransactionsGroupByFhAndRm = async (req, res) => {
+  let uptoDate = new Date()
+  if(uptoDate.getDay() == 6) {
+    uptoDate.setDate(uptoDate.getDate() + 2)
+  }
+  else {
+    uptoDate.setDate(uptoDate.getDate() + 1)
+  }
+
   try {
     // get all transactions group by "family head + rm" 
     const pipeline = [
+      {$match: {transactionPreference: {$lte: uptoDate}}},
       {$addFields: {familyHeadRegistrantName: {$concat: [ "$familyHead", "-", "$registrantName" ]}}},
       { $group: {
         "_id": '$familyHeadRegistrantName',
@@ -153,7 +162,7 @@ const getTransactionsGroupByFhAndRm = async (req, res) => {
         investorName: {$first: "$investorName"},
         familyHead: {$first: "$familyHead"},
         registrantName: {$first: "$registrantName"},
-        createdAt: {$first: "$createdAt"},
+        createdAt: {$min: "$transactionPreference"},
         totalPending: {$sum: {
           $cond : [{$eq: ["$status", 'PENDING']}, 1, 0]
         }},
@@ -200,9 +209,18 @@ const getTransactionsByFamilyHeadAndRm = async (req, res) => {
     return res.status(400).json({error: 'family head and registrant name are required to get transactions'})
   }
 
+  let uptoDate = new Date()
+  if(uptoDate.getDay() == 6) {
+    uptoDate.setDate(uptoDate.getDate() + 2)
+  }
+  else {
+    uptoDate.setDate(uptoDate.getDate() + 1)
+  }
+
   try {
     const transactions = await Transactions.aggregate([
-      {$match: {$and: [{familyHead: fh}, {registrantName: rm}]}},
+      {$match: {$and: [{transactionPreference: {$lte: uptoDate}}, {familyHead: fh}, {registrantName: rm}]}},
+      {$sort: { investorName : 1, transactionPreference: 1}},
       {$group: {
         _id: '$category',
         transactions: {$push: '$$ROOT'}
@@ -213,12 +231,87 @@ const getTransactionsByFamilyHeadAndRm = async (req, res) => {
       throw new Error('Transactions not found!')
     }
 
+
     res.status(200).json({message: 'Found transactions', data: transactions})
   } catch (error) {
+    console.log('Error getting transactions: ', error.message)
     res.status(500).json({error: `Error getting transactions: ${error.message}`})
   }
 }
 
+// add all fractions at once to a transaction (by trx id)
+const addAllFractions = async (req, res) => {
+  let {fractions} = req.body;
+
+  try {
+    // Ensure the new fraction is provided
+    if (!fractions.length) {
+      return res.status(400).json({ error: 'New fraction amount is required' });
+    }
+
+    let trxFractions = fractions.map(item => {
+      if(item.fractionAmount) {
+        return {
+          fractionAmount: Number(item.fractionAmount), 
+          status: item.status,
+          addedBy: item.addedBy || 'RM name', //test
+          linkStatus: item.linkStatus || 'initialized',
+          transactionDate: item.transactionDate || Date.now()
+        }
+      }
+    })
+    // Update the document by pushing the new fraction to the array
+    const transaction = await Transactions.findByIdAndUpdate(req.params.id, {
+      $set: {transactionFractions : trxFractions},
+      linkStatus: 'locked'
+    }, {new: true})
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    res.status(200).json({message: 'Fractions added', data: transaction});
+  } catch (error) {
+    console.error("Error adding fraction: ", error.message);
+    res.status(500).json({ error: `Error adding fractions: ${error.message}` });
+  }
+}
+
+// generate link (by trx id)
+const generateLink = async (req, res) => {
+  let {fractionId, platform, orderId} = req.body;
+  console.log('platform: ', platform) //test
+  console.log('orderId: ', orderId) //test
+
+  try {
+    let transaction;
+    // Ensure the new fraction is provided
+    if (!fractionId) {
+      transaction = await Transactions.findByIdAndUpdate(req.params.id, {linkStatus: 'generated'}, {new: true})
+    }
+    else {
+      // Update the document by pushing the new fraction to the array
+      transaction = await Transactions.findOneAndUpdate(
+        { _id: req.params.id, 'transactionFractions._id': fractionId },
+        {
+          $set: {
+            'transactionFractions.$.linkStatus': 'generated'
+          }
+        },
+        { new: true }
+      )
+    } 
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    res.status(200).json({message: 'Link generated', data: transaction});
+  } catch (error) {
+    console.error("Error generating link: ", error.message);
+    res.status(500).json({ error: `Error generating link: ${error.message}` });
+  }
+}
 
 module.exports = {
   getGroupedTransactions,
@@ -226,5 +319,7 @@ module.exports = {
   addNewFraction,
   removeFraction,
   getTransactionsGroupByFhAndRm,
-  getTransactionsByFamilyHeadAndRm
+  getTransactionsByFamilyHeadAndRm,
+  addAllFractions,
+  generateLink
 }
