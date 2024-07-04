@@ -9,6 +9,34 @@ const generateHtmlOfNfo = require("../utils/generateHtmlOfNfo");
 const Transactions = require("../models/Transactions");
 require('dotenv').config()
 
+
+const getKycStatus = async (req, res) => {
+  try {
+    const { Pan, detailCheck, detailedOutput } = req.body;
+    if (!Pan) {
+      return res.status(400).json({ error: "PAN is required" });
+    }
+
+    const response = await axios.post(process.env.KYC_STATUS_API_URL, {
+      Pan,
+      detailCheck,
+      detailedOutput
+    }, {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (response.status !== 200) {
+      return res.status(response.status).json({ error: "Error fetching KYC status" });
+    }
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error("Error while getting KYC status", error.message);
+    res.status(500).json({ error: "Internal server error while getting KYC status" });
+  }
+};
 const getInvestors = async (req, res) => {
   try {
     const collection = req.milestoneDb.collection("MintDb");
@@ -861,6 +889,7 @@ module.exports = {
   postNewFundOfferForm,
   getFoliosFromFolios,
   getIsin,
-  getAllNfoAmc
+  getAllNfoAmc,
+  getKycStatus
 }
 

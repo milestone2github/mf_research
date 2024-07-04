@@ -6,8 +6,8 @@ const app = express();
 const port = process.env.PORT || 5000;
 const session = require("express-session");
 const { connectToMilestoneDB, connetToTransactionsDb } = require("./dbConfig/connection");
-const authRoutes = require('./routes/Auth')
-const dataRoutes = require('./routes/Data')
+const authRoutes = require('./routes/Auth');
+const dataRoutes = require('./routes/Data');
 const opsRoutes = require('./routes/OpsTransactions');
 const { sendEmailController } = require("./controllers/MailController");
 
@@ -54,7 +54,6 @@ function dbAccess(req, res, next) {
 }
 
 app.use(dbAccess); // Use the middleware
-
 
 app.use('/auth', authRoutes);
 app.use('/api/data', dataRoutes);
