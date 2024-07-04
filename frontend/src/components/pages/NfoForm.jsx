@@ -12,13 +12,6 @@ import { updateToast } from "../../reducers/ToastSlice";
 import KycStatusTable from '../nfoComponents/KycStatusTable';
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
-const kycStatusStyles = {
-  registered: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-  validated: "bg-blue-100 text-blue-800",
-  pending: "bg-yellow-100 text-yellow-800",
-};
-
 function NfoForm() {
   const [name, setName] = useState("");
   const [kycStatus, setKycStatus] = useState(null);
@@ -48,6 +41,8 @@ function NfoForm() {
   const { userData } = useSelector((state) => state.user);
   const permissions = userData?.role?.permissions;
   const dispatch = useDispatch();
+  const [searchAll, setSearchAll] = useState(false);
+  const [schemeOption, setSchemeOption] = useState("Growth");
 
   async function fetchFoliosFromFolioMaster(iwellfolios, joint1, joint2) {
     try {
@@ -288,7 +283,7 @@ function NfoForm() {
 
   // debounced function to get client names
   const debouncedGetNames = useCallback(
-    debounce(async (name) => {
+    debounce(async (name, searchAll) => {
       try {
         if (!name) {
           setClientList([]);
@@ -296,7 +291,7 @@ function NfoForm() {
         }
 
         const response = await fetch(
-          `${backendUrl}/api/data/investors/?name=${name}&searchall=true`,
+          `${backendUrl}/api/data/investors/?name=${name}&searchall=${searchAll}`,
           {
             method: "GET",
             credentials: "include",
@@ -323,7 +318,7 @@ function NfoForm() {
 
   // debounced function to get client PAN
   const debouncedGetPan = useCallback(
-    debounce(async (pan) => {
+    debounce(async (pan, searchAll) => {
       try {
         if (!pan) {
           setPanList([]);
@@ -331,7 +326,7 @@ function NfoForm() {
         }
 
         const response = await fetch(
-          `${backendUrl}/api/data/investors/?pan=${pan}&searchall=true`,
+          `${backendUrl}/api/data/investors/?pan=${pan}&searchall=${searchAll}`,
           {
             method: "GET",
             credentials: "include",
@@ -359,7 +354,7 @@ function NfoForm() {
 
   // debounced function to get client family heads
   const debouncedGetFamilyHeads = useCallback(
-    debounce(async (familyHead) => {
+    debounce(async (familyHead, searchAll) => {
       try {
         if (!familyHead) {
           setFamilyHeadList([]);
@@ -367,7 +362,7 @@ function NfoForm() {
         }
 
         const response = await fetch(
-          `${backendUrl}/api/data/investors/?fh=${familyHead}&searchall=true`,
+          `${backendUrl}/api/data/investors/?fh=${familyHead}&searchall=${searchAll}`,
           {
             method: "GET",
             credentials: "include",
@@ -395,17 +390,17 @@ function NfoForm() {
 
   const handleNameSearch = (value) => {
     setName(value);
-    debouncedGetNames(value);
+    debouncedGetNames(value, searchAll);
   };
 
   const handlePANSearch = (value) => {
     setPan(value);
-    debouncedGetPan(value);
+    debouncedGetPan(value, searchAll);
   };
 
   const handleFamilyHeadSearch = (value) => {
     setFamilyHead(value);
-    debouncedGetFamilyHeads(value);
+    debouncedGetFamilyHeads(value, searchAll);
   };
 
   const handleCopy = () => {
@@ -486,34 +481,47 @@ function NfoForm() {
         <span className="h-2 w-[6.7rem] block bg-indigo-500"></span>
       </div>
       <fieldset className="flex flex-wrap gap-x-8 gap-y-6 b-blue-100 rounded-md p-6 sm:border border-blue-200">
-        <CustomDatalist
-          id="clientName"
-          label="Name"
-          selectedValue={name}
-          updateKeywords={handleNameSearch}
-          updateSelectedValue={handleClientUpdate}
-          options={clientList}
-          field={"name"}
-        />
-        <CustomDatalist
-          id="clientPan"
-          label="PAN"
-          selectedValue={pan}
-          updateKeywords={handlePANSearch}
-          updateSelectedValue={handleClientUpdate}
-          options={panList}
-          field={"pan"}
-        />
-        <CustomDatalist
-          id="clientFamilyHead"
-          label="Family Head"
-          selectedValue={familyHead}
-          updateKeywords={handleFamilyHeadSearch}
-          updateSelectedValue={handleClientUpdate}
-          options={familyHeadList}
-          field={"familyHead"}
-        />
-      </fieldset>
+  <div className="w-full flex items-center">
+    <input
+      type="checkbox"
+      id="searchAll"
+      checked={searchAll}
+      onChange={() => setSearchAll(!searchAll)}
+      className="mr-2"
+    />
+    <label htmlFor="searchAll" className="text-gray-800 text-sm font-medium">
+      Search All
+    </label>
+  </div>
+  <CustomDatalist
+    id="clientName"
+    label="Name"
+    selectedValue={name}
+    updateKeywords={handleNameSearch}
+    updateSelectedValue={handleClientUpdate}
+    options={clientList}
+    field={"name"}
+  />
+  <CustomDatalist
+    id="clientPan"
+    label="PAN"
+    selectedValue={pan}
+    updateKeywords={handlePANSearch}
+    updateSelectedValue={handleClientUpdate}
+    options={panList}
+    field={"pan"}
+  />
+  <CustomDatalist
+    id="clientFamilyHead"
+    label="Family Head"
+    selectedValue={familyHead}
+    updateKeywords={handleFamilyHeadSearch}
+    updateSelectedValue={handleClientUpdate}
+    options={familyHeadList}
+    field={"familyHead"}
+  />
+</fieldset>
+
 
       <div className="flex gap-8">
   <div className="w-6/7">
@@ -534,7 +542,24 @@ function NfoForm() {
             options={amcList}
           />
         </div>
-
+        <div className="flex flex-col text-left basis-60 md:basis-80 grow shrink">
+      <label
+        htmlFor="schemeOption"
+        className="text-gray-800 text-sm font-medium p-0 leading-none mb-1"
+      >
+        Scheme Option
+      </label>
+      <select
+        name="schemeOption"
+        id="schemeOption"
+        value={schemeOption}
+        onChange={(e) => setSchemeOption(e.target.value)}
+        className="block w-full mt-1 py-[10px] px-2 border-gray-300 rounded-md shadow-sm focus:outline-blue-500 outline-offset-0 outline outline-2 outline-gray-200"
+      >
+        <option value="Growth">Growth</option>
+        <option value="IDCW">IDCW/Dividend</option>
+      </select>
+    </div>
         <div className="grow shrink basis-60 md:basis-80">
           <CustomSelect
             id="nfoSchemeName"
@@ -637,6 +662,7 @@ function NfoForm() {
 }
 
 export default NfoForm;
+
 
 
   {/* {kycStatus && (

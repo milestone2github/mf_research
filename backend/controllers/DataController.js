@@ -27,14 +27,14 @@ const getKycStatus = async (req, res) => {
       }
     });
 
-    if (response.status !== 200) {
-      return res.status(response.status).json({ error: "Error fetching KYC status" });
-    }
+    // if (response.status !== 200) {
+    //   return res.status(response.status).json({ error: "Error fetching KYC status" });
+    // }
 
     res.status(200).json(response.data);
   } catch (error) {
     console.error("Error while getting KYC status", error.message);
-    res.status(500).json({ error: "Internal server error while getting KYC status" });
+    res.status(200).json({ "Status": "KYC Rejected" });
   }
 };
 const getInvestors = async (req, res) => {
