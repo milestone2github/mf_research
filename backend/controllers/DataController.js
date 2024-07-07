@@ -400,6 +400,8 @@ const getFoliosFromFolios = async (req, res) => {
       }
     ]).toArray();
 
+    console.log("Matched Folios:", result); // Log the result for debugging
+
     if (result.length > 0) {
       res.status(200).json({ message: "Folios found", data: result });
     } else {
@@ -410,6 +412,8 @@ const getFoliosFromFolios = async (req, res) => {
     res.status(500).send("Error while fetching folios");
   }
 }
+
+
 
 
 const getNfoAmc = async (req, res) => {
@@ -489,13 +493,103 @@ const getNfoAmc = async (req, res) => {
   }
 }
 
-const getNfoSchemes = async (req, res) => { // accepts amc in query
+// const getNfoSchemes = async (req, res) => { // accepts amc in query
+//   const { amc, schemePlan, purchaseTrxMode } = req.query;
+//   try {
+//     const bseCollection = req.milestoneDb.collection('bseschemes')
+
+//     const today = new Date();
+//     const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+//     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
+
+//     const formatDateString = (date) => {
+//       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+//       const day = String(date.getDate());
+//       const month = monthNames[date.getMonth()];
+//       const year = date.getFullYear();
+//       return `${month} ${day} ${year}`;
+//     }
+
+//     const nextDayString = formatDateString(nextDay);
+//     const nextMonthString = formatDateString(nextMonth);
+
+//     // console.log('current date: ', nextDayString) //test
+//     // console.log('next month end date: ', nextMonthString) //test
+//     let matchStage = {
+//       "ReOpeningDateParsed": {
+//         $gt: new Date(nextDayString),
+//         $lt: new Date(nextMonthString)
+//       }
+//     }
+
+//     if (amc) {
+//       matchStage['AMC Code'] = { $in: Array.isArray(amc) ? amc : [amc] }
+//     }
+//     if (schemePlan) {
+//       matchStage['Scheme Plan'] = { $in: Array.isArray(schemePlan) ? schemePlan : [schemePlan] }
+//     }
+//     if (purchaseTrxMode) {
+//       matchStage['Purchase Transaction mode'] = { $in: Array.isArray(purchaseTrxMode) ? purchaseTrxMode : [purchaseTrxMode] }
+//     }
+
+//     const data = await bseCollection.aggregate([
+//       {
+//         $match: {
+//           "ReOpening Date": { $exists: true, $type: "string" }
+//         }
+//       },
+//       {
+//         $addFields: {
+//           "ReOpeningDateCleaned": {
+//             $replaceAll: {
+//               input: "$ReOpening Date",
+//               find: "  ",
+//               replacement: " "
+//             }
+//           }
+//         }
+//       },
+//       {
+//         $addFields: {
+//           "ReOpeningDateParsed": {
+//             $dateFromString: {
+//               dateString: "$ReOpeningDateCleaned",
+//               format: "%b %d %Y"
+//             }
+//           }
+//         }
+//       },
+//       {
+//         $match: matchStage
+//       },
+//       { $sort: { "ReOpeningDateParsed": 1 } },
+//       // {
+//       //   $project: {
+//       //     _id: 0,
+//       //     "Scheme Name": 1,
+//       //     "ReOpeningDateParsed": 1
+//       //     "ISIN": 1
+//       //   }
+//       // }
+//     ]).toArray();
+
+//     if (!data) {
+//       return res.status(400).json({ message: 'Error getting NFO schemes', data: null })
+//     }
+
+//     res.status(200).json({ message: 'Found NFO schemes', data })
+//   } catch (error) {
+//     console.log('Error while getting NFO schemes', error.message)
+//     res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` })
+//   }
+// }
+const getNfoSchemes = async (req, res) => { 
   const { amc, schemePlan, purchaseTrxMode } = req.query;
   try {
-    const bseCollection = req.milestoneDb.collection('bseschemes')
+    const bseCollection = req.milestoneDb.collection('bseschemes');
 
     const today = new Date();
-    const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
 
     const formatDateString = (date) => {
@@ -504,28 +598,26 @@ const getNfoSchemes = async (req, res) => { // accepts amc in query
       const month = monthNames[date.getMonth()];
       const year = date.getFullYear();
       return `${month} ${day} ${year}`;
-    }
+    };
 
     const nextDayString = formatDateString(nextDay);
     const nextMonthString = formatDateString(nextMonth);
 
-    // console.log('current date: ', nextDayString) //test
-    // console.log('next month end date: ', nextMonthString) //test
     let matchStage = {
       "ReOpeningDateParsed": {
         $gt: new Date(nextDayString),
         $lt: new Date(nextMonthString)
       }
-    }
+    };
 
     if (amc) {
-      matchStage['AMC Code'] = { $in: Array.isArray(amc) ? amc : [amc] }
+      matchStage['AMC Code'] = { $in: Array.isArray(amc) ? amc : [amc] };
     }
     if (schemePlan) {
-      matchStage['Scheme Plan'] = { $in: Array.isArray(schemePlan) ? schemePlan : [schemePlan] }
+      matchStage['Scheme Plan'] = { $in: Array.isArray(schemePlan) ? schemePlan : [schemePlan] };
     }
     if (purchaseTrxMode) {
-      matchStage['Purchase Transaction mode'] = { $in: Array.isArray(purchaseTrxMode) ? purchaseTrxMode : [purchaseTrxMode] }
+      matchStage['Purchase Transaction mode'] = { $in: Array.isArray(purchaseTrxMode) ? purchaseTrxMode : [purchaseTrxMode] };
     }
 
     const data = await bseCollection.aggregate([
@@ -558,27 +650,33 @@ const getNfoSchemes = async (req, res) => { // accepts amc in query
       {
         $match: matchStage
       },
-      { $sort: { "ReOpeningDateParsed": 1 } },
-      // {
-      //   $project: {
-      //     _id: 0,
-      //     "Scheme Name": 1,
-      //     "ReOpeningDateParsed": 1
-      //     "ISIN": 1
-      //   }
-      // }
+      { $sort: { "ReOpeningDateParsed": 1 } }
     ]).toArray();
 
-    if (!data) {
-      return res.status(400).json({ message: 'Error getting NFO schemes', data: null })
+    // Remove keywords from "Scheme Name"
+    const keywordsToRemove = /growth|idcw|-|payout|reinvestment/gi;
+    const cleanedData = data.map(item => {
+      item["Scheme Name"] = item["Scheme Name"].replace(keywordsToRemove, '').trim();
+      return item;
+    });
+
+    // Ensure unique schemes after removing keywords
+    const uniqueSchemes = Array.from(new Set(cleanedData.map(item => item["Scheme Name"])))
+      .map(schemeName => cleanedData.find(item => item["Scheme Name"] === schemeName));
+
+    if (!uniqueSchemes) {
+      return res.status(400).json({ message: 'Error getting NFO schemes', data: null });
     }
 
-    res.status(200).json({ message: 'Found NFO schemes', data })
+    res.status(200).json({ message: 'Found NFO schemes', data: uniqueSchemes });
   } catch (error) {
-    console.log('Error while getting NFO schemes', error.message)
-    res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` })
+    console.log('Error while getting NFO schemes', error.message);
+    res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` });
   }
-}
+};
+
+
+
 // const getNfoSchemes = async (req, res) => { // accepts amc in query
 //   try {
 //     const bseCollection = req.milestoneDb.collection('bseschemes')

@@ -10,6 +10,7 @@ import AccessDenied from "./AccessDenied";
 import Toast from "../common/Toast";
 import { updateToast } from "../../reducers/ToastSlice";
 import KycStatusTable from '../nfoComponents/KycStatusTable';
+
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
 function NfoForm() {
@@ -34,8 +35,8 @@ function NfoForm() {
   const [amcList, setAmcList] = useState([]);
   const [folioList, setFolioList] = useState([""]);
 
-  const [foliosFromIwell, setFoliosFromIwell] = useState([{}]);
-  const [schemesWithCode, setSchemesWithCode] = useState([{}]);
+  const [foliosFromIwell, setFoliosFromIwell] = useState([]);
+  const [schemesWithCode, setSchemesWithCode] = useState([]);
   const [minAmount, setMinAmount] = useState(1);
 
   const { userData } = useSelector((state) => state.user);
@@ -44,54 +45,9 @@ function NfoForm() {
   const [searchAll, setSearchAll] = useState(false);
   const [schemeOption, setSchemeOption] = useState("Growth");
 
-  async function fetchFoliosFromFolioMaster(iwellfolios, joint1, joint2) {
-    try {
-      if (!iwellfolios.length) {
-        setFolioList([""]);
-        return;
-      }
-
-      // Initialize URLSearchParams
-      const params = new URLSearchParams();
-
-      // Add multiple values for 'folios'
-      iwellfolios.forEach((folio) => params.append("folio", folio));
-      if (joint1) {
-        params.append("joint1", joint1);
-      }
-      if (joint2) {
-        params.append("joint2", joint2);
-      }
-      const response = await fetch(
-        `${backendUrl}/api/data/folios/from-folios/?${params}`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-      const jsonRes = await response.json();
-
-      if (!response.ok) {
-        console.log("Error fetching folios from folio master");
-        return;
-      }
-
-      let folios = jsonRes.data.map((item) => item["_id"]);
-      setFolioList(["", ...folios]);
-    } catch (error) {
-      console.log(
-        "Internal server error while getting folios from folio master: ",
-        error.message
-      );
-    }
-  }
-
-  // side effect to fetch isin list
   useEffect(() => {
     const fetchIsin = () => {
-      if (!amc) {
-        return;
-      }
+      if (!amc) return;
 
       fetch(`${backendUrl}/api/data/isin?amc=${amc}`, {
         method: "GET",
@@ -107,12 +63,21 @@ function NfoForm() {
           return response.json();
         })
         .then((jsonRes) => {
-          console.log(jsonRes);
+          console.log("ISIN Response:", jsonRes); // Log ISIN response
           let isinList = jsonRes.data.map((item) => item["ISIN"]);
+          console.log("ISIN List:", isinList); // Log ISIN list
+
+          console.log("foliosFromIwell:", foliosFromIwell); // Log foliosFromIwell
 
           const isinFilteredFolios = foliosFromIwell
-            .filter((folio) => isinList.includes(folio.isin))
+            .filter((folio) => {
+              const isIncluded = isinList.includes(folio.isin);
+              console.log(`Folio ${folio.folioNo} with ISIN ${folio.isin} is included: ${isIncluded}`);
+              return isIncluded;
+            })
             .map((item) => item.folioNo);
+
+          console.log("Filtered Folios:", isinFilteredFolios); // Log filtered folios
 
           fetchFoliosFromFolioMaster(
             isinFilteredFolios,
@@ -121,14 +86,50 @@ function NfoForm() {
           );
         })
         .catch((error) => {
-          console.log(
-            "Internal server error while getting folios isin data",
-            error
-          );
+          console.log("Internal server error while getting folios isin data", error);
         });
     };
+
     fetchIsin();
-  }, [amc]);
+  }, [amc, foliosFromIwell, ucc]);
+
+  async function fetchFoliosFromFolioMaster(iwellfolios, joint1, joint2) {
+    try {
+      if (!iwellfolios.length) {
+        setFolioList([""]);
+        return;
+      }
+  
+      const params = new URLSearchParams();
+      iwellfolios.forEach((folio) => params.append("folio", folio));
+      if (joint1) params.append("joint1", joint1);
+      if (joint2) params.append("joint2", joint2);
+  
+      const response = await fetch(
+        `${backendUrl}/api/data/folios/from-folios/?${params}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+      const jsonRes = await response.json();
+  
+      if (!response.ok) {
+        console.log("Error fetching folios from folio master");
+        return;
+      }
+  
+      console.log("API Response:", jsonRes); // Log API response
+  
+      let folios = jsonRes.data.map((item) => item["_id"]);
+      console.log("Mapped Folios:", folios); // Log mapped folios
+  
+      setFolioList(["", ...folios]);
+      console.log("Updated folioList state:", ["", ...folios]); // Log updated state
+    } catch (error) {
+      console.log("Internal server error while getting folios from folio master:", error.message);
+    }
+  }
 
   // function to get UCC data
   const fetchUccData = async () => {
@@ -153,6 +154,7 @@ function NfoForm() {
   // function to get folios from investwell
   const fetchFolios = async () => {
     try {
+      console.log("Fetching folios from Investwell..."); // Add log to indicate function call
       const response = await fetch(
         `${backendUrl}/api/data/iwell-folios/?pan=${pan}`,
         {
@@ -161,20 +163,20 @@ function NfoForm() {
         }
       );
       const jsonRes = await response.json();
-
+      
       if (!response.ok) {
         console.log("Error fetching folios");
         return;
       }
 
+      console.log("Folios fetched from Investwell:", jsonRes.data); // Log fetched data
+
       setFoliosFromIwell(jsonRes.data);
     } catch (error) {
-      console.log(
-        "Internal server error while getting folios: ",
-        error.message
-      );
+      console.log("Internal server error while getting folios:", error.message);
     }
   };
+
   const fetchKycStatus = async (pan) => {
     try {
       const response = await fetch(`${backendUrl}/api/data/KYCStatusCheck`, {
@@ -200,7 +202,7 @@ function NfoForm() {
       console.log("Internal server error while getting KYC status");
     }
   };
-  // side effect to get UCC data and folios from investwell and other states on PAN update
+
   useEffect(() => {
     if (pan?.length < 10) {
       setUccList([]);
@@ -208,6 +210,7 @@ function NfoForm() {
       setKycStatus(null); // Reset KYC status if PAN is not valid
       return;
     }
+    console.log("Fetching UCC and folios..."); // Log for indicating useEffect trigger
     fetchUccData();
     fetchFolios();
     fetchKycStatus(pan).then((status) => setKycStatus(status)); // Fetch and set KYC status
@@ -216,7 +219,6 @@ function NfoForm() {
     setUcc("");
   }, [pan]);
 
-  // side effect to get NFO AMC
   useEffect(() => {
     const fetchNfoAmc = async () => {
       try {
@@ -239,7 +241,6 @@ function NfoForm() {
     fetchNfoAmc();
   }, []);
 
-  // side effect to get NFO Schemes
   useEffect(() => {
     const fetchNfoData = async () => {
       if (!amc) {
@@ -281,7 +282,6 @@ function NfoForm() {
     setFolio("");
   }, [ucc]);
 
-  // debounced function to get client names
   const debouncedGetNames = useCallback(
     debounce(async (name, searchAll) => {
       try {
@@ -316,7 +316,6 @@ function NfoForm() {
     []
   );
 
-  // debounced function to get client PAN
   const debouncedGetPan = useCallback(
     debounce(async (pan, searchAll) => {
       try {
@@ -352,7 +351,6 @@ function NfoForm() {
     []
   );
 
-  // debounced function to get client family heads
   const debouncedGetFamilyHeads = useCallback(
     debounce(async (familyHead, searchAll) => {
       try {
@@ -438,16 +436,23 @@ function NfoForm() {
         ucc: ucc._id,
         amc: amc,
         schemeCode: schemesWithCode.find((item) => item.name === nfo).code,
+        schemeOption: schemeOption,
         schemeName: nfo,
         folio: folio,
         amount: amount,
       };
-      const response = await fetch("http://localhost:5000/api/data/nfo", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/data/nfo`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      // const response = await fetch("http://localhost:5000/api/data/nfo", {
+      //   method: "POST",
+      //   credentials: "include",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(formData),
+      // });
       const data = await response.json();
 
       if (data.error) {
@@ -481,56 +486,55 @@ function NfoForm() {
         <span className="h-2 w-[6.7rem] block bg-indigo-500"></span>
       </div>
       <fieldset className="flex flex-wrap gap-x-8 gap-y-6 b-blue-100 rounded-md p-6 sm:border border-blue-200">
-  <div className="w-full flex items-center">
-    <input
-      type="checkbox"
-      id="searchAll"
-      checked={searchAll}
-      onChange={() => setSearchAll(!searchAll)}
-      className="mr-2"
-    />
-    <label htmlFor="searchAll" className="text-gray-800 text-sm font-medium">
-      Search All
-    </label>
-  </div>
-  <CustomDatalist
-    id="clientName"
-    label="Name"
-    selectedValue={name}
-    updateKeywords={handleNameSearch}
-    updateSelectedValue={handleClientUpdate}
-    options={clientList}
-    field={"name"}
-  />
-  <CustomDatalist
-    id="clientPan"
-    label="PAN"
-    selectedValue={pan}
-    updateKeywords={handlePANSearch}
-    updateSelectedValue={handleClientUpdate}
-    options={panList}
-    field={"pan"}
-  />
-  <CustomDatalist
-    id="clientFamilyHead"
-    label="Family Head"
-    selectedValue={familyHead}
-    updateKeywords={handleFamilyHeadSearch}
-    updateSelectedValue={handleClientUpdate}
-    options={familyHeadList}
-    field={"familyHead"}
-  />
-</fieldset>
-
+        <div className="w-full flex items-center">
+          <input
+            type="checkbox"
+            id="searchAll"
+            checked={searchAll}
+            onChange={() => setSearchAll(!searchAll)}
+            className="mr-2"
+          />
+          <label htmlFor="searchAll" className="text-gray-800 text-sm font-medium">
+            Search All
+          </label>
+        </div>
+        <CustomDatalist
+          id="clientName"
+          label="Name"
+          selectedValue={name}
+          updateKeywords={handleNameSearch}
+          updateSelectedValue={handleClientUpdate}
+          options={clientList}
+          field={"name"}
+        />
+        <CustomDatalist
+          id="clientPan"
+          label="PAN"
+          selectedValue={pan}
+          updateKeywords={handlePANSearch}
+          updateSelectedValue={handleClientUpdate}
+          options={panList}
+          field={"pan"}
+        />
+        <CustomDatalist
+          id="clientFamilyHead"
+          label="Family Head"
+          selectedValue={familyHead}
+          updateKeywords={handleFamilyHeadSearch}
+          updateSelectedValue={handleClientUpdate}
+          options={familyHeadList}
+          field={"familyHead"}
+        />
+      </fieldset>
 
       <div className="flex gap-8">
-  <div className="w-6/7">
-    <UccTable data={uccList} selectedOption={ucc} updateSelected={setUcc} />
-  </div>
-  <div className="w-1/7">
-    {kycStatus && <KycStatusTable kycStatus={kycStatus} />}
-  </div>
-</div>
+        <div className="w-6/7">
+          <UccTable data={uccList} selectedOption={ucc} updateSelected={setUcc} />
+        </div>
+        <div className="w-1/7">
+          {kycStatus && <KycStatusTable kycStatus={kycStatus} />}
+        </div>
+      </div>
 
       <fieldset className="flex flex-wrap gap-8 b-purple-50 rounded-md p-6 sm:border border-green-200">
         <div className="grow shrink basis-60 md:basis-80">
@@ -542,24 +546,6 @@ function NfoForm() {
             options={amcList}
           />
         </div>
-        <div className="flex flex-col text-left basis-60 md:basis-80 grow shrink">
-      <label
-        htmlFor="schemeOption"
-        className="text-gray-800 text-sm font-medium p-0 leading-none mb-1"
-      >
-        Scheme Option
-      </label>
-      <select
-        name="schemeOption"
-        id="schemeOption"
-        value={schemeOption}
-        onChange={(e) => setSchemeOption(e.target.value)}
-        className="block w-full mt-1 py-[10px] px-2 border-gray-300 rounded-md shadow-sm focus:outline-blue-500 outline-offset-0 outline outline-2 outline-gray-200"
-      >
-        <option value="Growth">Growth</option>
-        <option value="IDCW">IDCW/Dividend</option>
-      </select>
-    </div>
         <div className="grow shrink basis-60 md:basis-80">
           <CustomSelect
             id="nfoSchemeName"
@@ -573,6 +559,34 @@ function NfoForm() {
             }}
             options={nfoList}
           />
+        </div>
+        <div className="grow shrink basis-60 md:basis-80">
+          <label
+            htmlFor="schemeOption"
+            className="text-gray-800 text-sm font-medium leading-none mb-1"
+          >
+            Scheme Option
+          </label>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              className={`px-4 py-2 rounded-lg ${
+                schemeOption === "Growth" ? "bg-indigo-500 text-white" : "bg-gray-200"
+              }`}
+              onClick={() => setSchemeOption("Growth")}
+            >
+              Growth
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 rounded-lg ${
+                schemeOption === "IDCW" ? "bg-indigo-500 text-white" : "bg-gray-200"
+              }`}
+              onClick={() => setSchemeOption("IDCW")}
+            >
+              IDCW
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col text-left basis-60 md:basis-80 grow shrink">
@@ -597,19 +611,19 @@ function NfoForm() {
           </select>
         </div>
 
-        <div className="grow shrink basis-60 md:basis-80 text-left flex flex-col">
+        <div className="grow shrink basis-60 md:basis-80 text-left flex flex-col w-1/4">
           <label
             htmlFor="amount"
             className="text-gray-800 text-sm font-medium leading-none mb-1"
           >
             Amount
           </label>
-          <div className="bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500">
+          <div className="bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500 w-1/2">
             <span className="text-gray-600 text-sm absolute left-2 top-1/2 -translate-y-1/2">
               <BsCurrencyRupee />
             </span>
             <input
-              className="px-3 py-2 text-gray-600 font-bold w-full bg-transparent ps-7 outline-none focus:outline-none"
+              className="px-3 py-2 text-gray-600 font-bold bg-transparent ps-7 outline-none focus:outline-none w-1/2"
               type="number"
               id="amount"
               name="amount"
@@ -662,6 +676,7 @@ function NfoForm() {
 }
 
 export default NfoForm;
+
 
 
 
