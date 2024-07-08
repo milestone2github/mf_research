@@ -7,6 +7,7 @@ const userSchema = mongoose.Schema({
         require: true,
         unique:true
     },
+    nameAsRM: {type: String, trim: true},
     role: {
         type: mongoose.Schema.Types.ObjectId,
         require: true,

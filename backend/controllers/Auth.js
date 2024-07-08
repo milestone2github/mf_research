@@ -34,7 +34,7 @@ const zohoCallback = async (req, res) => {
 
     if (userExist) {
       req.session.user = {
-        name: `${decode.first_name} ${decode.last_name}`,
+        name: userExist.nameAsRM || `${decode.first_name} ${decode.last_name}`,
         email: userExist.email,
         role: userExist.role
       };
@@ -86,7 +86,7 @@ const verifyGoogleUser = async (req, res) => {
 
     if (userExist) {
       req.session.user = {
-        name: req.body.fullname,
+        name: userExist.nameAsRM || req.body.fullname,
         email: userExist.email,
         role: userExist.role
       };
