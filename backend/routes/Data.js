@@ -1,5 +1,5 @@
 const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin } = require('../controllers/DataController');
-
+const { getKycStatus } = require('../controllers/DataController');
 const router = require('express').Router();
 
 // route to submit transaction form data 
@@ -10,7 +10,7 @@ router.get("/investors", getInvestors);
 
 // route to get amc names 
 router.get("/amc", getAmcNames);
-
+router.post("/kycstatuscheck", getKycStatus);
 // route to get scheme names 
 router.get("/schemename", getSchemeNames);
 
