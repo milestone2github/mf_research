@@ -781,7 +781,7 @@ const getUcc = async (req, res) => {
 
 const postNewFundOfferForm = async (req, res) => {
   console.log('POST /api/data/nfo') //test
-  const { investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount } = req.body;
+  const { investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount, schemeOption } = req.body;
   console.log('form data: ', investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount)
 
   // create unique session id 
@@ -805,6 +805,7 @@ const postNewFundOfferForm = async (req, res) => {
       registrantName: name,
       registrantEmail: email,
       ucc,
+      schemeOption,
       amcName: amc,
       schemeCode,
       folioNumber: folio,

@@ -10,6 +10,7 @@ const newFundOfferSchema = new mongoose.Schema({
   registrantEmail: String,
   amcName: String,
   schemeCode: {type: String, required: true},
+  schemeOption: String,
   ucc: String,
   amount: Number,
   folioNumber: String,
