@@ -879,16 +879,18 @@ const getFoliosFromInvestwell = async (req, res) => {
     // console.log('auth data:', authResponse.data) //test
 
     let date = new Date()
+    let startDate = '2022-01-01'
     let endDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     // console.log('endDate: ', endDate) //test
 
     const filters = JSON.stringify([
+      { "startDate": startDate },
       { "endDate": endDate },
       { "pan": pan },
-      { "panWiseData": 0 }
+      { "panWiseData": 1 }
     ]);
 
-    const folioUrl = `https://mnivesh.investwell.app/api/aggregator/reports/getPortfolioReturns?group=folioid&filters=${encodeURIComponent(filters)}&token=${authResponse.data?.result?.token}`;
+    const folioUrl = `https://mnivesh.investwell.app/api/aggregator/reports/getPortfolioSummaryForMutualFunds?groupBy=1005&filters=${encodeURIComponent(filters)}&token=${authResponse.data?.result?.token}`;
 
     const folioData = await axios.get(folioUrl);
     // console.log('folioData: ', folioData.data.status, folioData.data.message) //test

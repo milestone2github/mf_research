@@ -18,7 +18,7 @@ function NfoForm() {
   const [kycStatus, setKycStatus] = useState(null);
   const [pan, setPan] = useState("");
   const [familyHead, setFamilyHead] = useState("");
-  const [folio, setFolio] = useState("");
+  const [folio, setFolio] = useState("Create new folio");
   const [nfo, setNfo] = useState("");
   const [amc, setAmc] = useState("");
   const [ucc, setUcc] = useState({});
@@ -33,7 +33,7 @@ function NfoForm() {
   const [uccList, setUccList] = useState([]);
   const [nfoList, setNfoList] = useState([]);
   const [amcList, setAmcList] = useState([]);
-  const [folioList, setFolioList] = useState([""]);
+  const [folioList, setFolioList] = useState(["Create new folio"]);
 
   const [foliosFromIwell, setFoliosFromIwell] = useState([]);
   const [schemesWithCode, setSchemesWithCode] = useState([]);
@@ -63,11 +63,11 @@ function NfoForm() {
           return response.json();
         })
         .then((jsonRes) => {
-          console.log("ISIN Response:", jsonRes); // Log ISIN response
+          // console.log("ISIN Response:", jsonRes); // Log ISIN response
           let isinList = jsonRes.data.map((item) => item["ISIN"]);
-          console.log("ISIN List:", isinList); // Log ISIN list
+          // console.log("ISIN List:", isinList); // Log ISIN list
 
-          console.log("foliosFromIwell:", foliosFromIwell); // Log foliosFromIwell
+          // console.log("foliosFromIwell:", foliosFromIwell); // Log foliosFromIwell
 
           const isinFilteredFolios = foliosFromIwell
             .filter((folio) => {
@@ -77,7 +77,7 @@ function NfoForm() {
             })
             .map((item) => item.folioNo);
 
-          console.log("Filtered Folios:", isinFilteredFolios); // Log filtered folios
+          // console.log("Filtered Folios:", isinFilteredFolios); // Log filtered folios
 
           fetchFoliosFromFolioMaster(
             isinFilteredFolios,
@@ -96,7 +96,7 @@ function NfoForm() {
   async function fetchFoliosFromFolioMaster(iwellfolios, joint1, joint2) {
     try {
       if (!iwellfolios.length) {
-        setFolioList([""]);
+        setFolioList(["Create new folio"]);
         return;
       }
   
@@ -119,13 +119,13 @@ function NfoForm() {
         return;
       }
   
-      console.log("API Response:", jsonRes); // Log API response
+      // console.log("API Response:", jsonRes); // Log API response
   
       let folios = jsonRes.data.map((item) => item["_id"]);
-      console.log("Mapped Folios:", folios); // Log mapped folios
+      // console.log("Mapped Folios:", folios); // Log mapped folios
   
-      setFolioList(["", ...folios]);
-      console.log("Updated folioList state:", ["", ...folios]); // Log updated state
+      setFolioList(["Create new folio", ...folios]);
+      // console.log("Updated folioList state:", ["", ...folios]); // Log updated state
     } catch (error) {
       console.log("Internal server error while getting folios from folio master:", error.message);
     }
@@ -169,7 +169,7 @@ function NfoForm() {
         return;
       }
 
-      console.log("Folios fetched from Investwell:", jsonRes.data); // Log fetched data
+      // console.log("Folios fetched from Investwell:", jsonRes.data); // Log fetched data
 
       setFoliosFromIwell(jsonRes.data);
     } catch (error) {
@@ -215,7 +215,7 @@ function NfoForm() {
     fetchFolios();
     fetchKycStatus(pan).then((status) => setKycStatus(status)); // Fetch and set KYC status
     setAmc("");
-    setFolio("");
+    setFolio("Create new folio");
     setUcc("");
   }, [pan]);
 
@@ -279,7 +279,7 @@ function NfoForm() {
 
   useEffect(() => {
     setAmc("");
-    setFolio("");
+    setFolio("Create new folio");
   }, [ucc]);
 
   const debouncedGetNames = useCallback(
@@ -599,31 +599,32 @@ function NfoForm() {
           <select
             name="folio"
             id="folios"
+            required={true}
             value={folio}
             onChange={(e) => setFolio(e.target.value)}
             className="block w-full mt-1 py-[10px] px-2 border-gray-300 rounded-md shadow-sm focus:outline-blue-500 outline-offset-0 outline outline-2 outline-gray-200"
           >
-            {folioList.map((folio, index) => (
-              <option key={index} value={folio}>
-                {folio || "Select Folio"}
+            {folioList.map((folioItem, index) => (
+              <option key={index} value={folioItem}>
+                {folioItem || "Select Folio"}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="grow shrink basis-60 md:basis-80 text-left flex flex-col w-1/4">
+        <div className="grow shrink basis-60 md:basis-80 text-left flex flex-col max-w-full md:max-w-[calc(50%-16px)]">
           <label
             htmlFor="amount"
             className="text-gray-800 text-sm font-medium leading-none mb-1"
           >
             Amount
           </label>
-          <div className="bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500 w-1/2">
+          <div className="bg-primary-white border-2 border-gray-300 rounded-lg relative focus-within:border-2 focus-within:border-blue-500 w-full">
             <span className="text-gray-600 text-sm absolute left-2 top-1/2 -translate-y-1/2">
               <BsCurrencyRupee />
             </span>
             <input
-              className="px-3 py-2 text-gray-600 font-bold bg-transparent ps-7 outline-none focus:outline-none w-1/2"
+              className="px-3 py-2 text-gray-600 font-bold bg-transparent ps-7 outline-none focus:outline-none w-full"
               type="number"
               id="amount"
               name="amount"
@@ -676,24 +677,3 @@ function NfoForm() {
 }
 
 export default NfoForm;
-
-
-
-
-  {/* {kycStatus && (
-    <fieldset className="bg-gray-50 rounded-md p-6 border-indigo-200 w-auto min-w-[50vw]">
-      <h3 className="text-xl font-semibold">KYC Status</h3>
-      <p>
-        <strong>PAN:</strong> {kycStatus.PAN}
-      </p>
-      <p>
-        <strong>KRA:</strong> {kycStatus.KRA}
-      </p>
-      <p>
-        <strong>Status:</strong> {kycStatus.Status}
-      </p>
-      <p>
-        <strong>KYC Code:</strong> {kycStatus.kyc_code}
-      </p>
-    </fieldset>
-  )} */}
