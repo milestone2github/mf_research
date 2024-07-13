@@ -22,7 +22,6 @@ const KycStatusTable = ({ ucc }) => {
   };
 
   const fetchKycStatus = async (pan) => {
-    console.log("Fetching KYC status for PAN:", pan); // Log PAN for which KYC status is being fetched
     try {
       const response = await fetch(`${backendUrl}/api/data/KYCStatusCheck`, {
         method: "POST",
@@ -38,14 +37,11 @@ const KycStatusTable = ({ ucc }) => {
       const jsonData = await response.json();
 
       if (!response.ok || !jsonData) {
-        console.log("Error fetching KYC status");
         return null;
       }
 
-      console.log("KYC status fetched:", jsonData); // Log fetched KYC status
       return jsonData;
     } catch (error) {
-      console.log("Internal server error while getting KYC status");
       return null;
     }
   };

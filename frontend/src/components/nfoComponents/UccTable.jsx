@@ -1,10 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BsInfoCircleFill } from "react-icons/bs";
+
+const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
 const taxStatusMap = new Map([
   ["INDIVIDUAL", "IND"],
   ["NRI - REPATRIABLE (NRO)", ""]
 ]);
+
+const fetchKycStatus = async (pan) => {
+  try {
+    const response = await fetch(`${backendUrl}/api/data/KYCStatusCheck`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        Pan: pan,
+        detailCheck: "N",
+        detailedOutput: "N",
+      }),
+    });
+    const jsonData = await response.json();
+
+    if (!response.ok || !jsonData) {
+      return null;
+    }
+    return jsonData.Status;
+  } catch (error) {
+    return null;
+  }
+};
 
 const holdingMap = new Map([
   ["SINGLE", "SI"],
@@ -13,21 +39,34 @@ const holdingMap = new Map([
   [null, "N/A"]
 ]);
 
-const determineBseStatus = (item) => {
+const determineBseStatus = async (item) => {
   const hasValidNominee = item["Nominee_1_Name"] || item["Nominee_2_Name"] || item["Nominee_3_Name"];
   const isPanValid = item["Primary_Holder_PAN_Aadhaar_Status"] === "VALID";
   const isAadhaarValid = item["Aadhaar_Updated"] === "Y"; // Assuming "Y" indicates valid Aadhaar
-  const isBankValid = item["Bank1_Status"] === "VALID"; // Adjust according to actual keys
-  const isKycValid = item["KYC_Status"] === "VALID"; // Adjust according to actual keys
+  const isBankValid = item["Bank1_Status"] || item["Bank2_Status"] || item["Bank3_Status"] || item["Bank4_Status"] || item["Bank5_Status"] === "VALID"; // Adjust according to actual keys
+  const isKycValid = await fetchKycStatus(item["Primary_Holder_PAN"]) === "KYC Validated"; // Adjust according to actual keys
 
-  return hasValidNominee && isPanValid && isAadhaarValid && isBankValid && isKycValid ? "Active" : "Inactive";
+  return hasValidNominee && isPanValid && isBankValid && isKycValid ? "Active" : "Inactive";
 };
 
 function UccTable({ data, selectedOption, updateSelected }) {
+  const [bseStatusMap, setBseStatusMap] = useState(new Map());
+
+  useEffect(() => {
+    const updateStatuses = async () => {
+      const statusMap = new Map();
+      for (const item of data) {
+        const status = await determineBseStatus(item);
+        statusMap.set(item._id, status);
+      }
+      setBseStatusMap(statusMap);
+    };
+    updateStatuses();
+  }, [data]);
 
   const handleChange = (e) => {
     updateSelected(data.filter(item => item["_id"] === e.target.value)[0])
-  }
+  };
 
   return (
     <table className='border border-gray-200 border-collapse text-sm text-left rounded-md'>
@@ -71,7 +110,7 @@ function UccTable({ data, selectedOption, updateSelected }) {
             <td className='p-1 pe-6 py-2'>{holdingMap.get(item["Holding_Nature"])}</td>
             <td className='p-1 pe-6 py-2 relative'>
               <div className='flex items-center justify-between gap-x-4'>
-                {determineBseStatus(item)}
+                {bseStatusMap.get(item._id)}
                 <span className='group h-fit p-0 flex items-center '>
                   <span className='text-blue-300 text-lg w-6 h-6 flex items-center justify-center '><BsInfoCircleFill /></span>
                   <div className="absolute right-0 bottom-0 w-max px-2 py-2 border hidden group-hover:block rounded-md bg-white text-sm shadow-md">
@@ -82,13 +121,10 @@ function UccTable({ data, selectedOption, updateSelected }) {
                       PAN Status: {item["Primary_Holder_PAN_Aadhaar_Status"] === "VALID" ? "Valid" : "Invalid"}
                     </p>
                     <p className='text-xs'>
-                      Aadhaar Status: {item["Aadhaar_Updated"] === "Y" ? "Valid" : "Invalid"} {/* Assuming "Y" indicates valid Aadhaar */}
+                      Bank Status: {item["Bank1_Status"] || item["Bank2_Status"] || item["Bank3_Status"] || item["Bank4_Status"] || item["Bank5_Status"] === "VALID" ? "Valid" : "Invalid"}
                     </p>
                     <p className='text-xs'>
-                      Bank Status: {item["Bank1_Status"] === "VALID" ? "Valid" : "Invalid"}
-                    </p>
-                    <p className='text-xs'>
-                      KYC Status: {item["KYC_Status"] === "VALID" ? "Valid" : "Invalid"} {/* Adjust according to actual keys */}
+                      KYC Status: {bseStatusMap.get(item._id) === "Active" ? "Valid" : "Invalid"} {/* Adjust according to actual keys */}
                     </p>
                   </div>
                 </span>
