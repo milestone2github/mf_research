@@ -63,21 +63,14 @@ function NfoForm() {
           return response.json();
         })
         .then((jsonRes) => {
-          // console.log("ISIN Response:", jsonRes); // Log ISIN response
           let isinList = jsonRes.data.map((item) => item["ISIN"]);
-          // console.log("ISIN List:", isinList); // Log ISIN list
-
-          // console.log("foliosFromIwell:", foliosFromIwell); // Log foliosFromIwell
 
           const isinFilteredFolios = foliosFromIwell
             .filter((folio) => {
               const isIncluded = isinList.includes(folio.isin);
-              console.log(`Folio ${folio.folioNo} with ISIN ${folio.isin} is included: ${isIncluded}`);
               return isIncluded;
             })
             .map((item) => item.folioNo);
-
-          // console.log("Filtered Folios:", isinFilteredFolios); // Log filtered folios
 
           fetchFoliosFromFolioMaster(
             isinFilteredFolios,
@@ -99,12 +92,12 @@ function NfoForm() {
         setFolioList(["Create new folio"]);
         return;
       }
-  
+
       const params = new URLSearchParams();
       iwellfolios.forEach((folio) => params.append("folio", folio));
       if (joint1) params.append("joint1", joint1);
       if (joint2) params.append("joint2", joint2);
-  
+
       const response = await fetch(
         `${backendUrl}/api/data/folios/from-folios/?${params}`,
         {
@@ -113,25 +106,20 @@ function NfoForm() {
         }
       );
       const jsonRes = await response.json();
-  
+
       if (!response.ok) {
         console.log("Error fetching folios from folio master");
         return;
       }
-  
-      // console.log("API Response:", jsonRes); // Log API response
-  
+
       let folios = jsonRes.data.map((item) => item["_id"]);
-      // console.log("Mapped Folios:", folios); // Log mapped folios
-  
+
       setFolioList(["Create new folio", ...folios]);
-      // console.log("Updated folioList state:", ["", ...folios]); // Log updated state
     } catch (error) {
       console.log("Internal server error while getting folios from folio master:", error.message);
     }
   }
 
-  // function to get UCC data
   const fetchUccData = async () => {
     try {
       const response = await fetch(`${backendUrl}/api/data/ucc/?pan=${pan}`, {
@@ -151,10 +139,8 @@ function NfoForm() {
     }
   };
 
-  // function to get folios from investwell
   const fetchFolios = async () => {
     try {
-      console.log("Fetching folios from Investwell..."); // Add log to indicate function call
       const response = await fetch(
         `${backendUrl}/api/data/iwell-folios/?pan=${pan}`,
         {
@@ -163,13 +149,11 @@ function NfoForm() {
         }
       );
       const jsonRes = await response.json();
-      
+
       if (!response.ok) {
         console.log("Error fetching folios");
         return;
       }
-
-      // console.log("Folios fetched from Investwell:", jsonRes.data); // Log fetched data
 
       setFoliosFromIwell(jsonRes.data);
     } catch (error) {
@@ -207,16 +191,15 @@ function NfoForm() {
     if (pan?.length < 10) {
       setUccList([]);
       setFoliosFromIwell([]);
-      setKycStatus(null); // Reset KYC status if PAN is not valid
+      setKycStatus(null);
       return;
     }
-    console.log("Fetching UCC and folios..."); // Log for indicating useEffect trigger
     fetchUccData();
     fetchFolios();
-    fetchKycStatus(pan).then((status) => setKycStatus(status)); // Fetch and set KYC status
+    fetchKycStatus(pan).then((status) => setKycStatus(status));
     setAmc("");
     setFolio("Create new folio");
-    setUcc("");
+    setUcc({});
   }, [pan]);
 
   useEffect(() => {
@@ -274,14 +257,18 @@ function NfoForm() {
       }
     };
     fetchNfoData();
-    setNfo(""); // reset selected scheme
+    setNfo("");
   }, [amc]);
 
   useEffect(() => {
     setAmc("");
     setFolio("Create new folio");
   }, [ucc]);
-
+  useEffect(() => {
+    if (ucc?.ClientName) {
+      fetchKycStatus(ucc.Pan).then(setKycStatus);
+    }
+  }, [ucc]);
   const debouncedGetNames = useCallback(
     debounce(async (name, searchAll) => {
       try {
@@ -447,12 +434,6 @@ function NfoForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
-      // const response = await fetch("http://localhost:5000/api/data/nfo", {
-      //   method: "POST",
-      //   credentials: "include",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(formData),
-      // });
       const data = await response.json();
 
       if (data.error) {
@@ -464,7 +445,6 @@ function NfoForm() {
       dispatch(
         updateToast({ type: "success", message: "Submitted successfully" })
       );
-      console.log("submitted");
     } catch (error) {
       console.log("Error occurred while submitting NFO form", error.message);
       dispatch(
@@ -486,18 +466,20 @@ function NfoForm() {
         <span className="h-2 w-[6.7rem] block bg-indigo-500"></span>
       </div>
       <fieldset className="flex flex-wrap gap-x-8 gap-y-6 b-blue-100 rounded-md p-6 sm:border border-blue-200">
-        <div className="w-full flex items-center">
-          <input
-            type="checkbox"
-            id="searchAll"
-            checked={searchAll}
-            onChange={() => setSearchAll(!searchAll)}
-            className="mr-2"
-          />
-          <label htmlFor="searchAll" className="text-gray-800 text-sm font-medium">
-            Search All
-          </label>
-        </div>
+        {userData?.email.includes("@niveshonline.com") && (
+          <div className="w-full flex items-center">
+            <input
+              type="checkbox"
+              id="searchAll"
+              checked={searchAll}
+              onChange={() => setSearchAll(!searchAll)}
+              className="mr-2"
+            />
+            <label htmlFor="searchAll" className="text-gray-800 text-sm font-medium">
+              Search All
+            </label>
+          </div>
+        )}
         <CustomDatalist
           id="clientName"
           label="Name"
@@ -527,15 +509,15 @@ function NfoForm() {
         />
       </fieldset>
 
-      <div className="flex gap-8">
+      <div className="gap-8">
         <div className="w-6/7">
           <UccTable data={uccList} selectedOption={ucc} updateSelected={setUcc} />
         </div>
         <div className="w-1/7">
-          {kycStatus && <KycStatusTable kycStatus={kycStatus} />}
+          { <KycStatusTable ucc={ucc} />}
+          {/* {ucc?.ClientName && <KycStatusTable ucc={ucc} />} */}
         </div>
       </div>
-
       <fieldset className="flex flex-wrap gap-8 b-purple-50 rounded-md p-6 sm:border border-green-200">
         <div className="grow shrink basis-60 md:basis-80">
           <CustomSelect
@@ -570,18 +552,16 @@ function NfoForm() {
           <div className="flex gap-4">
             <button
               type="button"
-              className={`px-4 py-2 rounded-lg ${
-                schemeOption === "Growth" ? "bg-indigo-500 text-white" : "bg-gray-200"
-              }`}
+              className={`px-4 py-2 rounded-lg ${schemeOption === "Growth" ? "bg-indigo-500 text-white" : "bg-gray-200"
+                }`}
               onClick={() => setSchemeOption("Growth")}
             >
               Growth
             </button>
             <button
               type="button"
-              className={`px-4 py-2 rounded-lg ${
-                schemeOption === "IDCW" ? "bg-indigo-500 text-white" : "bg-gray-200"
-              }`}
+              className={`px-4 py-2 rounded-lg ${schemeOption === "IDCW" ? "bg-indigo-500 text-white" : "bg-gray-200"
+                }`}
               onClick={() => setSchemeOption("IDCW")}
             >
               IDCW
@@ -636,9 +616,8 @@ function NfoForm() {
           </div>
           {nfo && (
             <p
-              className={`text-sm ${
-                amount < minAmount ? "text-red-500" : "text-green-500"
-              }`}
+              className={`text-sm ${amount < minAmount ? "text-red-500" : "text-green-500"
+                }`}
             >
               Minimum purchase amount is <strong>{minAmount}</strong>
             </p>
