@@ -16,8 +16,8 @@ function AppLink() {
         <div className=''>
         <p className='text-lg'>Get the mNivesh app for easy access to your financial tools:</p>
         <ul className='list-disc list-inside mt-3'>
-          <li><a target='_blank' className='hover:underline' href="https://play.google.com/store/apps/details?id=com.milestone.mNivesh&hl=en_IN&gl=US&pli=1">mNivesh App for Android</a></li>
-          <li><a target='_blank' className='hover:underline' href="https://apps.apple.com/au/app/mnivesh/id1023746858">mNivesh App for iOS</a></li>
+          <li><a target='_blank' rel='noreferrer' className='hover:underline' href="https://play.google.com/store/apps/details?id=com.milestone.mNivesh&hl=en_IN&gl=US&pli=1">mNivesh App for Android</a></li>
+          <li><a target='_blank' rel='noreferrer' className='hover:underline' href="https://apps.apple.com/au/app/mnivesh/id1023746858">mNivesh App for iOS</a></li>
         </ul>
         </div>
       </article>
