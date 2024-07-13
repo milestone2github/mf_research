@@ -38,6 +38,10 @@ import CalculatorList from "./components/calculators/CalculatorList";
 import MfTransForm from "./components/pages/MfTransForm";
 import Protected from "./components/common/Protected";
 import NfoForm from "./components/pages/NfoForm";
+import InternalLink from "./components/pages/InternalLink";
+import AboutUs from "./components/links/AboutUs";
+import AllLinks from "./components/links/AllLinks";
+import AppLink from "./components/links/AppLink";
 
 function App() {
   const location = useLocation().pathname
@@ -67,6 +71,11 @@ function App() {
                 <Route path="/mf-trans-form" element={<Protected><MfTransForm /></Protected>} />
                 <Route path="/nfo-form" element={<Protected><NfoForm /></Protected>} />
                 <Route path="/login" element={<Loginpage />} />
+                <Route path="/links" element={<Protected><InternalLink /></Protected>} >
+                <Route path="" element={<AllLinks />} />
+                <Route path="about_us" element={<AboutUs />} />
+                <Route path="app_link" element={<AppLink />} />
+                </Route>
 
                 <Route path="/calculator" element={<Protected><Calculators /></Protected>} >
                   <Route

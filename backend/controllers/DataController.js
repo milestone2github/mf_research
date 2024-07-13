@@ -977,6 +977,21 @@ const getAllNfoAmc = async (req, res) => {
   }
 }
 
+const addNfoSchemeToSchemes = async (req, res) => {
+  const {amcName, schemeName} = req.query
+  try {
+    const collection = req.milestoneDb.collection("mfschemesDb")
+    const doc = await collection.insertOne({"FUND NAME": amcName, "scheme_name": schemeName})
+    if(!doc) {
+      throw new Error("Unable to add scheme")
+    }
+    res.status(201).json({message: 'Scheme added', data: doc})
+  } catch (error) {
+    console.log("Error adding scheme: ", error.message)
+    res.status(500).json({error: `Error adding scheme: ${error.message}`})
+  }
+} 
+
 module.exports = {
   getInvestors,
   getAmcNames,
@@ -991,6 +1006,7 @@ module.exports = {
   getFoliosFromFolios,
   getIsin,
   getAllNfoAmc,
-  getKycStatus
+  getKycStatus,
+  addNfoSchemeToSchemes
 }
 

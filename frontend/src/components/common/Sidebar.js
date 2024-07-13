@@ -13,6 +13,7 @@ const tabs = [
     { name: 'Direct Client Payout Accounts', to: '/dir-client-payout-accounts', label: 'Direct Client Payout Accounts' },
     { name: 'MF Transaction', to: '/mf-trans-form', label: 'MF Transaction' },
     { name: 'NFO', to: '/nfo-form', label: 'NFO Transaction' },
+    { name: 'Links', to: '/links', label: 'Links' },
 ]
 
 const Sidebar = () => {
@@ -20,7 +21,7 @@ const Sidebar = () => {
     const permissions = userData?.role?.permissions;
 
     const allowedTabs = tabs.filter(tab => 
-        tab.name === 'Calculator' || tab.name === 'Home' || permissions?.find(permission => permission === tab.name)
+        tab.name === 'Calculator' || tab.name === 'Links' || permissions?.find(permission => permission === tab.name)
     )
 
     return (

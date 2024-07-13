@@ -58,7 +58,7 @@ const KycStatusTable = ({ ucc }) => {
   return (
     <table className="border border-gray-200 border-collapse text-sm text-left rounded-md">
       {kycStatus1 && <caption className="caption-top text-left mb-1 text-sm text-gray-800 font-medium">
-        KYC Field
+        KYC Status
       </caption>}
       <thead className="border-2 bg-gray-200 p-1">
         <tr>

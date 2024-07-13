@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import CustomDatalist from "../nfoComponents/CustomDatalist";
 import CustomSelect from "../nfoComponents/CustomSelect";
 import { BsCurrencyRupee } from "react-icons/bs";
-import { FaClipboard } from "react-icons/fa";
+import { FaCheck, FaClipboard } from "react-icons/fa";
 import UccTable from "../nfoComponents/UccTable";
 import debounce from "../../utils/debounce";
 import { useDispatch, useSelector } from "react-redux";
@@ -44,6 +44,7 @@ function NfoForm() {
   const dispatch = useDispatch();
   const [searchAll, setSearchAll] = useState(false);
   const [schemeOption, setSchemeOption] = useState("Growth");
+  const [hasReviewed, setHasReviewed] = useState(false)
 
   useEffect(() => {
     const fetchIsin = () => {
@@ -261,6 +262,10 @@ function NfoForm() {
   }, [amc]);
 
   useEffect(() => {
+    setHasReviewed(false)
+  }, [pan, ucc, amc, nfo, schemeOption, folio, amount])
+
+  useEffect(() => {
     setAmc("");
     setFolio("Create new folio");
   }, [ucc]);
@@ -465,7 +470,7 @@ function NfoForm() {
         </h3>
         <span className="h-2 w-[6.7rem] block bg-indigo-500"></span>
       </div>
-      <fieldset className="flex flex-wrap gap-x-8 gap-y-6 b-blue-100 rounded-md p-6 sm:border border-blue-200">
+      <fieldset className="flex flex-wrap gap-x-8 gap-y-6 rounded-md p-6 sm:border border-blue-200">
         {userData?.email.includes("@niveshonline.com") && (
           <div className="w-full flex items-center">
             <input
@@ -509,16 +514,14 @@ function NfoForm() {
         />
       </fieldset>
 
-      <div className="gap-8">
-        <div className="w-6/7">
-          <UccTable data={uccList} selectedOption={ucc} updateSelected={setUcc} />
-        </div>
-        <div className="w-1/7">
-          { <KycStatusTable ucc={ucc} />}
-          {/* {ucc?.ClientName && <KycStatusTable ucc={ucc} />} */}
-        </div>
-      </div>
-      <fieldset className="flex flex-wrap gap-8 b-purple-50 rounded-md p-6 sm:border border-green-200">
+      <fieldset className=' rounded-md p-[22px] border border-slate-200 w-full min-w-[50vw] overflow-x-auto'>
+        <UccTable data={uccList} selectedOption={ucc} updateSelected={setUcc} />
+      </fieldset>
+      <fieldset className="flex flex-wrap gap-8 rounded-md p-6 sm:border border-indigo-200">
+        <KycStatusTable ucc={ucc} />
+        {/* {ucc?.ClientName && <KycStatusTable ucc={ucc} />} */}
+      </fieldset>
+      <fieldset className="flex flex-wrap gap-8 rounded-md p-6 sm:border border-green-200">
         <div className="grow shrink basis-60 md:basis-80">
           <CustomSelect
             id="nfoAmc"
@@ -625,8 +628,26 @@ function NfoForm() {
         </div>
       </fieldset>
 
+      <fieldset className="flex flex-wrap gap-8 rounded-md p-6 sm:border border-blue-200">
+        <label className="inline-flex relative items-center cursor-pointer space-x-2">
+          <input
+            type="checkbox"
+            checked={hasReviewed}
+            onChange={(e) => setHasReviewed(e.target.checked)}
+            className={`w-6 h-6 text-indigo-500 ${hasReviewed ? 'bg-gray-100' : 'bg-gray-300'} border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-500 dark:ring-offset-gray-800 focus:ring-2 appearance-none`}
+            id="custom-checkbox"
+          />
+          {hasReviewed && (
+            <span className="absolute top-1/2 -left-[6px] -translate-y-1/2 text-indigo-500">
+              <FaCheck className="w-5 h-5" />
+            </span>
+          )}
+          <span className="text-gray-900">I have reviewed all the fields</span>
+        </label>
+      </fieldset>
+
       {nfoUrl && (
-        <fieldset className="relative flex items-center gap-x-4 b-purple-50 rounded-md p-6 sm:border bg-gray-800 text-gray-200">
+        <fieldset className="relative flex items-center gap-x-4 rounded-md p-6 sm:border bg-gray-800 text-gray-200">
           <p className="text-left text-blue-300 w-full">{nfoUrl}</p>
           <button
             title="copy"
@@ -646,9 +667,9 @@ function NfoForm() {
 
       <input
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !hasReviewed}
         value={isSubmitting ? "Submitting..." : "Submit"}
-        className="px-8 py-2 rounded-lg bg-indigo-500 cursor-pointer text-slate-50 w-full max-w-80 mx-auto"
+        className="px-8 py-2 rounded-lg bg-indigo-500 cursor-pointer text-slate-50 w-full max-w-80 mx-auto disabled:bg-indigo-400 disabled:cursor-default"
       />
       <Toast />
     </form>

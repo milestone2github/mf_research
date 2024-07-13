@@ -437,7 +437,7 @@ const getRMNames = async (req, res) => {
 
 // get all transactions with filter 
 const filteredTransactions = async (req, res) => {
-  let { minDate, maxDate, amcName, schemeName, rmName, type, orderId } = req.query
+  let { minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort } = req.query
   const items = Number(req.query.items) || 10
   const page = Number(req.query.page) || 1
   const skipItems = items * (page - 1)
@@ -471,14 +471,20 @@ const filteredTransactions = async (req, res) => {
     filters.orderId = orderId
   }
 
+  const sortMap = new Map()
+  sortMap.set('trxdate-asc', {transactionPreference: 1})
+  sortMap.set('trxdate-desc', {transactionPreference: -1})
+  sortMap.set('amount-asc', {amount: 1})
+  sortMap.set('amount-desc', {amount: -1})
+  let sortBy = sortMap.get('trxdate-desc')
+
+
   try {
-    const transactions = await Transactions.find(filters).skip(skipItems).limit(items).lean()
+    const transactions = await Transactions.find(filters).sort(sortBy).skip(skipItems).limit(items).lean()
     if (!transactions) {
       throw new Error('Something went wrong, unable to find transactions')
     }
-    console.log('length: ', transactions.length) //test
-    console.log('page: ', page) //test
-    console.log('items: ', items) //test
+
     res.status(200).json({ data: {transactions, page}, message: 'Transactions found' })
   } catch (error) {
     console.log("error getting filtered transactions: ", error.message)

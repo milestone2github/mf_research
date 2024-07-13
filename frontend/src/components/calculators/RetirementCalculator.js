@@ -288,7 +288,7 @@ const RetirementCalculator = () => {
     <div className="retirement-calculator px-3">
       <div className="relative flex">
         <span className="absolute left-0 top-1/2 -translate-y-1/2">
-        <BackButton action={() => {window.history.back()}}/>
+        <BackButton />
         </span>
 
         <div className="flex flex-col w-fit mx-auto">
