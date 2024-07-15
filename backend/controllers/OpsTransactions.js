@@ -476,7 +476,7 @@ const filteredTransactions = async (req, res) => {
   sortMap.set('trxdate-desc', {transactionPreference: -1})
   sortMap.set('amount-asc', {amount: 1})
   sortMap.set('amount-desc', {amount: -1})
-  let sortBy = sortMap.get('trxdate-desc')
+  let sortBy = sortMap.get(sort || 'trxdate-desc')
 
 
   try {
