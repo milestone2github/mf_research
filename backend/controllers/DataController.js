@@ -400,8 +400,6 @@ const getFoliosFromFolios = async (req, res) => {
       }
     ]).toArray();
 
-    console.log("Matched Folios:", result); // Log the result for debugging
-
     if (result.length > 0) {
       res.status(200).json({ message: "Folios found", data: result });
     } else {
@@ -412,8 +410,6 @@ const getFoliosFromFolios = async (req, res) => {
     res.status(500).send("Error while fetching folios");
   }
 }
-
-
 
 
 const getNfoAmc = async (req, res) => {
@@ -782,8 +778,7 @@ const getUcc = async (req, res) => {
 const postNewFundOfferForm = async (req, res) => {
   console.log('POST /api/data/nfo') //test
   const { investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount, schemeOption } = req.body;
-  console.log('form data: ', investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount)
-
+  
   // create unique session id 
   let date = Date.now();
   let randomDigits = Math.floor(Math.random() * 9000 + 1000);
