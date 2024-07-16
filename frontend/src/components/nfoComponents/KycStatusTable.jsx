@@ -2,23 +2,28 @@ import React, { useEffect, useState } from "react";
 
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
-const KycStatusTable = ({ ucc }) => {
+const KycStatusTable = ({ ucc, setOverallKycStatus }) => {
   const [kycStatus1, setKycStatus1] = useState(null);
   const [kycStatus2, setKycStatus2] = useState(null);
   const [kycStatus3, setKycStatus3] = useState(null);
+  const [currentUcc, setCurrentUcc] = useState(null);
 
   const statusColors = {
     "KYC Registered": "bg-yellow-500 text-white",
     "KYC Rejected": "bg-red-500 text-white",
     "KYC Validated": "bg-green-500 text-white",
-    // Add other statuses and their colors here
   };
 
   const statusText = {
     "KYC Registered": "Registered",
     "KYC Rejected": "Rejected",
     "KYC Validated": "Validated",
-    // Add other status text replacements here
+  };
+
+  const statusOrder = {
+    "KYC Validated": 3,
+    "KYC Registered": 2,
+    "KYC Rejected": 1,
   };
 
   const fetchKycStatus = async (pan) => {
@@ -47,13 +52,28 @@ const KycStatusTable = ({ ucc }) => {
   };
 
   useEffect(() => {
-    console.log("Selected UCC:", ucc); // Log selected UCC
-    if (ucc?.Primary_Holder_First_Name) {
-      fetchKycStatus(ucc.Primary_Holder_PAN).then(setKycStatus1);
-      fetchKycStatus(ucc.Second_Holder_PAN).then(setKycStatus2);
-      fetchKycStatus(ucc.Third_Holder_PAN).then(setKycStatus3);
+    if (ucc !== currentUcc) {
+      setCurrentUcc(ucc);
+      setKycStatus1(null);
+      setKycStatus2(null);
+      setKycStatus3(null);
+
+      if (ucc?.Primary_Holder_First_Name) {
+        fetchKycStatus(ucc.Primary_Holder_PAN).then(setKycStatus1);
+        fetchKycStatus(ucc.Second_Holder_PAN).then(setKycStatus2);
+        fetchKycStatus(ucc.Third_Holder_PAN).then(setKycStatus3);
+      }
     }
-  }, [ucc]);
+  }, [ucc, currentUcc]);
+
+  useEffect(() => {
+    if (ucc?.Primary_Holder_First_Name) {
+      const statuses = [kycStatus1, kycStatus2, kycStatus3].filter(Boolean).map(status => statusOrder[status.Status]);
+      const overallStatus = Math.min(...statuses);
+      const overallStatusText = Object.keys(statusOrder).find(key => statusOrder[key] === overallStatus);
+      setOverallKycStatus(overallStatusText);
+    }
+  }, [kycStatus1, kycStatus2, kycStatus3, setOverallKycStatus, ucc]);
 
   return (
     <table className="border border-gray-200 border-collapse text-sm text-left rounded-md">
@@ -69,16 +89,16 @@ const KycStatusTable = ({ ucc }) => {
       </thead>
       <tbody>
         <tr className="border-b relative border-gray-200">
-          {kycStatus1 && (<td className="p-2">
-            <div className={`p-1 text-center rounded-md ${kycStatus1 && kycStatus1.Status ? statusColors[kycStatus1.Status] : 'bg-gray-200 text-gray-800'}`}>
-              {/* {console.log("KYC Client Status:", kycStatus1?.Status)} Log KYC Client Status */}
-              {kycStatus1 ? (statusText[kycStatus1.Status] || kycStatus1.Status) : "N/A"}
-            </div>
-          </td>)}
+          {kycStatus1 && (
+            <td className="p-2">
+              <div className={`p-1 text-center rounded-md ${kycStatus1 && kycStatus1.Status ? statusColors[kycStatus1.Status] : 'bg-gray-200 text-gray-800'}`}>
+                {kycStatus1 ? (statusText[kycStatus1.Status] || kycStatus1.Status) : "N/A"}
+              </div>
+            </td>
+          )}
           {kycStatus2 && (
             <td className="p-2">
               <div className={`p-1 text-center rounded-md ${kycStatus2 && kycStatus2.Status ? statusColors[kycStatus2.Status] : 'bg-gray-200 text-gray-800'}`}>
-                {/* {console.log("KYC Joint1 Status:", kycStatus2?.Status)} Log KYC Joint1 Status */}
                 {kycStatus2 ? (statusText[kycStatus2.Status] || kycStatus2.Status) : "N/A"}
               </div>
             </td>
@@ -86,7 +106,6 @@ const KycStatusTable = ({ ucc }) => {
           {kycStatus3 && (
             <td className="p-2">
               <div className={`p-1 text-center rounded-md ${kycStatus3 && kycStatus3.Status ? statusColors[kycStatus3.Status] : 'bg-gray-200 text-gray-800'}`}>
-                {/* {console.log("KYC Joint2 Status:", kycStatus3?.Status)} Log KYC Joint2 Status */}
                 {kycStatus3 ? (statusText[kycStatus3.Status] || kycStatus3.Status) : "N/A"}
               </div>
             </td>

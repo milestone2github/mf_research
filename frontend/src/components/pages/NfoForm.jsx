@@ -16,9 +16,10 @@ const backendUrl = process.env.REACT_APP_API_BASE_URL;
 function NfoForm() {
   const [name, setName] = useState("");
   const [kycStatus, setKycStatus] = useState(null);
+  const [overallKycStatus, setOverallKycStatus] = useState("KYC Rejected"); // Added state for overall KYC status
   const [pan, setPan] = useState("");
   const [familyHead, setFamilyHead] = useState("");
-  const [folio, setFolio] = useState("Create new folio");
+  const [folio, setFolio] = useState("");
   const [nfo, setNfo] = useState("");
   const [amc, setAmc] = useState("");
   const [ucc, setUcc] = useState({});
@@ -26,6 +27,7 @@ function NfoForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nfoUrl, setNfoUrl] = useState(null);
   const [showCopied, setShowCopied] = useState(false);
+  const [bseStatus, setBseStatus] = useState(1);
 
   const [clientList, setClientList] = useState([]);
   const [panList, setPanList] = useState([]);
@@ -33,7 +35,7 @@ function NfoForm() {
   const [uccList, setUccList] = useState([]);
   const [nfoList, setNfoList] = useState([]);
   const [amcList, setAmcList] = useState([]);
-  const [folioList, setFolioList] = useState(["Create new folio"]);
+  const [folioList, setFolioList] = useState([]);
 
   const [foliosFromIwell, setFoliosFromIwell] = useState([]);
   const [schemesWithCode, setSchemesWithCode] = useState([]);
@@ -44,7 +46,7 @@ function NfoForm() {
   const dispatch = useDispatch();
   const [searchAll, setSearchAll] = useState(false);
   const [schemeOption, setSchemeOption] = useState("Growth");
-  const [hasReviewed, setHasReviewed] = useState(false)
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   useEffect(() => {
     const fetchIsin = () => {
@@ -67,10 +69,7 @@ function NfoForm() {
           let isinList = jsonRes.data.map((item) => item["ISIN"]);
 
           const isinFilteredFolios = foliosFromIwell
-            .filter((folio) => {
-              const isIncluded = isinList.includes(folio.isin);
-              return isIncluded;
-            })
+            .filter((folio) => isinList.includes(folio.isin))
             .map((item) => item.folioNo);
 
           fetchFoliosFromFolioMaster(
@@ -90,7 +89,7 @@ function NfoForm() {
   async function fetchFoliosFromFolioMaster(iwellfolios, joint1, joint2) {
     try {
       if (!iwellfolios.length) {
-        setFolioList(["Create new folio"]);
+        setFolioList([]);
         return;
       }
 
@@ -114,8 +113,8 @@ function NfoForm() {
       }
 
       let folios = jsonRes.data.map((item) => item["_id"]);
-
-      setFolioList(["Create new folio", ...folios]);
+      console.log(folios);
+      setFolioList([...folios]);
     } catch (error) {
       console.log("Internal server error while getting folios from folio master:", error.message);
     }
@@ -150,12 +149,12 @@ function NfoForm() {
         }
       );
       const jsonRes = await response.json();
-
+      console.log(jsonRes.data)
       if (!response.ok) {
         console.log("Error fetching folios");
         return;
       }
-
+      
       setFoliosFromIwell(jsonRes.data);
     } catch (error) {
       console.log("Internal server error while getting folios:", error.message);
@@ -199,7 +198,8 @@ function NfoForm() {
     fetchFolios();
     fetchKycStatus(pan).then((status) => setKycStatus(status));
     setAmc("");
-    setFolio("Create new folio");
+    setFolio("");
+    setFolioList([])
     setUcc({});
   }, [pan]);
 
@@ -259,21 +259,25 @@ function NfoForm() {
     };
     fetchNfoData();
     setNfo("");
+    console.log(folioList );
+    console.log(overallKycStatus );
   }, [amc]);
 
   useEffect(() => {
-    setHasReviewed(false)
-  }, [pan, ucc, amc, nfo, schemeOption, folio, amount])
+    setHasReviewed(false);
+  }, [pan, ucc, amc, nfo, schemeOption, folio, amount]);
 
   useEffect(() => {
     setAmc("");
-    setFolio("Create new folio");
+    setFolio("");
   }, [ucc]);
-  useEffect(() => {
-    if (ucc?.ClientName) {
-      fetchKycStatus(ucc.Pan).then(setKycStatus);
-    }
-  }, [ucc]);
+
+  // useEffect(() => {
+  //   if (ucc?.ClientName) {
+  //     fetchKycStatus(ucc.Pan).then(setKycStatus);
+  //   }
+  // }, [ucc]);
+
   const debouncedGetNames = useCallback(
     debounce(async (name, searchAll) => {
       try {
@@ -460,10 +464,20 @@ function NfoForm() {
     }
   };
 
-  if (!permissions.find((perm) => perm === "NFO")) return <AccessDenied />;
+  const isSubmitDisabled = () => {
+    if (bseStatus===0 || !hasReviewed) return true;
+    return false;
+  };
 
+  if (!permissions.find((perm) => perm === "NFO")) return <AccessDenied />;
+  
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-y-8 md:mx-0">
+        {bseStatus===0 && (
+          <fieldset className="rounded-md p-4 border border-red-200 bg-red-50 text-red-700">
+            You have to process this manually as BSE status is inactive.
+          </fieldset>
+        )}
       <div className="mb-2">
         <h3 className="text-2xl w-fit font-semibold inline-block bg-clip-text text-transparent bg-gradient-to-r from-[#2D3748] to-[#1A202C]">
           New Fund Offer Form
@@ -515,11 +529,18 @@ function NfoForm() {
       </fieldset>
 
       <fieldset className=' rounded-md p-[22px] border border-slate-200 w-full min-w-[50vw] overflow-x-auto'>
-        <UccTable data={uccList} selectedOption={ucc} updateSelected={setUcc} />
+        <UccTable data={uccList} selectedOption={ucc} updateSelected={(selectedUcc) => {
+          setUcc(selectedUcc);
+          var hasValidNominee = selectedUcc["Nomination_Flag"] === "Y";
+          var isPanValid = selectedUcc["Primary_Holder_PAN_Aadhaar_Status"] === "VALID";
+          var isAadhaarValid = selectedUcc["Aadhaar_Updated"] === "Y";
+          var isBankValid = ["Bank1_Status", "Bank2_Status", "Bank3_Status", "Bank4_Status", "Bank5_Status"].some(status => selectedUcc[status] === "VALID");
+          // var isKycValid = kycStatus==="KYC Resistered";
+          setBseStatus(hasValidNominee && isPanValid && isBankValid ? 1 : 0)
+        }} />
       </fieldset>
       <fieldset className="flex flex-wrap gap-8 rounded-md p-6 sm:border border-indigo-200">
-        <KycStatusTable ucc={ucc} />
-        {/* {ucc?.ClientName && <KycStatusTable ucc={ucc} />} */}
+        <KycStatusTable ucc={ucc} setOverallKycStatus={setOverallKycStatus} />
       </fieldset>
       <fieldset className="flex flex-wrap gap-8 rounded-md p-6 sm:border border-green-200">
         <div className="grow shrink basis-60 md:basis-80">
@@ -586,7 +607,17 @@ function NfoForm() {
             value={folio}
             onChange={(e) => setFolio(e.target.value)}
             className="block w-full mt-1 py-[10px] px-2 border-gray-300 rounded-md shadow-sm focus:outline-blue-500 outline-offset-0 outline outline-2 outline-gray-200"
+            // disabled={kycStatus?.Status === "KYC Registered" && !folioList.length}
           >
+            {/* {overallKycStatus !== "KYC Validated" && folioList.length===0 && ( */}
+              <option value="">Select folio</option>
+            {/* )} */}
+            {overallKycStatus === "KYC Validated" && (
+              <option value="Create new folio">Create new folio</option>
+            )}
+            {overallKycStatus === "KYC Registered" && folioList.length>0 && (
+              <option value="Create new folio">Create new folio</option>
+            )}
             {folioList.map((folioItem, index) => (
               <option key={index} value={folioItem}>
                 {folioItem || "Select Folio"}
@@ -654,7 +685,7 @@ function NfoForm() {
             type="button"
             onClick={handleCopy}
             className=" text-xl px-4 py-4 rounded-md border border-gray-700"
-          >
+            >
             <FaClipboard />
           </button>
           {showCopied && (
@@ -664,13 +695,13 @@ function NfoForm() {
           )}
         </fieldset>
       )}
-
+    
       <input
         type="submit"
-        disabled={isSubmitting || !hasReviewed}
         value={isSubmitting ? "Submitting..." : "Submit"}
         className="px-8 py-2 rounded-lg bg-indigo-500 cursor-pointer text-slate-50 w-full max-w-80 mx-auto disabled:bg-indigo-400 disabled:cursor-default"
-      />
+        disabled={isSubmitDisabled()}
+        />
       <Toast />
     </form>
   );
