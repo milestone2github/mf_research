@@ -790,7 +790,7 @@ const postNewFundOfferForm = async (req, res) => {
   const { name, email } = req.session.user;
 
 
-  const nfoUrl = `https://bsetransaction.azurewebsites.net/api/NFOTransact?uuid=${sessionId}`
+  const nfoUrl = `https://milestone2github.github.io/inprocesswating?${sessionId}`
   try {
     const nfo = await NewFundOffer.create({
       sessionId,
