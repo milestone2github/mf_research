@@ -14,6 +14,7 @@ import { resetSwitchData } from '../../reducers/SwitchDataSlice'
 function FormHeader() {
   // get common data state from store
   const commonData = useSelector(state => state.commonData.value);
+  const {userData} = useSelector(state => state.user);
 
   // state to store filter value of search investors from all RMs 
   const [searchAllInvestor, setSearchAllInvestor] = useState(false)
@@ -88,6 +89,7 @@ function FormHeader() {
       {/* <legend className='text-gray-800 text-sm text-left'>Investor Name</legend> */}
       <div className="w-80 grow shrink basis-72">
         <InputListWithFilter
+          showFilter={userData?.email.endsWith('@niveshonline.com')}
           filterId='searchAll'
           filterLabel='Search All'
           filterValue={searchAllInvestor}

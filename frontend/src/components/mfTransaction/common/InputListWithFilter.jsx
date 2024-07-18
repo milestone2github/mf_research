@@ -15,6 +15,7 @@ function InputListWithFilter({
   updateSelectedOption,
   filterValue,
   filterLabel,
+  showFilter = false,
   filterId,
   onChangeFilter
 }) {
@@ -113,7 +114,7 @@ function InputListWithFilter({
         >{label}
         </label>
 
-        <div className="flex gap-1 select-none cursor-pointer">
+        {showFilter && <div className="flex gap-1 select-none cursor-pointer">
           <input 
             type="checkbox" 
             name={filterId} 
@@ -121,7 +122,7 @@ function InputListWithFilter({
             onChange={(e) => onChangeFilter(e.target.checked)} />
           <label htmlFor={filterId} className='text-gray-750 text-sm text-left'>{filterLabel}</label>
 
-        </div>
+        </div>}
 
       </div>
 
