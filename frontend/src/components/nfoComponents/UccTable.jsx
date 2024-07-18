@@ -145,9 +145,7 @@ function UccTable({ data, selectedOption, updateSelected }) {
             </td>
             <td className='p-1 py-2 relative'>
               <div className='flex items-center justify-between gap-x-4'>
-                {item["Nominee_1_Name"] ||
-                  item["Nominee_2_Name"] ||
-                  item["Nominee_3_Name"] ? 'YES' : "NO"}
+                {item["Nomination_Flag"] === "Y"  ? 'YES' : "NO"}
                 <span className='group h-fit p-0 flex items-center '>
                   <span className='text-blue-300 text-lg w-6 h-6 flex items-center justify-center '><BsInfoCircleFill /></span>
                   <div className="absolute right-0 bottom-0 w-max px-2 py-2 border hidden group-hover:block rounded-md bg-white text-sm shadow-md">
