@@ -789,11 +789,15 @@ const postNewFundOfferForm = async (req, res) => {
   }
   const { name, email } = req.session.user;
 
+<<<<<<< HEAD
 
   const nfoUrl = `https://milestone2github.github.io/inprocesswating?${sessionId}`
+=======
+  const nfoUrl = `https://bsetransaction.azurewebsites.net/api/NFOTransact?uuid=${sessionId}`
+>>>>>>> 3a61b9871f08d42f30222c3459fbab0ccff64892
   try {
     const nfo = await NewFundOffer.create({
-      sessionId,
+      orderId: sessionId,
       investorName,
       panNumber: pan,
       familyHead,
@@ -802,6 +806,7 @@ const postNewFundOfferForm = async (req, res) => {
       ucc,
       schemeOption,
       amcName: amc,
+      schemeName,
       schemeCode,
       folioNumber: folio,
       amount,
@@ -810,6 +815,11 @@ const postNewFundOfferForm = async (req, res) => {
     if (!nfo) {
       return res.status(400).json({ error: "Error saving NFO data to DB" })
     }
+
+    let sheetData = {...nfo.toObject(), category: 'nfo'}
+    
+    // send to zoho sheet 
+    sendToZohoSheet(sheetData, 'NFO data sent to zoho sheet')
 
     // send email to user 
     let mailBody = generateHtmlOfNfo(nfo.investorName, schemeName, nfo.nfoUrl)
