@@ -70,7 +70,8 @@ function UccTable({ data, selectedOption, updateSelected }) {
       </caption>
       <thead className='border-2 bg-slate-200'>
         <tr>
-          <th className='p-1 pe-6 text-left text-nowrap'>Action</th>
+          <th className='p-1 pe-4 text-left text-nowrap'>Action</th>
+          <th className='p-1 pe-6 text-left'>UCC</th>
           <th className='p-1 pe-8 text-left text-nowrap min-w-32'>Client Name</th>
           <th className='p-1 pe-8 text-left text-nowrap min-w-32'>Joint 1</th>
           <th className='p-1 pe-8 text-left text-nowrap '>Joint 2</th>
@@ -78,13 +79,13 @@ function UccTable({ data, selectedOption, updateSelected }) {
           <th className='p-1 pe-8 text-left'>Holding</th>
           <th className='p-1 pe-8 text-left'>BSE Status</th>
           <th className='p-1 pe-8 text-left text-nowrap'>Bank Detail</th>
-          <th className='p-1 pe-8 text-left'>Nominee</th>
+          <th className='p-1 pe-4 text-left'>Nominee</th>
         </tr>
       </thead>
       <tbody>
         {data?.map(item => (
           <tr key={item._id} className='border-b relative border-gray-200'>
-            <td className='p-1 pe-6'>
+            <td className='p-1 pe-4'>
               <label htmlFor={item._id} className={`cursor-pointer rounded ${item._id === selectedOption._id ? 'bg-blue-100 border-blue-200' : 'bg-gray-100 border-gray-200'} border h-full px-4 py-2 flex items-center`}>
                 <input
                   type="radio"
@@ -98,13 +99,14 @@ function UccTable({ data, selectedOption, updateSelected }) {
                 />
               </label>
             </td>
+            <td className='p-1 pe-6 py-2'>{item["_id"]}</td>
             <td title={item["Primary_Holder_First_Name"]} className='pe-6 py-2 ellipsis max-w-44'>{item["Primary_Holder_First_Name"]}</td>
             <td className='p-1 pe-6 py-2 max-w-40'>{item["Second_Holder_First_Name"]}</td>
             <td className='p-1 pe-6 py-2 max-w-40'>{item["Third_Holder_First_Name"]}</td>
             <td className='p-1 pe-6 py-2'>{item["Tax_Status"]}</td>
             <td className='p-1 pe-6 py-2'>{holdingMap.get(item["Holding_Nature"])}</td>
             <td className='p-1 pe-6 py-2 relative'>
-              <div className='flex items-center justify-between gap-x-4'>
+              <div className='flex items-center justify-between gap-x-3'>
                 {bseStatusMap.get(item._id)}
                 <span className='group h-fit p-0 flex items-center '>
                   <span className='text-blue-300 text-lg w-6 h-6 flex items-center justify-center '><BsInfoCircleFill /></span>
@@ -144,7 +146,7 @@ function UccTable({ data, selectedOption, updateSelected }) {
               </div>
             </td>
             <td className='p-1 py-2 relative'>
-              <div className='flex items-center justify-between gap-x-4'>
+              <div className='flex items-center justify-between gap-x-3'>
                 {item["Nomination_Flag"] === "Y"  ? 'YES' : "NO"}
                 <span className='group h-fit p-0 flex items-center '>
                   <span className='text-blue-300 text-lg w-6 h-6 flex items-center justify-center '><BsInfoCircleFill /></span>
