@@ -7,6 +7,7 @@ const NewFundOffer = require("../models/NewFundOffer");
 const generateHtmlContent = require("../utils/generateHtmlContent");
 const generateHtmlOfNfo = require("../utils/generateHtmlOfNfo");
 const Transactions = require("../models/Transactions");
+const { formatDateToDDMMYYYYHHMMSSss } = require("../utils/formatDate");
 require('dotenv').config()
 
 
@@ -780,16 +781,16 @@ const postNewFundOfferForm = async (req, res) => {
   const { investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount, schemeOption } = req.body;
   
   // create unique session id 
-  let date = Date.now();
+  let date = formatDateToDDMMYYYYHHMMSSss(new Date());
   let randomDigits = Math.floor(Math.random() * 9000 + 1000);
-  let sessionId = date.toString() + investorName.toUpperCase().slice(0, 3) + randomDigits.toString()
+  let sessionId = date.toString() + randomDigits.toString()
 
   if (!req.session || !req.session.user) {
     return res.status(401).json({ error: "User not logged in" });
   }
   const { name, email } = req.session.user;
 
-  const nfoUrl = `https://milestone2github.github.io/inprocesswating?${sessionId}`
+  const nfoUrl = `https://transaction.mnivesh.com/${sessionId}`
 
   try {
     const nfo = await NewFundOffer.create({
