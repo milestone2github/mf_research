@@ -23,7 +23,7 @@ function NfoForm() {
   const [nfo, setNfo] = useState("");
   const [amc, setAmc] = useState("");
   const [ucc, setUcc] = useState({});
-  const [amount, setAmount] = useState(0);
+  const [amount, setAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nfoUrl, setNfoUrl] = useState(null);
   const [showCopied, setShowCopied] = useState(false);
@@ -216,7 +216,8 @@ function NfoForm() {
           console.log("Error fetching NFO AMC");
           return;
         }
-        let amcs = jsonRes.data.map((item) => item["_id"]);
+        // let amcs = jsonRes.data.map((item) => item["_id"]);
+        let amcs = jsonRes.data;
         setAmcList(amcs);
       } catch (error) {
         console.log("Internal server error while getting NFO AMCs");
@@ -472,9 +473,9 @@ function NfoForm() {
   if (!permissions.find((perm) => perm === "NFO")) return <AccessDenied />;
   
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-y-8 md:mx-0">
+    <form onSubmit={handleSubmit} className="relative flex flex-col gap-y-8 md:mx-0">
         {bseStatus===0 && (
-          <fieldset className="rounded-md p-4 border border-red-200 bg-red-50 text-red-700">
+          <fieldset className="sticky top-0 z-[9990] shadow-md rounded-md p-4 -mb-3 border border-red-200 bg-red-50 text-red-700">
             You have to process this manually as BSE status is inactive.
           </fieldset>
         )}

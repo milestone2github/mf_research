@@ -470,20 +470,28 @@ const getNfoAmc = async (req, res) => {
           }
         }
       },
-      { $sort: { "ReOpeningDateParsed": 1 } },
       {
         $group: {
           _id: "$AMC Code",
           count: { $sum: 1 }
         }
-      }
+      },
+      { $sort: { "_id": 1 } }
     ]).toArray();
 
     if (!data) {
       return res.status(400).json({ message: 'Error getting NFO AMC', data: null })
     }
 
-    res.status(200).json({ message: 'Found NFO AMC', data })
+    const bseFundMapCollection = req.milestoneDb.collection('bseFundsMap')
+    const bseFundsMap = await bseFundMapCollection.find().toArray()
+
+    const amcs = data.map(item => {
+      const hasFoundBseFund = bseFundsMap.find(bseFund => bseFund.bseName === item._id)
+      return hasFoundBseFund ? hasFoundBseFund.readableName : item._id
+    })
+
+    res.status(200).json({ message: 'Found NFO AMC', data: amcs })
   } catch (error) {
     console.log('Error while getting NFO AMC', error.message)
     res.status(500).json({ error: `Error getting NFO AMC: ${error.message}` })
@@ -580,8 +588,8 @@ const getNfoAmc = async (req, res) => {
 //     res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` })
 //   }
 // }
-const getNfoSchemes = async (req, res) => { 
-  const { amc, schemePlan, purchaseTrxMode } = req.query;
+const getNfoSchemes = async (req, res) => {
+  let { amc, schemePlan, purchaseTrxMode } = req.query;
   try {
     const bseCollection = req.milestoneDb.collection('bseschemes');
 
@@ -608,7 +616,10 @@ const getNfoSchemes = async (req, res) => {
     };
 
     if (amc) {
-      matchStage['AMC Code'] = { $in: Array.isArray(amc) ? amc : [amc] };
+      const bseFundMapCollection = req.milestoneDb.collection('bseFundsMap')
+      const matchedBseName = await bseFundMapCollection.findOne({ readableName: amc })
+      amc = matchedBseName?.bseName ? matchedBseName.bseName : amc
+      matchStage['AMC Code'] = amc;
     }
     if (schemePlan) {
       matchStage['Scheme Plan'] = { $in: Array.isArray(schemePlan) ? schemePlan : [schemePlan] };
@@ -672,87 +683,6 @@ const getNfoSchemes = async (req, res) => {
   }
 };
 
-
-
-// const getNfoSchemes = async (req, res) => { // accepts amc in query
-//   try {
-//     const bseCollection = req.milestoneDb.collection('bseschemes')
-
-//     const today = new Date();
-//     const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-//     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
-
-//     const formatDateString = (date) => {
-//       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-//       const day = String(date.getDate());
-//       const month = monthNames[date.getMonth()];
-//       const year = date.getFullYear();
-//       return `${month} ${day} ${year}`;
-//     }
-
-//     const nextDayString = formatDateString(nextDay);
-//     const nextMonthString = formatDateString(nextMonth);
-
-//     // console.log('current date: ', nextDayString) //test
-//     // console.log('next month end date: ', nextMonthString) //test
-
-//     const data = await bseCollection.aggregate([
-//       {
-//         $match: {
-//           "ReOpening Date": { $exists: true, $type: "string" }
-//         }
-//       },
-//       {
-//         $addFields: {
-//           "ReOpeningDateCleaned": {
-//             $replaceAll: {
-//               input: "$ReOpening Date",
-//               find: "  ",
-//               replacement: " "
-//             }
-//           }
-//         }
-//       },
-//       {
-//         $addFields: {
-//           "ReOpeningDateParsed": {
-//             $dateFromString: {
-//               dateString: "$ReOpeningDateCleaned",
-//               format: "%b %d %Y"
-//             }
-//           }
-//         }
-//       },
-//       {
-//         $match: {
-//           "ReOpeningDateParsed": {
-//             $gt: new Date(nextDayString),
-//             $lt: new Date(nextMonthString)
-//           },
-//           "AMC Code": req.query.amc
-//         }
-//       },
-//       { $sort: { "ReOpeningDateParsed": 1 } },
-//       {
-//         $project: {
-//           _id: 0,
-//           "Scheme Name": 1,
-//           "ReOpeningDateParsed": 1
-//         }
-//       }
-//     ]).toArray();
-
-//     if (!data) {
-//       return res.status(400).json({ message: 'Error getting NFO schemes', data: null })
-//     }
-
-//     res.status(200).json({ message: 'Found NFO schemes', data })
-//   } catch (error) {
-//     console.log('Error while getting NFO schemes', error.message)
-//     res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` })
-//   }
-// }
-
 const getUcc = async (req, res) => {
   let pan = req.query.pan;
   if (!pan) {
@@ -779,7 +709,7 @@ const getUcc = async (req, res) => {
 const postNewFundOfferForm = async (req, res) => {
   console.log('POST /api/data/nfo') //test
   const { investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount, schemeOption } = req.body;
-  
+
   // create unique session id 
   let date = formatDateToDDMMYYYYHHMMSSss(new Date());
   let randomDigits = Math.floor(Math.random() * 9000 + 1000);
@@ -813,8 +743,8 @@ const postNewFundOfferForm = async (req, res) => {
       return res.status(400).json({ error: "Error saving NFO data to DB" })
     }
 
-    let sheetData = {...nfo.toObject(), category: 'nfo'}
-    
+    let sheetData = { ...nfo.toObject(), category: 'nfo' }
+
     // send to zoho sheet 
     sendToZohoSheet(sheetData, 'NFO data sent to zoho sheet')
 
@@ -833,7 +763,7 @@ const postNewFundOfferForm = async (req, res) => {
 //     const clientMasterCollection = req.milestoneDb.collection('BSEclientmaster');
 //     const data = await clientMasterCollection.aggregate([
 //       {$group: {
-//         "_id": "$Holding_Nature"
+//         "_id": "$Tax_Status"
 //       }}
 //     ]).toArray();
 
@@ -980,19 +910,19 @@ const getAllNfoAmc = async (req, res) => {
 }
 
 const addNfoSchemeToSchemes = async (req, res) => {
-  const {amcName, schemeName} = req.query
+  const { amcName, schemeName } = req.query
   try {
     const collection = req.milestoneDb.collection("mfschemesDb")
-    const doc = await collection.insertOne({"FUND NAME": amcName, "scheme_name": schemeName})
-    if(!doc) {
+    const doc = await collection.insertOne({ "FUND NAME": amcName, "scheme_name": schemeName })
+    if (!doc) {
       throw new Error("Unable to add scheme")
     }
-    res.status(201).json({message: 'Scheme added', data: doc})
+    res.status(201).json({ message: 'Scheme added', data: doc })
   } catch (error) {
     console.log("Error adding scheme: ", error.message)
-    res.status(500).json({error: `Error adding scheme: ${error.message}`})
+    res.status(500).json({ error: `Error adding scheme: ${error.message}` })
   }
-} 
+}
 
 module.exports = {
   getInvestors,

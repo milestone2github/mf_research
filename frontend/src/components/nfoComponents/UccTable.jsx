@@ -1,38 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BsInfoCircleFill } from "react-icons/bs";
+import { holdingMap, taxStatusMap } from '../../utils/maps';
 
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
-
-// const fetchKycStatus = async (pan) => {
-//   try {
-//     const response = await fetch(`${backendUrl}/api/data/KYCStatusCheck`, {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({
-//         Pan: pan,
-//         detailCheck: "N",
-//         detailedOutput: "N",
-//       }),
-//     });
-//     const jsonData = await response.json();
-
-//     if (!response.ok || !jsonData) {
-//       return null;
-//     }
-//     return jsonData.Status;
-//   } catch (error) {
-//     return null;
-//   }
-// };
-
-const holdingMap = new Map([
-  ["SINGLE", "SI"],
-  ["JOINT", "JO"],
-  ["ANYONE OR SURVIVOR", "AS"],
-  [null, "N/A"]
-]);
 
 const determineBseStatus = async (item) => {
   const hasValidNominee = item["Nomination_Flag"] === "Y";
@@ -75,8 +45,9 @@ function UccTable({ data, selectedOption, updateSelected }) {
           <th className='p-1 pe-8 text-left text-nowrap min-w-32'>Client Name</th>
           <th className='p-1 pe-8 text-left text-nowrap min-w-32'>Joint 1</th>
           <th className='p-1 pe-8 text-left text-nowrap '>Joint 2</th>
-          <th className='p-1 pe-8 text-left'>Tax status</th>
-          <th className='p-1 pe-8 text-left'>Holding</th>
+          <th className='p-1 pe-8 text-left text-nowrap '>Tax / Holding</th>
+          {/* <th className='p-1 pe-8 text-left text-nowrap'>Tax status</th>
+          <th className='p-1 pe-8 text-left'>Holding</th> */}
           <th className='p-1 pe-8 text-left'>BSE Status</th>
           <th className='p-1 pe-8 text-left text-nowrap'>Bank Detail</th>
           <th className='p-1 pe-4 text-left'>Nominee</th>
@@ -100,12 +71,14 @@ function UccTable({ data, selectedOption, updateSelected }) {
               </label>
             </td>
             <td className='p-1 pe-6 py-2'>{item["_id"]}</td>
-            <td title={item["Primary_Holder_First_Name"]} className='pe-6 py-2 ellipsis max-w-44'>{item["Primary_Holder_First_Name"]}</td>
+            <td title={item["Primary_Holder_First_Name"]} className='pe-8 py-2 ellipsis max-w-44'>{item["Primary_Holder_First_Name"]}</td>
             <td className='p-1 pe-6 py-2 max-w-40'>{item["Second_Holder_First_Name"]}</td>
             <td className='p-1 pe-6 py-2 max-w-40'>{item["Third_Holder_First_Name"]}</td>
-            <td className='p-1 pe-6 py-2'>{item["Tax_Status"]}</td>
-            <td className='p-1 pe-6 py-2'>{holdingMap.get(item["Holding_Nature"])}</td>
-            <td className='p-1 pe-6 py-2 relative'>
+            <td title={item["Tax_Status"] + ' / ' + item["Holding_Nature"]} className='p-1 pe-6 py-2'>{taxStatusMap.get(item["Tax_Status"]) + ' / ' + holdingMap.get(item["Holding_Nature"])}</td>
+            {/* <td className='p-1 pe-6 py-2'>{holdingMap.get(item["Holding_Nature"])}</td> */}
+            {/* <td title={item["Tax_Status"]} className='p-1 pe-6 py-2'>{taxStatusMap.get(item["Tax_Status"])}</td>
+            <td className='p-1 pe-6 py-2'>{holdingMap.get(item["Holding_Nature"])}</td> */}
+            <td className='p-1 pe-8 py-2 relative'>
               <div className='flex items-center justify-between gap-x-3'>
                 {bseStatusMap.get(item._id)}
                 <span className='group h-fit p-0 flex items-center '>
@@ -124,7 +97,7 @@ function UccTable({ data, selectedOption, updateSelected }) {
                 </span>
               </div>
             </td>
-            <td className='p-1 pe-6 py-2 relative'>
+            <td className='p-1 pe-8 py-2 relative'>
               <div className='flex items-center justify-between gap-x-4'>
                 {item["Bank_Name_1"] ? `${item["Bank_Name_1"]?.split(' ')[0]}/${item["Account_No_1"]?.toString().slice(-4)}` : 'N/A'}
                 <span className='group h-fit p-0 flex items-center '>
