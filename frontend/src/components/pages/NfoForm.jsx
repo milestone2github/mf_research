@@ -15,7 +15,6 @@ const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
 function NfoForm() {
   const [name, setName] = useState("");
-  const [kycStatus, setKycStatus] = useState(null);
   const [overallKycStatus, setOverallKycStatus] = useState("KYC Rejected"); // Added state for overall KYC status
   const [pan, setPan] = useState("");
   const [familyHead, setFamilyHead] = useState("");
@@ -161,46 +160,19 @@ function NfoForm() {
     }
   };
 
-  const fetchKycStatus = async (pan) => {
-    try {
-      const response = await fetch(`${backendUrl}/api/data/KYCStatusCheck`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          Pan: pan,
-          detailCheck: "N",
-          detailedOutput: "N",
-        }),
-      });
-      const jsonData = await response.json();
-
-      if (!response.ok) {
-        console.log("Error fetching KYC status");
-        return;
-      }
-
-      return jsonData;
-    } catch (error) {
-      console.log("Internal server error while getting KYC status");
-    }
-  };
-
   useEffect(() => {
     if (pan?.length < 10) {
       setUccList([]);
       setFoliosFromIwell([]);
-      setKycStatus(null);
+      setAmc("");
+      setFolio("");
+      setFolioList([])
+      setUcc({});
+      setAmount('')
       return;
     }
     fetchUccData();
     fetchFolios();
-    fetchKycStatus(pan).then((status) => setKycStatus(status));
-    setAmc("");
-    setFolio("");
-    setFolioList([])
-    setUcc({});
   }, [pan]);
 
   useEffect(() => {
@@ -270,14 +242,9 @@ function NfoForm() {
 
   useEffect(() => {
     setAmc("");
+    setNfo("");
     setFolio("");
   }, [ucc]);
-
-  // useEffect(() => {
-  //   if (ucc?.ClientName) {
-  //     fetchKycStatus(ucc.Pan).then(setKycStatus);
-  //   }
-  // }, [ucc]);
 
   const debouncedGetNames = useCallback(
     debounce(async (name, searchAll) => {
@@ -385,16 +352,22 @@ function NfoForm() {
 
   const handleNameSearch = (value) => {
     setName(value);
+    setPan('')
+    setFamilyHead('')
     debouncedGetNames(value, searchAll);
   };
 
   const handlePANSearch = (value) => {
     setPan(value);
+    setName('')
+    setFamilyHead('')
     debouncedGetPan(value, searchAll);
   };
 
   const handleFamilyHeadSearch = (value) => {
     setFamilyHead(value);
+    setPan('')
+    setName('')
     debouncedGetFamilyHeads(value, searchAll);
   };
 
@@ -541,7 +514,7 @@ function NfoForm() {
         }} />
       </fieldset>
       <fieldset className="flex flex-wrap gap-8 rounded-md p-6 sm:border border-indigo-200">
-        <KycStatusTable ucc={ucc} setOverallKycStatus={setOverallKycStatus} />
+        <KycStatusTable pan={pan} name={name} ucc={ucc} setOverallKycStatus={setOverallKycStatus} />
       </fieldset>
       <fieldset className="flex flex-wrap gap-8 rounded-md p-6 sm:border border-green-200">
         <div className="grow shrink basis-60 md:basis-80">

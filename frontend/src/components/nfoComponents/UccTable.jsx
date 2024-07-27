@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BsInfoCircleFill } from "react-icons/bs";
 import { holdingMap, taxStatusMap } from '../../utils/maps';
+import { toTitleCase } from '../../utils/formatString';
 
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
@@ -71,9 +72,9 @@ function UccTable({ data, selectedOption, updateSelected }) {
               </label>
             </td>
             <td className='p-1 pe-6 py-2'>{item["_id"]}</td>
-            <td title={item["Primary_Holder_First_Name"]} className='pe-8 py-2 ellipsis max-w-44'>{item["Primary_Holder_First_Name"]}</td>
-            <td className='p-1 pe-6 py-2 max-w-40'>{item["Second_Holder_First_Name"]}</td>
-            <td className='p-1 pe-6 py-2 max-w-40'>{item["Third_Holder_First_Name"]}</td>
+            <td title={item["Primary_Holder_First_Name"]} className='pe-8 py-2 ellipsis max-w-44'>{toTitleCase(item["Primary_Holder_First_Name"])}</td>
+            <td className='p-1 pe-6 py-2 max-w-40'>{toTitleCase(item["Second_Holder_First_Name"])}</td>
+            <td className='p-1 pe-6 py-2 max-w-40'>{toTitleCase(item["Third_Holder_First_Name"])}</td>
             <td title={item["Tax_Status"] + ' / ' + item["Holding_Nature"]} className='p-1 pe-6 py-2'>{taxStatusMap.get(item["Tax_Status"]) + ' / ' + holdingMap.get(item["Holding_Nature"])}</td>
             {/* <td className='p-1 pe-6 py-2'>{holdingMap.get(item["Holding_Nature"])}</td> */}
             {/* <td title={item["Tax_Status"]} className='p-1 pe-6 py-2'>{taxStatusMap.get(item["Tax_Status"])}</td>
