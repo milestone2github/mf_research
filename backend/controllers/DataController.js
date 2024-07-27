@@ -825,10 +825,10 @@ const getFoliosFromInvestwell = async (req, res) => {
     const folioUrl = `https://mnivesh.investwell.app/api/aggregator/reports/getPortfolioSummaryForMutualFunds?groupBy=1005&filters=${encodeURIComponent(filters)}&token=${authResponse.data?.result?.token}`;
 
     const folioData = await axios.get(folioUrl);
-    // console.log('folioData: ', folioData.data.status, folioData.data.message) //test
+    // console.log('folioData: ', folioData) //test
 
-    if (folioData.data.status === -1 || folioData.data.message === 'User not authorized') {
-      res.status(400).json({ error: `Error while getting folios: not authorized` })
+    if (folioData?.data?.status === -1 || folioData?.data?.message === 'User not authorized') {
+      return res.status(400).json({ error: `Error while getting folios: not authorized` })
     }
     let folios = folioData.data.result.data.map(item => ({
       folioNo: item.folioNo,
