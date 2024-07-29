@@ -187,15 +187,7 @@ const DirClientPayouts = () => {
           </tr>
         </thead>
         <tbody>
-          {data
-            .filter(
-              (item) =>
-                !filterDate ||
-                new Date(item["Payout_Release_Date"])
-                  .toISOString()
-                  .substring(0, 10) <= filterDate
-            )
-            .map((item, index) => (
+          {data.map((item, index) => (
               <tr  key={index} className="detail-row text-sm text-center border-b-[1px] border-solid border-black ">
                 <td className=" p-4 text-left w-[11rem]">{item["Insurance_Lead_Name"]}</td>
                 <td>{item["Lead_ID"]}</td>
