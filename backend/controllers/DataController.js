@@ -420,6 +420,7 @@ const getNfoAmc = async (req, res) => {
     const today = new Date();
     const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
+    const lastDayOfYear = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999)
 
     const formatDateString = (date) => {
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -449,6 +450,13 @@ const getNfoAmc = async (req, res) => {
               find: "  ",
               replacement: " "
             }
+          },
+          "EndDateCleaned": {
+            $replaceAll: {
+              input: "$End Date",
+              find: "  ",
+              replacement: " "
+            }
           }
         }
       },
@@ -459,15 +467,24 @@ const getNfoAmc = async (req, res) => {
               dateString: "$ReOpeningDateCleaned",
               format: "%b %d %Y"
             }
+          },
+          "EndDateParsed": {
+            $dateFromString: {
+              dateString: "$EndDateCleaned",
+              format: "%b %d %Y"
+            }
           }
         }
       },
       {
         $match: {
-          "ReOpeningDateParsed": {
+          $and: [{"ReOpeningDateParsed": {
             $gt: new Date(nextDayString),
             $lt: new Date(nextMonthString)
-          }
+          }}, {"EndDateParsed": {
+            $gte: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0), 
+            $lt: new Date(lastDayOfYear)}
+          }]
         }
       },
       {
@@ -596,6 +613,7 @@ const getNfoSchemes = async (req, res) => {
     const today = new Date();
     const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
+    const lastDayOfYear = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999)
 
     const formatDateString = (date) => {
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -609,10 +627,13 @@ const getNfoSchemes = async (req, res) => {
     const nextMonthString = formatDateString(nextMonth);
 
     let matchStage = {
-      "ReOpeningDateParsed": {
+      $and: [{"ReOpeningDateParsed": {
         $gt: new Date(nextDayString),
         $lt: new Date(nextMonthString)
-      }
+      }}, {"EndDateParsed": {
+        $gte: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0), 
+        $lt: new Date(lastDayOfYear)}
+      }]
     };
 
     if (amc) {
@@ -642,6 +663,13 @@ const getNfoSchemes = async (req, res) => {
               find: "  ",
               replacement: " "
             }
+          },
+          "EndDateCleaned": {
+            $replaceAll: {
+              input: "$End Date",
+              find: "  ",
+              replacement: " "
+            }
           }
         }
       },
@@ -650,6 +678,12 @@ const getNfoSchemes = async (req, res) => {
           "ReOpeningDateParsed": {
             $dateFromString: {
               dateString: "$ReOpeningDateCleaned",
+              format: "%b %d %Y"
+            }
+          },
+          "EndDateParsed": {
+            $dateFromString: {
+              dateString: "$EndDateCleaned",
               format: "%b %d %Y"
             }
           }
