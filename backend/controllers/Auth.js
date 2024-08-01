@@ -5,12 +5,18 @@ require('../models/Role');
 const jwt = require('jsonwebtoken');
 
 const loginWithZoho = (req, res) => {
-  const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline`;
+  const redirectUrl = req.query.redirect || process.env.DEFAULT_FRONTEND_URL; 
+  const state = encodeURIComponent(JSON.stringify({ redirectUrl }));
+  const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline&state=${state}`;
   res.redirect(authUrl);
 }
 
+
 const zohoCallback = async (req, res) => {
   const code = req.query.code;
+  const state = req.query.state ? JSON.parse(decodeURIComponent(req.query.state)) : {};
+  const redirectUrl = state.redirectUrl || process.env.DEFAULT_FRONTEND_URL;
+
   try {
     const tokenResponse = await axios.post(
       "https://accounts.zoho.com/oauth/v2/token",
@@ -38,10 +44,10 @@ const zohoCallback = async (req, res) => {
         email: userExist.email,
         role: userExist.role
       };
-      res.redirect(process.env.FRONTEND_URL ?`${process.env.FRONTEND_URL}/` : '/');
+      res.redirect(redirectUrl ?? '/');
     }
     else {
-      res.redirect(process.env.FRONTEND_URL ?`${process.env.FRONTEND_URL}/login?error=permissiondenied` :`/login?error=permissiondenied`)
+      res.redirect(`${redirectUrl ?? ''}/login?error=permissiondenied`)
     }
   } catch (error) {
     console.error(

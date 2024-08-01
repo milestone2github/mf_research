@@ -319,8 +319,6 @@ const addAllFractions = async (req, res) => {
 // generate link (by trx id)
 const generateLink = async (req, res) => {
   let { fractionId, platform, orderId } = req.body;
-  console.log('platform: ', platform) //test
-  console.log('orderId: ', orderId) //test
 
   try {
     let transaction;
@@ -437,7 +435,7 @@ const getRMNames = async (req, res) => {
 
 // get all transactions with filter 
 const filteredTransactions = async (req, res) => {
-  let { minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort } = req.query
+  let { minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort, minAmount, maxAmount } = req.query
   const items = Number(req.query.items) || 10
   const page = Number(req.query.page) || 1
   const skipItems = items * (page - 1)
@@ -453,6 +451,16 @@ const filteredTransactions = async (req, res) => {
   }
   if (minDate && maxDate) {
     filters.transactionPreference = { $gte: minDate, $lte: maxDate }
+  }
+
+  if (minAmount?.toString()) {
+    filters.amount = { $gte: Number(minAmount) }
+  }
+  if (maxAmount?.toString()) {
+    filters.amount = { $lte: Number(maxAmount) }
+  }
+  if (minAmount?.toString() && maxAmount?.toString()) {
+    filters.amount = { $gte: Number(minAmount), $lte: Number(maxAmount) }
   }
 
   if (amcName) {
