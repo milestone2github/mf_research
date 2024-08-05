@@ -168,7 +168,7 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
   return (
     <div className='flex flex-col'>
       <Tabs tabs={tabs} onTabChange={onTabChange} activeTab={activeTab} isCollapsed={isCollapsed} toggleCollapsed={toggleCollapsed} isAddVisible={isAddVisible} addFormInstance={addFormInstance} />
-      <div className='relative -mt-[5px] border border-gray-400'>
+      <div className='relative border border-gray-400 rounded-lg mt-2'>
 
         <table className={`table-auto border-collapse mx-1 md:mx-3 my-2 transition-opacity ease-linear duration-500 ${isCollapsed ? 'opacity-100' : 'collapse opacity-0'}`}>
           <tbody>

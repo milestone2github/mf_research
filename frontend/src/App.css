@@ -612,3 +612,12 @@ h2 {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+@keyframes tabChange {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-tabChange {
+  animation: tabChange 0.3s forwards;
+}
