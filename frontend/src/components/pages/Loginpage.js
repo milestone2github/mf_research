@@ -12,16 +12,22 @@ import { updateToast } from '../../reducers/ToastSlice';
 const Loginpage = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  
+
   useEffect(() => {
     let query = window.location.search;
     // Create a test URLSearchParams object
     const searchParams = new URLSearchParams(query);
 
-    // set error to the state
-    if(searchParams.get('error'))
-      dispatch(updateToast({type: 'error', message: 'Permission Denied'}))
-}, [])
+    const error = searchParams.get('error');
+    if (error === 'permissionDenied') {
+      dispatch(updateToast({ type: 'error', message: 'Access not allowed' }))
+    }
+    else if (error === 'internalServerError') { 
+      dispatch(updateToast({ type: 'error', message: 'Internal Server Error' })) 
+    }
+    else if (error) { dispatch(updateToast({ type: 'error', message: 'Login Failed' })) }
+      
+  }, [])
 
   const handleLogin = async () => {
     const frontendRedirectUrl = encodeURIComponent(window.location.origin);
@@ -47,7 +53,7 @@ const Loginpage = () => {
         navigate("/", { replace: true })
       }
       else {
-        dispatch(updateToast({message: res.msg, type: 'error'}))
+        dispatch(updateToast({ message: res.msg, type: 'error' }))
       }
     } catch (error) {
       console.log(error);
@@ -68,7 +74,7 @@ const Loginpage = () => {
         <section className='w-full flex flex-col items-center h-full px-6 py-6'>
           <h1 className='text-dark-blue text-4xl m-0 my-2'>Welcome to mNivesh</h1>
           <p className='text-base text-gray-500'>Login to continue</p>
-          
+
           <button
             className='mt-12 px-5 py-0 text-dark-blue border-dark-blue hover:shadow-md hover:shadow-blue-200 gap-x-3 rounded-md border flex items-center'
             onClick={handleLogin}
@@ -87,7 +93,7 @@ const Loginpage = () => {
 
         <section className='hidden w-full md:flex items-center justify-center bg-dark-blue rounded-e-md'>
           <div className=''>
-            <img src={illustration} alt="" className='' width='380px'/>
+            <img src={illustration} alt="" className='' width='380px' />
           </div>
         </section>
       </div>

@@ -24,7 +24,8 @@ function Protected({children}) {
           navigate('/login', { replace: true }); // navigate if not logged in
         }
       } catch (error) {
-        console.error("Error Checking session", error);
+        console.error("Error Checking session", error.message);
+        navigate('/login?error=internalServerError', {replace: true})
       } finally {
         dispatch(setLoading(false));
       }
