@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { hollowSystematicObj } from "../utils/initialDataObject";
 
 const transactionSlice = createSlice({
   name: 'transaction',

@@ -272,12 +272,12 @@ function MfTransForm() {
       }))
 
       // clear the form 
-      dispatch(resetTransactions());
       dispatch(resetCommonData());
       dispatch(resetSystematicData());
       dispatch(resetPurchRedempData());
       dispatch(resetSwitchData());
       dispatch(resetAllOptionLists());
+      dispatch(resetTransactions());
       setDidReset(true);
       setHasReviewed(false);
     } catch (error) {

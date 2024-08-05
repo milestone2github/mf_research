@@ -1,11 +1,21 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { hollowSwitchObj } from "../utils/initialDataObject";
+
+const initialState = {
+    value: [{
+        switchMfAmcName: '',
+        switchFromScheme: '',
+        switchFromSchemeOption: '',
+        switchToScheme: '',
+        switchToSchemeOption: '',
+        switchFolio: '',
+        switchTransactionUnits_Amount: 'Amount Given in next question',
+        switchTransactionAmount: 1,
+    }]
+}
 
 const switchDataSlice = createSlice({
     name: 'switchData',
-    initialState: {
-        value: [hollowSwitchObj]
-    },
+    initialState,
     reducers: {
         handleChange: (state, action) => {
             const { name, value, index } = action.payload;
@@ -26,7 +36,7 @@ const switchDataSlice = createSlice({
             }
         },
         handleAdd: (state) => {
-            state.value.push(hollowSwitchObj);
+            state.value.push(initialState.value[0]);
         },
         handleRemove: (state, action) => {
             const index = action.payload;
@@ -34,8 +44,8 @@ const switchDataSlice = createSlice({
                 state.value.splice(index, 1); // Remove the item at the specified index
             }
         },
-        resetSwitchData: (state) => {
-            state.value = [hollowSwitchObj];
+        resetSwitchData: (_) => {
+            return initialState;
         }
     }
 });

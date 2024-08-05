@@ -1,11 +1,22 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { hollowPurchRedempObj } from "../utils/initialDataObject";
+
+const initialState = {
+    value: [{
+        purch_RedempTraxType: '',
+        purch_redempMfAmcName: '',
+        purch_redempSchemeName: '',
+        purch_redempSchemeOption: '',
+        purch_redempFolio: '',
+        purch_redempTransactionUnits_Amount: 'Amount Given in next question',
+        purch_redempTransactionAmount: 1,
+        purch_redempPaymentMode: '',
+        purchaseChequeNumber: ''
+    }]
+}
 
 const purchRedempDataSlice = createSlice({
     name: 'purchRedempData',
-    initialState: {
-        value: [hollowPurchRedempObj]
-    },
+    initialState,
     reducers: {
         handleChange: (state, action) => {
             const { name, value, index } = action.payload;
@@ -26,7 +37,7 @@ const purchRedempDataSlice = createSlice({
             }
         },
         handleAdd: (state) => {
-            state.value.push(hollowPurchRedempObj);
+            state.value.push(initialState.value[0]);
         },
         handleRemove: (state, action) => {
             const index = action.payload;
@@ -34,8 +45,8 @@ const purchRedempDataSlice = createSlice({
                 state.value.splice(index, 1); // Remove the item at the specified index
             }
         },
-        resetPurchRedempData: (state) => {
-            state.value = [hollowPurchRedempObj];
+        resetPurchRedempData: (_) => {
+            return initialState;
         }
     }
 });

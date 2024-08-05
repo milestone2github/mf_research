@@ -1,11 +1,27 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { hollowSystematicObj } from "../utils/initialDataObject";
+
+const initialState = {
+    value: [{
+        systematicTraxType: 'SIP',
+        systematicTraxFor: 'Registration',
+        systematicSchemeName: '',
+        systematicMfAmcName: '',
+        systematicSourceScheme: '',
+        systematicSchemeOption: '',
+        systematicFolio: '',
+        sip_swp_stpAmount: 1,
+        tenureOfSip_swp_stp: 9999,
+        sipPauseMonths: '',
+        sip_stp_swpDate: '',
+        firstTransactionAmount: 1,
+        systematicChequeNumber: '',
+        systematicPaymentMode: ''
+      }]
+}
 
 const systematicDataSlice = createSlice({
     name: 'systematicData',
-    initialState: {
-        value: [hollowSystematicObj]
-    },
+    initialState,
     reducers: {
         handleChange: (state, action) => {
             const { name, value, index } = action.payload;
@@ -26,7 +42,7 @@ const systematicDataSlice = createSlice({
             }
         },
         handleAdd: (state) => {
-            state.value.push(hollowSystematicObj);
+            state.value.push(initialState.value[0]);
         },
         handleRemove: (state, action) => {
             const index = action.payload;
@@ -34,8 +50,8 @@ const systematicDataSlice = createSlice({
                 state.value.splice(index, 1); // Remove the item at the specified index
             }
         },
-        resetSystematicData: (state) => {
-            state.value = [hollowSystematicObj];
+        resetSystematicData: (_) => {
+            return initialState;
         }
     }
 });
