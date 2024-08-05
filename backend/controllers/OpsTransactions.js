@@ -1,3 +1,4 @@
+const NewFundOffer = require("../models/NewFundOffer");
 const Transactions = require("../models/Transactions");
 
 // NOT IN USE
@@ -500,6 +501,25 @@ const filteredTransactions = async (req, res) => {
   }
 }
 
+// get all NFO transactions 
+const nfoTransactions = async (req, res) => {
+  const items = Number(req.query.items) || 10
+  const page = Number(req.query.page) || 1
+  const skipItems = items * (page - 1)
+  
+  try {
+    const transactions = await NewFundOffer.find().sort({createdAt: -1}).skip(skipItems).limit(items).lean()
+    if (!transactions) {
+      throw new Error('Something went wrong, unable to find transactions')
+    }
+
+    res.status(200).json({ data: {transactions, page}, message: 'Transactions found' })
+  } catch (error) {
+    console.log("error getting NFO transactions: ", error.message)
+    res.status(500).json({ error: error.message })
+  }
+}
+
 module.exports = {
   getGroupedTransactions,
   getTransactionsBySession,
@@ -512,5 +532,6 @@ module.exports = {
   getAllAmcNames,
   getSchemeNames,
   getRMNames,
-  filteredTransactions
+  filteredTransactions,
+  nfoTransactions
 }
