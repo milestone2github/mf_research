@@ -65,7 +65,7 @@ const getInvestors = async (req, res) => {
 
     // Add "RELATIONSHIP MANAGER" to the query if searchAll is false
     if (!searchAll) {
-      query["RELATIONSHIP  MANAGER"] = req.session.user.name.toUpperCase();
+      query["RELATIONSHIP  MANAGER"] = req.session.user.name?.toUpperCase();
     }
 
     const result = await collection.find(query).toArray();

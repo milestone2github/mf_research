@@ -1,15 +1,17 @@
 const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin, addNfoSchemeToSchemes } = require('../controllers/DataController');
 const { getKycStatus } = require('../controllers/DataController');
+const verifyUser = require('../middlewares/verifyUser');
 const router = require('express').Router();
 
 // route to submit transaction form data 
-router.post("/", postTransForm);
+router.post("/", verifyUser, postTransForm);
 
 // route to get investors 
-router.get("/investors", getInvestors);
+router.get("/investors", verifyUser, getInvestors);
 
 // route to get amc names 
 router.get("/amc", getAmcNames);
+
 router.post("/kycstatuscheck", getKycStatus);
 // route to get scheme names 
 router.get("/schemename", getSchemeNames);
@@ -30,7 +32,7 @@ router.get("/nfo-amc", getNfoAmc);
 router.get("/ucc", getUcc);
 
 // route to get ucc data 
-router.post("/nfo", postNewFundOfferForm);
+router.post("/nfo", verifyUser, postNewFundOfferForm);
 
 // route to get ucc data 
 router.get("/isin", getIsin);
