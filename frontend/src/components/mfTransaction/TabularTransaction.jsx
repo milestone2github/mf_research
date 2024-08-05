@@ -151,7 +151,10 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
 
   // side effect to handle reset after submission 
   useEffect(() => {
-    setIsCollapsed(false);
+    if(didReset) {
+      setIsCollapsed(false);
+      setActiveTab('systematic')
+    }
   
   }, [didReset])
 

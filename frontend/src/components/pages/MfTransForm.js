@@ -180,6 +180,7 @@ function MfTransForm() {
   // method to submit form 
   const submitForm = async (e) => {
     e.preventDefault();
+    setDidReset(false)
 
     // set loading state to true 
     setIsLoadingSubmission(true)
