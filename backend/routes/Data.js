@@ -1,6 +1,6 @@
 const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin, addNfoSchemeToSchemes } = require('../controllers/DataController');
 const { getKycStatus } = require('../controllers/DataController');
-const verifyUser = require('../middlewares/verifyUser');
+const verifyUser = require('../middlewares/VerifyUser');
 const router = require('express').Router();
 
 // route to submit transaction form data 
