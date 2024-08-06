@@ -45,7 +45,6 @@ const optionListsSlice = createSlice({
       return initialState;
     },
     setInvestorNameOptions: (state, action) => {
-      console.log('payload: ', action.payload)
       state.investorNameOptions = action.payload;
     },
     setAmcNameOptions: (state, action) => {
