@@ -13,7 +13,7 @@ const tabs = [
     { name: 'Direct Client Payout Accounts', to: '/dir-client-payout-accounts', label: 'Direct Client Payout Accounts' },
     { name: 'MF Transaction', to: '/mf-trans-form', label: 'MF Transaction' },
     { name: 'NFO', to: '/nfo-form', label: 'NFO Transaction' },
-    { name: 'Operations Dashboard', to: 'https://operations-dashboard-caed5d35045b.herokuapp.com/', label: 'OPS Dashboard' },
+    { name: 'Operations Dashboard', to: 'https://ops.mnivesh.com', label: 'OPS Dashboard' },
     { name: 'Links', to: '/links', label: 'Links' },
 ]
 
