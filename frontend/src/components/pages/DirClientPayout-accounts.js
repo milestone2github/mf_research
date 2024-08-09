@@ -218,7 +218,7 @@ const DirectClientPayouts = () => {
   };
 
   const handleReleasePayout = async (id) => {
-    console.log("Releasing Payout...");
+    console.log("Releasing Payout...", id);
 
     try {
       const response = await fetch(
@@ -228,7 +228,7 @@ const DirectClientPayouts = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ record_ids: id }),
+          body: JSON.stringify({ record_ids: [id] }),
         }
       );
 
