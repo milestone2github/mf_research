@@ -10,6 +10,7 @@ const authRoutes = require('./routes/Auth');
 const dataRoutes = require('./routes/Data');
 const opsRoutes = require('./routes/OpsTransactions');
 const { sendEmailController } = require("./controllers/MailController");
+const verifyUser = require("./middlewares/VerifyUser");
 
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
@@ -58,7 +59,7 @@ app.use(dbAccess); // Use the middleware
 app.use('/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/ops-dash', opsRoutes);
-app.post('/api/send-mail', sendEmailController)
+app.post('/api/send-mail', verifyUser, sendEmailController)
 
 // wildcard route to serve react using express
 app.get("*", (req, res) => {

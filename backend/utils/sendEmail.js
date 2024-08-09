@@ -14,11 +14,11 @@ const mailConfig = {
 
 
 // Function to send email
-async function sendEmail(subject, body, toAddress, ccAddress) {
+async function sendEmail(from, subject, body, toAddress, ccAddress) {
   let transporter = nodemailer.createTransport(mailConfig);
 
   let mailOptions = {
-    from: "noreply@mnivesh.niveshonline.com",
+    from: from || "noreply@mnivesh.niveshonline.com",
     to: toAddress,
     cc: ccAddress,
     subject: subject,
