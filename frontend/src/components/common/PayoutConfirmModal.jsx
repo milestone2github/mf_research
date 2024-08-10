@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 
-function PayoutConfirmModal({ isOpen, title, handleCancel, handleProceed, error }) {
+function PayoutConfirmModal({ isOpen, title, handleCancel, handleProceed, error, isLoading }) {
   const [inputValue, setInputValue] = useState('')
 
   useEffect(() => {
@@ -36,7 +36,7 @@ function PayoutConfirmModal({ isOpen, title, handleCancel, handleProceed, error 
         </div>
         <div className='flex gap-x-3 mt-4 justify-end'>
           <button onClick={handleCancel} type='button' className='border rounded-lg py-2 px-6 text-gray-800 hover:bg-gray-200'>Cancel</button>
-          <button type='submit' className='border rounded-lg py-2 px-6 bg-blue-600 hover:bg-blue-500 text-white'>Proceed</button>
+          <button type='submit' disabled={isLoading} className='border rounded-lg py-2 px-6 bg-blue-600 enabled:hover:bg-blue-500 text-white disabled:bg-blue-400'>{isLoading? 'Processing...': 'Proceed'}</button>
         </div>
       </form>
     </div>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import AccessDenied from "./AccessDenied";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
+import Toast from "../common/Toast";
+import { updateToast } from "../../reducers/ToastSlice";
 
 const DirClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -23,6 +25,8 @@ const DirClientPayouts = () => {
   const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
   const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
   const [payoutModalError, setPayoutModalError] = useState(null)
+  const [loadingRelease, setLoadingRelease] = useState(false)
+  const dispatch = useDispatch()
 
   const gettotalsum = async () => {
     try {
@@ -85,7 +89,7 @@ const DirClientPayouts = () => {
     return { status: "Payout Released", color: "green", priority: 0 };
   };
 
-  const requestEarlyRelease = (
+  const requestEarlyRelease = async (
     id,
     leadID,
     leadName,
@@ -95,7 +99,7 @@ const DirClientPayouts = () => {
     Referral_Amount,
     payoutReleaseDate
   ) => {
-    const apiUrl = "http://127.0.0.1:5000"; // This should be the correct URL of your server
+    setLoadingRelease(true)
     const baseUrl =
       "https://milestone-api.azurewebsites.net/api/InsuranceEarlyPayout?code=ALwp8tdA-jpWhKhmbT7rfd1XG8ZA3jSypCsMHPoSho4cAzFu4WX-Cw==";
 
@@ -110,8 +114,9 @@ const DirClientPayouts = () => {
 
     console.log(baseUrl, "&", queryParams);
     const emailData = {
+      from: 'insuranceearlypayout@mnivesh.niveshonline.com',
       subject: "Request for Early Payout Release",
-      message_body: `
+      body: `
         <p>Dear Sir/Madam,</p>
         <p>I am requesting an early release of payout for the following record:</p>
         <p>Lead Name: ${leadName}</p>
@@ -124,36 +129,48 @@ const DirClientPayouts = () => {
         <p>Please process the payout at your earliest convenience.</p>
         <p>Regards,<br/>Milestone Team</p>
       `,
-      to_email: "error@niveshonline.com",
+      toAddress: "insurancemgmt@niveshonline.com"
     };
 
-    axios
-      .post(`${apiUrl}/api/send_mail`, emailData)
-      .then((response) => {
-        console.log("Email sent:", response.data?.message);
-
-        setButtonStates(prevState => ({
-          ...prevState,
-          [id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
-        }));
-      })
-      .catch((error) => {
-        console.error(
-          "Error sending email:",
-          error.response ? error.response.data.message : error.message
-        );
-      });
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/api/send-mail`,
+        emailData,
+        { withCredentials: true }
+      );
+      
+      if(response.status !== 200) {
+        throw new Error(response.data.error || 'something went wrong ')
+      }
+      console.log("Email sent:", response.data?.message);
+  
+      setButtonStates(prevState => ({
+        ...prevState,
+        [id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
+      }));
+  
+      dispatch(
+        updateToast({ type: "success", message: "Request sent" })
+      );
+    } catch (error) {
+      console.error("Error sending email:", error.message);
+  
+      dispatch(
+        updateToast({ type: "error", message: `Error sending request for release` })
+      );
+    }
   };
 
-  const handleProceedPayout = (name) => {
+  const handleProceedPayout = async (name) => {
     if(name?.toLowerCase() !== selectedPayoutItem?.leadName?.toLowerCase()) {
       setPayoutModalError('Client name does not match!')
       return
     }
 
     let {id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate} = selectedPayoutItem
-    requestEarlyRelease(id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate)
+    await requestEarlyRelease(id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate)
     
+    setLoadingRelease(false)
     setIsConfimPayoutModalOpen(false)
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
@@ -168,6 +185,7 @@ const DirClientPayouts = () => {
 
   return (
     <div>
+      <Toast/>
        <div className=" flex justify-between">
           <h1 className="text-2xl font-semibold">Dir Client Payouts</h1>
         { load ? <p>Calclating</p>: total ? <p className=" text-xl flex items-center">Overall Payout : 
@@ -217,18 +235,6 @@ const DirClientPayouts = () => {
                       payoutReleaseDate: item.Payout_Release_Date,
                     })
                   }}
-                  // onClick={() =>
-                  //   requestEarlyRelease(
-                  //     item["id"], // Assuming item.id is the ID of the record
-                  //     item["Lead_ID"],
-                  //     item["Insurance_Lead_Name"], // Lead Name
-                  //     item["Associate_Name"], // Lead ID
-                  //     item["Insurance_Type"], // Insurance Type
-                  //     item["Merged_Referral_Fee"], // Associate Payout percentage
-                  //     item["Referral_Amount"], // Associate Payout1 amount
-                  //     item["Payout_Release_Date"] // Payout Release Date
-                  //   )
-                  // }
                 >
                   {buttonStates[item["id"]]?.text || "Request Early Release"}
                 </button>
@@ -245,6 +251,7 @@ const DirClientPayouts = () => {
           setPayoutModalError(null)
         }}
         handleProceed={handleProceedPayout}
+        isLoading={loadingRelease}
         error={payoutModalError}
       />
     </div>

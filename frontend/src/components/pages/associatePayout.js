@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import AccessDenied from "./AccessDenied";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
+import { updateToast } from "../../reducers/ToastSlice";
+import Toast from "../common/Toast";
 
 const AssociatePayout = () => {
   const navigate = useNavigate()
@@ -50,6 +52,8 @@ const AssociatePayout = () => {
   const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
   const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
   const [payoutModalError, setPayoutModalError] = useState(null)
+  const [loadingRelease, setLoadingRelease] = useState(false)
+  const dispatch = useDispatch()
 
   useEffect(() => {
     if (!permissions.find(perm => perm === 'Associate Payout')) { return; }
@@ -130,7 +134,8 @@ const AssociatePayout = () => {
     setExpanded(expanded === name ? null : name);
   };
 
-  const requestEarlyRelease = (record) => {
+  const requestEarlyRelease = async (record) => {
+    setLoadingRelease(true)
     const baseUrl =
       "https://milestone-api.azurewebsites.net/api/InsuranceEarlyPayout?code=ALwp8tdA-jpWhKhmbT7rfd1XG8ZA3jSypCsMHPoSho4cAzFu4WX-Cw==";
 
@@ -145,7 +150,9 @@ const AssociatePayout = () => {
 
     console.log(baseUrl, "&", queryParams);
     const emailData = {
-      subject: "Request for Early Payout Release",
+      from: 'insuranceearlypayout@mnivesh.niveshonline.com',
+      subject: "Test for Early Payout Release",
+      // subject: "Request for Early Payout Release",
       body: `
         <p>Dear Sir/Madam,</p>
         <p>I am requesting an early release of payout for the following record:</p>
@@ -159,38 +166,47 @@ const AssociatePayout = () => {
         <p>Please process the payout at your earliest convenience.</p>
         <p>Regards,<br/>Milestone Team</p>
       `,
-      toAddress: "error@niveshonline.com",
+      toAddress: "insurancemgmt@niveshonline.com"
     };
 
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/api/send-mail`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(emailData)
-    })
-      .then((response) => {
-        console.log("Email sent:", response.data?.message);
-
-        setButtonStates(prevState => ({
-          ...prevState,
-          [record.id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
-        }));
-      })
-      .catch((error) => {
-        console.error(
-          "Error sending email:",
-          error.response ? error.response.data.message : error.message
-        );
-      });
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/api/send-mail`,
+        emailData,
+        { withCredentials: true }
+      );
+      
+      if(response.status !== 200) {
+        throw new Error(response.data.error || 'something went wrong ')
+      }
+      console.log("Email sent:", response.data?.message);
+  
+      setButtonStates(prevState => ({
+        ...prevState,
+        [record.id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
+      }));
+  
+      dispatch(
+        updateToast({ type: "success", message: "Request sent" })
+      );
+    } catch (error) {
+      console.error("Error sending email:", error.message);
+  
+      dispatch(
+        updateToast({ type: "error", message: `Error sending request for release` })
+      );
+    }
   };
 
-  const handleProceedPayout = (name) => {
+  const handleProceedPayout = async (name) => {
     if (name?.toLowerCase() !== selectedPayoutItem?.Lead_Name?.toLowerCase()) {
       setPayoutModalError('Lead name does not match!')
       return
     }
 
-    requestEarlyRelease(selectedPayoutItem)
+    await requestEarlyRelease(selectedPayoutItem)
+
+    setLoadingRelease(false)
     setIsConfimPayoutModalOpen(false)
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
@@ -206,6 +222,7 @@ const AssociatePayout = () => {
   return (
     <>
       <div>
+        <Toast/>
         <div className=" flex justify-between">
           <h1 className="text-2xl font-semibold">Associate Payouts</h1>
           {load ? <p>Calclating</p> : total ? <p className=" text-xl flex items-center">Overall Payout :
@@ -305,6 +322,7 @@ const AssociatePayout = () => {
             setPayoutModalError(null)
           }}
           handleProceed={handleProceedPayout}
+          isLoading={loadingRelease}
           error={payoutModalError}
         />
       </div>

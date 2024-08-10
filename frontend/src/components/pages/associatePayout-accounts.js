@@ -211,7 +211,7 @@ const AssociatePayoutAccounts = () => {
         Ben_Add4: "",
         Beneficiary_Email: "",
         Beneficiary_Mobile: "",
-        Debit_Narration: `Payout Mutual Fund ${assoc.data[0]["Associate Name"]}`,
+        Debit_Narration: `Insurance Payout ${assoc.data[0]["Associate Name"]}`,
         Credit_Narration: "",
         Payment_Details_1: "",
         Payment_Details_2: "",

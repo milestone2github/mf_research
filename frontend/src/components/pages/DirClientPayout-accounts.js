@@ -3,8 +3,10 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import AccessDenied from "./AccessDenied";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
+import { updateToast } from "../../reducers/ToastSlice";
+import Toast from "../common/Toast";
 
 const DirectClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -21,6 +23,8 @@ const DirectClientPayouts = () => {
   const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
   const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
   const [payoutModalError, setPayoutModalError] = useState(null)
+  const [loadingRelease, setLoadingRelease] = useState(false)
+  const dispatch = useDispatch()
 
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
@@ -127,7 +131,7 @@ const DirectClientPayouts = () => {
       Ben_Add4: "",
       Beneficiary_Email: "",
       Beneficiary_Mobile: "",
-      Debit_Narration: `Payout Mutual Fund ${assoc["Lead_ID"]}`,
+      Debit_Narration: `Referral fee payout ${assoc["Lead_ID"]}`,
       Credit_Narration: "",
       Payment_Details_1: "",
       Payment_Details_2: "",
@@ -218,7 +222,7 @@ const DirectClientPayouts = () => {
   };
 
   const handleReleasePayout = async (id) => {
-    console.log("Releasing Payout...", id);
+    setLoadingRelease(true)
 
     try {
       const response = await fetch(
@@ -242,19 +246,28 @@ const DirectClientPayouts = () => {
         [id]: { text: "Payout Released", color: "#60a5fa", disabled: true }
       }));
 
+      dispatch(
+        updateToast({ type: "success", message: "Payout released" })
+      );
+
       console.log("Payout released successfully.");
     } catch (error) {
       console.error("Error releasing payout:", error.message);
+      dispatch(
+        updateToast({ type: "error", message: error.message })
+      );
     }
   };
 
-  const handleProceedPayout = (name) => {
+  const handleProceedPayout = async (name) => {
     if(name?.toLowerCase() !== selectedPayoutItem?.clientName?.toLowerCase()) {
       setPayoutModalError('Client name does not match!')
       return
     }
 
-    handleReleasePayout(selectedPayoutItem.id)
+    await handleReleasePayout(selectedPayoutItem.id)
+
+    setLoadingRelease(false)
     setIsConfimPayoutModalOpen(false)
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
@@ -269,6 +282,7 @@ const DirectClientPayouts = () => {
 
   return (
     <div>
+      <Toast />
       <div className="flex justify-between">
         <h1 className="text-2xl font-semibold">Dir Client Payouts - Accounts</h1>
         {load ? <p>Calclating</p> : total ? <p className="text-xl flex items-center">Overall Payout :
@@ -346,6 +360,7 @@ const DirectClientPayouts = () => {
           setPayoutModalError(null)
         }}
         handleProceed={handleProceedPayout}
+        isLoading={loadingRelease}
         error={payoutModalError}
       />
     </div>
