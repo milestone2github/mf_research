@@ -42,51 +42,53 @@ import InternalLink from "./components/pages/InternalLink";
 import AboutUs from "./components/links/AboutUs";
 import AllLinks from "./components/links/AllLinks";
 import AppLink from "./components/links/AppLink";
+import Mint from "./components/pages/Mint";
 
 function App() {
   const location = useLocation().pathname
 
 
-    return (
-      <>
-        <div className="App">
-          <Header />
-          <div className="app-body">
-            <Sidebar />
-            <main style={{height: location.endsWith('/login') ? 'auto' : 'calc(100vh - 60px)'}} className="app-content">
-              <Routes>
-                <Route path="/" element={<Protected><Home /></Protected>} />
-                <Route path="/portfolio-analysis" element={<Protected><PortfolioReport /></Protected>} />
-                <Route
-                  path="/existing-portfolio"
-                  element={<Protected><ExistingPortfolio /></Protected>}
-                />
-                <Route path="/import-cas" element={<Protected><CasImport /></Protected>} />
-                <Route path="/model-portfolio" element={<Protected><ModelPortfolio /></Protected>} />
-                <Route path="/mf-trans-request" element={<Protected><MFTransRequest /></Protected>} />
-                <Route path="/associate-payout" element={<Protected><AssociatePayout /></Protected>} />
-                <Route path="/associate-payout-accounts" element={<Protected><AssociatePayoutAccounts /></Protected>} />
-                <Route path="/dir-client-payout" element={<Protected><DirClientPayouts /></Protected>} />
-                <Route path="/dir-client-payout-accounts" element={<Protected><DirectClientPayouts /></Protected>} />
-                <Route path="/mf-trans-form" element={<Protected><MfTransForm /></Protected>} />
-                <Route path="/nfo-form" element={<Protected><NfoForm /></Protected>} />
-                <Route path="/login" element={<Loginpage />} />
-                <Route path="/links" element={<Protected><InternalLink /></Protected>} >
+  return (
+    <>
+      <div className="App">
+        <Header />
+        <div className="app-body">
+          <Sidebar />
+          <main style={{ height: location.endsWith('/login') ? 'auto' : 'calc(100vh - 60px)' }} className="app-content">
+            <Routes>
+              <Route path="/" element={<Protected><Home /></Protected>} />
+              <Route path="/portfolio-analysis" element={<Protected><PortfolioReport /></Protected>} />
+              <Route
+                path="/existing-portfolio"
+                element={<Protected><ExistingPortfolio /></Protected>}
+              />
+              <Route path="/import-cas" element={<Protected><CasImport /></Protected>} />
+              <Route path="/model-portfolio" element={<Protected><ModelPortfolio /></Protected>} />
+              <Route path="/mf-trans-request" element={<Protected><MFTransRequest /></Protected>} />
+              <Route path="/associate-payout" element={<Protected><AssociatePayout /></Protected>} />
+              <Route path="/associate-payout-accounts" element={<Protected><AssociatePayoutAccounts /></Protected>} />
+              <Route path="/dir-client-payout" element={<Protected><DirClientPayouts /></Protected>} />
+              <Route path="/dir-client-payout-accounts" element={<Protected><DirectClientPayouts /></Protected>} />
+              <Route path="/mf-trans-form" element={<Protected><MfTransForm /></Protected>} />
+              <Route path="/nfo-form" element={<Protected><NfoForm /></Protected>} />
+              <Route path="/login" element={<Loginpage />} />
+              <Route path="/links" element={<Protected><InternalLink /></Protected>} >
                 <Route path="" element={<AllLinks />} />
                 <Route path="about_us" element={<AboutUs />} />
                 <Route path="app_link" element={<AppLink />} />
-                </Route>
+              </Route>
+              <Route path="/mint" element={<Protected><Mint/></Protected>} />
 
-                <Route path="/calculator" element={<Protected><Calculators /></Protected>} >
-                  <Route
-                    path=""
-                    element={<CalculatorList />}
-                  />
-                  <Route
-                    path="retirement-calculator"
-                    element={<RetirementCalculator />}
-                  />
-                  {/* <Route
+              <Route path="/calculator" element={<Protected><Calculators /></Protected>} >
+                <Route
+                  path=""
+                  element={<CalculatorList />}
+                />
+                <Route
+                  path="retirement-calculator"
+                  element={<RetirementCalculator />}
+                />
+                {/* <Route
                     path="target-date-calculator"
                     element={<TargetDateFundCalculator />}
                   />
@@ -132,13 +134,13 @@ function App() {
                     path="lumpsum-calculator"
                     element={<LumpsumCalculator />}
                   /> */}
-                </Route>
-              </Routes>
-            </main>
-          </div>
+              </Route>
+            </Routes>
+          </main>
         </div>
-      </>
-    );
+      </div>
+    </>
+  );
 }
 
 export default App;

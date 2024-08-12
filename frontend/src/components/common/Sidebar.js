@@ -15,19 +15,20 @@ const tabs = [
     { name: 'NFO', to: '/nfo-form', label: 'NFO Transaction' },
     { name: 'Operations Dashboard', to: 'https://ops.mnivesh.com', label: 'OPS Dashboard' },
     { name: 'Links', to: '/links', label: 'Links' },
+    { name: 'Mint', to: '/mint', label: 'Mint' },
 ]
 
 const Sidebar = () => {
     const { isLoggedIn, userData } = useSelector((state) => state.user)
     const permissions = userData?.role?.permissions;
 
-    const allowedTabs = tabs.filter(tab => 
-        tab.name === 'Calculator' || tab.name === 'Links' || permissions?.find(permission => permission === tab.name)
+    const allowedTabs = tabs.filter(tab =>
+        tab.name === 'Calculator' || tab.name === 'Home' || permissions?.find(permission => permission === tab.name)
     )
 
     return (
         <>
-            {isLoggedIn && <nav className="app-sidebar min-w-64"> 
+            {isLoggedIn && <nav className="app-sidebar min-w-64">
                 <ul>{
                     allowedTabs.map(tab => (  //test temp
                         <li key={tab.to}>
@@ -42,88 +43,7 @@ const Sidebar = () => {
                         </li>
 
                     ))
-                }
-                    {/* <li>
-                        <NavLink
-                            to="/portfolio-analysis"
-                            className={({ isActive }) =>
-                                isActive ? "nav-link active" : "nav-link"
-                            }
-                        >
-                            Portfolio Analysis
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink
-                            to="/calculator"
-                            className={({ isActive }) =>
-                                isActive ? "nav-link active" : "nav-link"
-                            }
-                        >
-                            Calculator
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink
-                            to="/mf-trans-request"
-                            className={({ isActive }) =>
-                                isActive ? "nav-link active" : "nav-link"
-                            }
-                        >
-                            MF Trans Request
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink
-                            to="/associate-payout"
-                            className={({ isActive }) =>
-                                isActive ? "nav-link active" : "nav-link"
-                            }
-                        >
-                            Associate Payout
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink
-                            to="/associate-payout-accounts"
-                            className={({ isActive }) =>
-                                isActive ? "nav-link active" : "nav-link"
-                            }
-                        >
-                            Associate Payout Accounts
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink
-                            to="/dir-client-payout"
-                            className={({ isActive }) =>
-                                isActive ? "nav-link active" : "nav-link"
-                            }
-                        >
-                            Direct Client Payout
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink
-                            to="/dir-clientPayout-accounts"
-                            className={({ isActive }) =>
-                                isActive ? "nav-link active" : "nav-link"
-                            }
-                        >
-                            Direct Client Payout Accounts
-                        </NavLink>
-                    </li>
-                    <li>
-                    <NavLink
-                            to="/mf-trans-form"
-                            className={({ isActive }) =>
-                                isActive ? "nav-link active" : "nav-link"
-                            }
-                        >
-                            MF Transaction
-                        </NavLink>
-                    </li> */}
-                </ul>
+                }</ul>
             </nav>}
         </>
     )

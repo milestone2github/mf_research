@@ -42,6 +42,7 @@ const zohoCallback = async (req, res) => {
       req.session.user = {
         name: userExist.nameAsRM || `${decode.first_name} ${decode.last_name}`,
         email: userExist.email,
+        mintUsername: userExist.mintUsername,
         role: userExist.role
       };
       res.redirect(redirectUrl ?? '/');

@@ -12,7 +12,8 @@ const userSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         require: true,
         ref:"ROLES"
-    }
+    },
+    mintUsername: {type: String, trim: true}
 })
 
 const User = mongoose.model("USERS", userSchema)
