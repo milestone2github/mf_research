@@ -3,14 +3,16 @@ const axios = require('axios')
 const whiteListedIPs = ["59.144.175.136", "59.144.175.138"]
 
 const getIpAddress = (req, res) => {
-  const ip = req.ip
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip;
   if (!ip) {
     return res.status(404).json({ error: 'IP not found' })
   }
 
   console.log('Accessed by IP: ', ip)
+  const clientIp = ip.split(',')[0].trim();
+  console.log('client IP: ', ip)
   let existInWhite = whiteListedIPs.find((item) => item === ip)
-  res.status(200).json({ message: 'Ip found', data: { ip, allowed: existInWhite? true: false } })
+  res.status(200).json({ message: 'Ip found', data: { ip: clientIp, allowed: existInWhite? true: false } })
 }
 
 const getMintLoginUrl = async (req, res) => {
