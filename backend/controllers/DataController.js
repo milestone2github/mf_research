@@ -340,7 +340,7 @@ const postTransForm = async (req, res) => {
       });
 
       // send email to user 
-      sendEmail("MF Transactions", generateHtmlContent(mailData), email); //test include cc address
+      sendEmail("noreply@mnivesh.niveshonline.com", "MF Transactions", generateHtmlContent(mailData), email, "pramod@niveshonline.com"); //test include cc address
 
       res.status(200).json(results);
     } else {
@@ -784,7 +784,7 @@ const postNewFundOfferForm = async (req, res) => {
 
     // send email to user 
     let mailBody = generateHtmlOfNfo(nfo.investorName, schemeName, nfo.nfoUrl)
-    sendEmail(`NFO | ${schemeName} | ${nfo.investorName}`, mailBody, email, 'pramod@niveshonline.com,vilakshan@niveshonline.com');
+    sendEmail("noreply@mnivesh.niveshonline.com", `NFO | ${schemeName} | ${nfo.investorName}`, mailBody, email, 'pramod@niveshonline.com,vilakshan@niveshonline.com');
     res.status(201).json({ message: "NFO saved", data: nfo })
   } catch (error) {
     console.error("Error savig NFO :", error.message)
