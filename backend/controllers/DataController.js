@@ -1,6 +1,5 @@
 const sendEmail = require("../utils/sendEmail");
 const transactionFieldsMap = require('../utils/transFieldMap');
-const schemeMap = require("../utils/schemeMap");
 const sendToZohoSheet = require("../utils/sendToZohoSheet");
 const { default: axios } = require("axios");
 const NewFundOffer = require("../models/NewFundOffer");
@@ -8,6 +7,7 @@ const generateHtmlContent = require("../utils/generateHtmlContent");
 const generateHtmlOfNfo = require("../utils/generateHtmlOfNfo");
 const Transactions = require("../models/Transactions");
 const { formatDateToDDMMYYYYHHMMSSss } = require("../utils/formatDate");
+const { schemeMap } = require("../utils/maps");
 require('dotenv').config()
 
 

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-const statusEnum = require('../utils/statusEnum')
+const { statusEnum, approvalStatusEnum } = require('../utils/enums')
 
 const transactionSchema = new mongoose.Schema({
   transactionPreference: { type: Date, default: Date.now },
@@ -30,14 +30,17 @@ const transactionSchema = new mongoose.Schema({
   sessionId: String,
   orderId: String,
   status: {type: String, enum: statusEnum},
+  approvalStatus: {type: String, enum: approvalStatusEnum, default: ''},
   linkStatus: {type: String, enum: ['generated', 'locked', 'unlocked'], default: 'unlocked'},
   transactionFractions: [{
     fractionAmount: Number,
     transactionDate: {type: Date, default: Date.now},
     addedBy: String, 
     orderId: String,
+    folioNumber: String,
     linkStatus: {type: String, enum: ['initialized', 'generated', 'deleted']},
-    status: {type: String, enum: statusEnum}
+    status: {type: String, enum: statusEnum},
+    approvalStatus: {type: String, enum: approvalStatusEnum, default: ''}
   }],
 }, {timestamps: true})
 

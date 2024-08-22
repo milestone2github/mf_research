@@ -1,5 +1,7 @@
 const NewFundOffer = require("../models/NewFundOffer");
 const Transactions = require("../models/Transactions");
+const { toTitleCase } = require("../utils/formatString");
+const { approvalStatusMap } = require("../utils/maps");
 
 // NOT IN USE
 const getGroupedTransactions = async (req, res) => {
@@ -290,12 +292,18 @@ const addAllFractions = async (req, res) => {
     }
 
     let trxFractions = fractions.map(item => {
+      let status = item.status 
+      if(item.approvalStatus) {
+        status = approvalStatusMap.get(item.approvalStatus)
+      }
       if (item.fractionAmount) {
         return {
           fractionAmount: Number(item.fractionAmount),
-          status: item.status,
+          status: status,
           addedBy: item.addedBy || 'RM name', //test
           linkStatus: item.linkStatus || 'initialized',
+          folioNumber: item.folioNumber,
+          approvalStatus: item.approvalStatus,
           transactionDate: item.transactionDate || Date.now()
         }
       }
@@ -471,7 +479,7 @@ const filteredTransactions = async (req, res) => {
     filters.schemeName = Array.isArray(schemeName) ? { $in: schemeName } : schemeName
   }
   if (rmName) {
-    filters.registrantName = Array.isArray(rmName) ? { $in: rmName } : rmName
+    filters.registrantName = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName)
   }
   if (type) {
     filters.transactionType = type
@@ -498,6 +506,47 @@ const filteredTransactions = async (req, res) => {
   } catch (error) {
     console.log("error getting filtered transactions: ", error.message)
     res.status(500).json({ error: error.message })
+  }
+}
+
+// update approval status 
+const updateApprovalStatus = async (req, res) => {
+  const transactionId = req.params.id
+  const approvalStatus = req.body.approvalStatus
+  const fractionId = req.body.fractionId
+
+  if(!transactionId) {
+    return res.status(400).json({error: 'Transaction Id is required'})
+  }
+  if(!approvalStatus) {
+    return res.status(400).json({error: 'Approval status is required'})
+  }
+
+  const status = approvalStatusMap.get(approvalStatus)
+  try {
+    let transaction;
+    if(!fractionId) {
+      const update = {approvalStatus, status}
+      transaction = await Transactions.findByIdAndUpdate(transactionId, update, {new: true}).lean()
+    }
+
+    else {
+      const update = {
+        'transactionFractions.$.status': status,
+        'transactionFractions.$.approvalStatus': approvalStatus
+      }
+      transaction = await Transactions.findOneAndUpdate({
+        _id: transactionId, 'transactionFractions._id': fractionId
+      }, update, {new: true}).lean()
+    }
+    if(!transaction) {
+      throw new Error("Transaction not found")
+    }
+
+    res.status(200).json({message: 'Status updated', data: transaction})
+  } catch (error) {
+    console.error('Error updating status: ', error.message)
+    res.status(500).json({error: error.message})
   }
 }
 
@@ -533,5 +582,6 @@ module.exports = {
   getSchemeNames,
   getRMNames,
   filteredTransactions,
-  nfoTransactions
+  nfoTransactions,
+  updateApprovalStatus
 }

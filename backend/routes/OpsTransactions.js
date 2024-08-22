@@ -1,4 +1,4 @@
-const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, getTransactionsGroupByFhAndRm, getTransactionsByFamilyHeadAndRm, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions } = require('../controllers/OpsTransactions');
+const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, getTransactionsGroupByFhAndRm, getTransactionsByFamilyHeadAndRm, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus } = require('../controllers/OpsTransactions');
 
 const router = require('express').Router();
 
@@ -15,5 +15,6 @@ router.get('/nfo-transactions', nfoTransactions);
 router.get('/amc', getAllAmcNames);
 router.get('/scheme', getSchemeNames);
 router.get('/rm-names', getRMNames);
+router.patch('/update-status/:id', updateApprovalStatus)
 
 module.exports = router
