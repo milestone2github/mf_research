@@ -10,16 +10,16 @@ import Toast from "../common/Toast";
 
 const DirectClientPayouts = () => {
   const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([])
   const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(null);
-  const [load, setLoad] = useState(false);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState(null);
   const [filterDate, setFilterDate] = useState(() => {
     const today = new Date();
-    return today.toISOString().substring(0, 10);
+    return today.toISOString().substring(0, 10)
   });
   const [buttonStates, setButtonStates] = useState({}); // Add state for button status
-  
+
   const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
   const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
   const [payoutModalError, setPayoutModalError] = useState(null)
@@ -29,24 +29,22 @@ const DirectClientPayouts = () => {
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
 
-  const gettotalsum = async () => {
-    try {
-      setLoad(true);
-      let sum = 0;
-      data.forEach((item) => {
-        sum = sum + item.Referral_Amount;
-      });
-      setLoad(false);
-      setTotal(sum);
-    } catch (error) {
-      setLoad(false);
-      setTotal(null);
-    }
+  const gettotalsum = (data) => {
+    let sum = 0;
+    data.forEach((item) => {
+      sum = sum + Number(item.Referral_Amount);
+    });
+    setTotal(sum);
   };
 
   useEffect(() => {
-    gettotalsum(data);
-  }, [data]);
+    if (data.length) {
+      let filteredRecords = data.filter(item =>
+        !filterDate || new Date(item["Payout_Release_Date"]) <= new Date(filterDate))
+      setFilteredData(filteredRecords)
+      gettotalsum(filteredRecords);
+    }
+  }, [filterDate, data]);
 
   useEffect(() => {
     if (!permissions.find(perm => perm === 'Direct Client Payout Accounts')) {
@@ -58,12 +56,15 @@ const DirectClientPayouts = () => {
         "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=dir"
       )
       .then((response) => {
-        setData(
-          response.data.map((item) => ({
-            ...item,
-            statusDetails: getStatus(item),
-          }))
-        );
+        let responseData = response.data.map((item) => ({
+          ...item,
+          statusDetails: getStatus(item),
+        }))
+        setFilteredData(responseData.filter(
+          (item) =>
+            !filterDate || new Date(item["Payout_Release_Date"]) <= new Date(filterDate)
+        ))
+        setData(responseData);
         setLoading(false);
       })
       .catch((error) => {
@@ -97,12 +98,15 @@ const DirectClientPayouts = () => {
   const handleDownloadExcel = (event) => {
     if (event) event.stopPropagation();
 
-    const priorityOneRecords = data.filter(
+    const priorityOneRecords = filteredData.filter(
       (assoc) => assoc.statusDetails && assoc.statusDetails.priority === 1
     );
     if (priorityOneRecords.length === 0) {
       console.log(
         "No records with priority 1 found for inclusion in the Excel file."
+      );
+      dispatch(
+        updateToast({ type: "error", message: "There are no pending records available for download from Accounts" })
       );
       return;
     }
@@ -260,7 +264,7 @@ const DirectClientPayouts = () => {
   };
 
   const handleProceedPayout = async (name) => {
-    if(name?.toLowerCase() !== selectedPayoutItem?.clientName?.toLowerCase()) {
+    if (name?.toLowerCase() !== selectedPayoutItem?.clientName?.toLowerCase()) {
       setPayoutModalError('Client name does not match!')
       return
     }
@@ -285,8 +289,11 @@ const DirectClientPayouts = () => {
       <Toast />
       <div className="flex justify-between">
         <h1 className="text-2xl font-semibold">Dir Client Payouts - Accounts</h1>
-        {load ? <p>Calclating</p> : total ? <p className="text-xl flex items-center">Overall Payout :
-          &nbsp; <MdOutlineCurrencyRupee />{String(total).slice(0, 8)}</p> : <p>Total : Error Occured while Calculating</p>}
+        <p className="text-xl flex items-center">Overall Payout :
+          &nbsp; <MdOutlineCurrencyRupee />{total.toLocaleString('en-IN', {
+            maximumFractionDigits: 2,
+            minimumFractionDigits: 0
+          })}</p>
       </div>
       <label htmlFor="payoutDate text-lg">Set Payout Release Date :  </label>
       <input
@@ -313,49 +320,41 @@ const DirectClientPayouts = () => {
           </tr>
         </thead>
         <tbody>
-          {data
-            .filter(
-              (item) =>
-                !filterDate ||
-                new Date(item["Payout_Release_Date"])
-                  .toISOString()
-                  .substring(0, 10) <= filterDate
-            )
-            .map((item, index) => (
-              <tr key={index} className="border-b-[1px] border-solid border-black detail-row w-[50rem] text-center text-sm">
-                <td className="py-5 w-[12rem] text-left pl-4">{item["Insurance_Lead_Name"]}</td>
-                <td className="w-[7rem]">{item["Lead_ID"]}</td>
-                <td className="w-[7rem]">{item["Merged_Referral_Fee"]}%</td>
-                <td>₹ {item["Referral_Amount"]}</td>
-                <td className="w-[9rem] mx-6">{item["Insurance_Type"]}</td>
-                <td>{item["Payout_Release_Date"]}</td>
-                <td style={{ color: item.statusDetails.color, fontWeight: "700" }}>
-                  {item.statusDetails.status}
-                </td>
-                <button
-                  className="rounded p-3 m-3 text-white"
-                  style={{
-                    backgroundColor: buttonStates[item["id"]]?.color || "#2563eb",
-                    cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
-                  }}
-                  disabled={buttonStates[item["id"]]?.disabled}
-                  // onClick={() => handleReleasePayout(item["id"])}
-                  onClick={() => {
-                    setIsConfimPayoutModalOpen(true); 
-                    setSelectedPayoutItem({clientName: item["Insurance_Lead_Name"], id: item["id"]})
-                  }}
-                >
-                  {buttonStates[item["id"]]?.text || "Release Payout"}
-                </button>
-              </tr>
-            ))}
+          {filteredData.map((item, index) => (
+            <tr key={index} className="border-b-[1px] border-solid border-black detail-row w-[50rem] text-center text-sm">
+              <td className="py-5 w-[12rem] text-left pl-4">{item["Insurance_Lead_Name"]}</td>
+              <td className="w-[7rem]">{item["Lead_ID"]}</td>
+              <td className="w-[7rem]">{item["Merged_Referral_Fee"]}%</td>
+              <td>₹ {item["Referral_Amount"]}</td>
+              <td className="w-[9rem] mx-6">{item["Insurance_Type"]}</td>
+              <td>{item["Payout_Release_Date"]}</td>
+              <td style={{ color: item.statusDetails.color, fontWeight: "700" }}>
+                {item.statusDetails.status}
+              </td>
+              <button
+                className="rounded p-3 m-3 text-white"
+                style={{
+                  backgroundColor: buttonStates[item["id"]]?.color || "#2563eb",
+                  cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
+                }}
+                disabled={buttonStates[item["id"]]?.disabled}
+                // onClick={() => handleReleasePayout(item["id"])}
+                onClick={() => {
+                  setIsConfimPayoutModalOpen(true);
+                  setSelectedPayoutItem({ clientName: item["Insurance_Lead_Name"], id: item["id"] })
+                }}
+              >
+                {buttonStates[item["id"]]?.text || "Release Payout"}
+              </button>
+            </tr>
+          ))}
         </tbody>
       </table>
-      <PayoutConfirmModal 
+      <PayoutConfirmModal
         isOpen={isConfirmPayoutModalOpen}
         title={'Enter client name to release payout'}
         handleCancel={() => {
-          setIsConfimPayoutModalOpen(false); 
+          setIsConfimPayoutModalOpen(false);
           setSelectedPayoutItem(null);
           setPayoutModalError(null)
         }}
