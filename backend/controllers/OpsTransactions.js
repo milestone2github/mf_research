@@ -360,6 +360,43 @@ const generateLink = async (req, res) => {
   }
 }
 
+// generate link (by trx id)
+const updateOrderId = async (req, res) => {
+  let { fractionId, orderId } = req.body;
+  if(!orderId) {
+    return res.status(400).json({error: 'Order ID is required!'})
+  }
+
+  try {
+    let transaction;
+    // Ensure the new fraction is provided
+    if (!fractionId) {
+      transaction = await Transactions.findByIdAndUpdate(req.params.id, { orderId }, { new: true })
+    }
+    else {
+      // Update the document by pushing the new fraction to the array
+      transaction = await Transactions.findOneAndUpdate(
+        { _id: req.params.id, 'transactionFractions._id': fractionId },
+        {
+          $set: {
+            'transactionFractions.$.orderId': orderId,
+          }
+        },
+        { new: true }
+      )
+    }
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    res.status(200).json({ message: 'Order ID updated', data: transaction });
+  } catch (error) {
+    console.error("Error updating Order ID: ", error.message);
+    res.status(500).json({ error: `Error updating Order ID: ${error.message}` });
+  }
+}
+
 // get all AMC names 
 const getAllAmcNames = async (req, res) => {
   try {
@@ -583,5 +620,6 @@ module.exports = {
   getRMNames,
   filteredTransactions,
   nfoTransactions,
-  updateApprovalStatus
+  updateApprovalStatus,
+  updateOrderId
 }
