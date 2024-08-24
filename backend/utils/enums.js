@@ -18,6 +18,7 @@ const statusEnum = [
 ]
 
 const approvalStatusEnum = [
+  "",
   "Approved",
   "Link still Pending",
   "KYC not Compliant",
