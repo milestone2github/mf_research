@@ -178,57 +178,210 @@ const getTransactionsGroupByFhAndRm = async (req, res) => {
   try {
     // get all transactions group by "family head + rm" 
     const pipeline = [
+      // Stage 1: Match transactions up to a specific date
       { $match: { transactionPreference: { $lte: uptoDate } } },
-      { $addFields: { familyHeadRegistrantName: { $concat: ["$familyHead", "-", "$registrantName"] } } },
+      
+      // Stage 2: Add a field for the combined name and calculate pending counts
+      {
+        $addFields: {
+          familyHeadRegistrantName: { $concat: ["$familyHead", "-", "$registrantName"] },
+          transactionCount: {$cond: [
+            {$eq: [{ $size: "$transactionFractions" }, 0]}, 
+            1, 
+            { $size: "$transactionFractions"}
+          ]},
+          
+          totalPendingCount: {
+            $cond: [
+              { $eq: [{ $size: "$transactionFractions" }, 0] },
+              { $cond: [{ $eq: ["$status", 'PENDING'] }, 1, 0] },
+              {
+                $reduce: {
+                  input: "$transactionFractions",
+                  initialValue: 0,
+                  in: {
+                    $cond: [
+                      { $eq: ["$$this.status", 'PENDING'] },
+                      { $add: ["$$value", 1] },
+                      "$$value"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          
+          sysPendingCount: {
+            $cond: [
+              { $eq: [{ $size: "$transactionFractions" }, 0] },
+              { $cond: [
+                  { $and: [{ $eq: ["$status", 'PENDING'] }, { $eq: ["$category", 'systematic'] }] },
+                  1, 
+                  0 
+                ]
+              },
+              {
+                $reduce: {
+                  input: "$transactionFractions",
+                  initialValue: 0,
+                  in: {
+                    $cond: [
+                      { $and: [{ $eq: ["$$this.status", 'PENDING'] }, { $eq: ["$category", 'systematic'] }] },
+                      { $add: ["$$value", 1] },
+                      "$$value"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          
+          purchRedempPendingCount: {
+            $cond: [
+              { $eq: [{ $size: "$transactionFractions" }, 0] },
+              { $cond: [
+                  { $and: [{ $eq: ["$status", 'PENDING'] }, { $eq: ["$category", 'purchredemp'] }] },
+                  1, 
+                  0 
+                ]
+              },
+              {
+                $reduce: {
+                  input: "$transactionFractions",
+                  initialValue: 0,
+                  in: {
+                    $cond: [
+                      { $and: [{ $eq: ["$$this.status", 'PENDING'] }, { $eq: ["$category", 'purchredemp'] }] },
+                      { $add: ["$$value", 1] },
+                      "$$value"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          
+          switchPendingCount: {
+            $cond: [
+              { $eq: [{ $size: "$transactionFractions" }, 0] },
+              { $cond: [
+                  { $and: [{ $eq: ["$status", 'PENDING'] }, { $eq: ["$category", 'switch'] }] },
+                  1, 
+                  0 
+                ]
+              },
+              {
+                $reduce: {
+                  input: "$transactionFractions",
+                  initialValue: 0,
+                  in: {
+                    $cond: [
+                      { $and: [{ $eq: ["$$this.status", 'PENDING'] }, { $eq: ["$category", 'switch'] }] },
+                      { $add: ["$$value", 1] },
+                      "$$value"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
       {
         $group: {
-          "_id": '$familyHeadRegistrantName',
-          count: { $sum: 1 },
+          _id: "$familyHeadRegistrantName",
+          count: { $sum: "$transactionCount" },
           investorName: { $first: "$investorName" },
           familyHead: { $first: "$familyHead" },
           registrantName: { $first: "$registrantName" },
           createdAt: { $min: "$transactionPreference" },
-          totalPending: {
-            $sum: {
-              $cond: [{ $eq: ["$status", 'PENDING'] }, 1, 0]
-            }
-          },
-          sysPending: {
-            $sum: {
-              $cond: [{
-                $and: [
-                  { $eq: ["$status", 'PENDING'] },
-                  { $eq: ["$category", 'systematic'] }
-                ]
-              }, 1, 0]
-            }
-          },
-          purchRedempPending: {
-            $sum: {
-              $cond: [{
-                $and: [
-                  { $eq: ["$status", 'PENDING'] },
-                  { $eq: ["$category", 'purchredemp'] }
-                ]
-              }, 1, 0]
-            }
-          },
-          switchPending: {
-            $sum: {
-              $cond: [{
-                $and: [
-                  { $eq: ["$status", 'PENDING'] },
-                  { $eq: ["$category", 'switch'] }
-                ]
-              }, 1, 0]
-            }
-          },
+          totalPending: { $sum: "$totalPendingCount" },
+          sysPending: { $sum: "$sysPendingCount" },
+          purchRedempPending: { $sum: "$purchRedempPendingCount" },
+          switchPending: { $sum: "$switchPendingCount" }
         }
       },
       {
-        $sort: { createdAt: 1 },
+        $sort: { createdAt: 1 }
       }
     ];
+
+    // const pipeline = [
+    //   { $match: { transactionPreference: { $lte: uptoDate } } },
+      
+    //   {
+    //     $addFields: {
+    //       familyHeadRegistrantName: { $concat: ["$familyHead", "-", "$registrantName"] },
+    //       transactionCount: {$cond: [
+    //         {$eq: [{ $size: "$transactionFractions" }, 0]}, 
+    //         1, 
+    //         { $size: "$transactionFractions"}
+    //       ]},
+          
+    //       pendingCounts: {
+    //         $reduce: {
+    //           input: {
+    //             $cond: [
+    //               { $eq: [{ $size: "$transactionFractions" }, 0] },
+    //               [{ status: "$status"}],
+    //               "$transactionFractions"
+    //             ]
+    //           },
+    //           initialValue: { total: 0, sys: 0, purchRedemp: 0, switch: 0 },
+    //           in: {
+    //             total: {
+    //               $cond: [
+    //                 { $eq: ["$$this.status", 'PENDING'] },
+    //                 { $add: ["$$value.total", 1] },
+    //                 "$$value.total"
+    //               ]
+    //             },
+    //             sys: {
+    //               $cond: [
+    //                 { $and: [{ $eq: ["$$this.status", 'PENDING'] }, { $eq: ["$category", 'systematic'] }] },
+    //                 { $add: ["$$value.sys", 1] },
+    //                 "$$value.sys"
+    //               ]
+    //             },
+    //             purchRedemp: {
+    //               $cond: [
+    //                 { $and: [{ $eq: ["$$this.status", 'PENDING'] }, { $eq: ["$category", 'purchredemp'] }] },
+    //                 { $add: ["$$value.purchRedemp", 1] },
+    //                 "$$value.purchRedemp"
+    //               ]
+    //             },
+    //             switch: {
+    //               $cond: [
+    //                 { $and: [{ $eq: ["$$this.status", 'PENDING'] }, { $eq: ["$category", 'switch'] }] },
+    //                 { $add: ["$$value.switch", 1] },
+    //                 "$$value.switch"
+    //               ]
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+    //   },
+      
+    //   {
+    //     $group: {
+    //       _id: "$familyHeadRegistrantName",
+    //       count: { $sum: "$transactionCount" },
+    //       investorName: { $first: "$investorName" },
+    //       familyHead: { $first: "$familyHead" },
+    //       registrantName: { $first: "$registrantName" },
+    //       createdAt: { $min: "$transactionPreference" },
+    //       totalPending: { $sum: "$pendingCounts.total" },
+    //       sysPending: { $sum: "$pendingCounts.sys" },
+    //       purchRedempPending: { $sum: "$pendingCounts.purchRedemp" },
+    //       switchPending: { $sum: "$pendingCounts.switch" }
+    //     }
+    //   },
+      
+    //   { $sort: { createdAt: 1 } }
+    // ];
+    
+    
 
     const transactions = await Transactions.aggregate(pipeline)
 
@@ -249,6 +402,7 @@ const getTransactionsByFamilyHeadAndRm = async (req, res) => {
     return res.status(400).json({ error: 'family head and registrant name are required to get transactions' })
   }
 
+  // if its Saturday set it to upcoming Monday otherwise the next Day
   let uptoDate = new Date()
   if (uptoDate.getDay() == 6) {
     uptoDate.setDate(uptoDate.getDate() + 2)
