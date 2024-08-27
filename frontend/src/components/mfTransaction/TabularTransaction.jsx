@@ -5,7 +5,7 @@ import PurchRedempForm from './PurchRedempForm';
 import SwitchForm from './SwitchForm';
 import MinusButton from './common/MinusButton';
 import Badge from './common/Badge';
-import { handleAdd, handleRemove, handleUpdate as handleTransactionUpdate} from '../../reducers/TransactionSlice'
+import { handleAdd, handleRemove, handleUpdate as handleTransactionUpdate } from '../../reducers/TransactionSlice'
 import { handleAdd as systematicAdd, handleRemove as systematicRemove } from '../../reducers/SystematicDataSlice'
 import { handleAdd as purchRedempAdd, handleRemove as purchRedempRemove } from '../../reducers/PurchRedempDataSlice'
 import { handleAdd as switchAdd, handleRemove as switchRemove } from '../../reducers/SwitchDataSlice'
@@ -22,7 +22,7 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
   const [activeTab, setActiveTab] = useState('systematic');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [summary, setSummary] = useState({
-    count: idx + 1, 
+    count: idx + 1,
     transactionType: 'SIP',
     amcName: '',
     fromScheme: '',
@@ -44,7 +44,7 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
     switch (activeTab) {
       case 'systematic':
         setSummary({
-          count: idx + 1, 
+          count: idx + 1,
           transactionType: systematicItem.systematicTraxType,
           amcName: systematicItem.systematicMfAmcName,
           fromScheme: systematicItem.systematicSchemeName,
@@ -56,7 +56,7 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
 
       case 'purchRedemp':
         setSummary({
-          count: idx + 1, 
+          count: idx + 1,
           transactionType: purchRedempItem.purch_RedempTraxType,
           amcName: purchRedempItem.purch_redempMfAmcName,
           fromScheme: purchRedempItem.purch_redempSchemeName,
@@ -68,7 +68,7 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
 
       case 'switch':
         setSummary({
-          count: idx + 1, 
+          count: idx + 1,
           transactionType: 'Switch',
           amcName: switchItem.switchMfAmcName,
           fromScheme: switchItem.switchFromScheme,
@@ -77,7 +77,7 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
           units: null,
         })
         break;
-    
+
       default:
         break;
     }
@@ -88,7 +88,7 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
     setActiveTab(tab)
 
     // change type in transactions state also 
-    dispatch(handleTransactionUpdate({index: idx, type: tab}))
+    dispatch(handleTransactionUpdate({ index: idx, type: tab }))
 
     // make hasReviewed false 
     updateHasReviewed(false);
@@ -135,15 +135,15 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
   // side effect to update summary 
   useEffect(() => {
     updateSummary();
-  
+
     return () => {
       setSummary({
-        count: idx + 1, 
-        transactionType: '', 
-        amcName: '', 
-        fromScheme: '', 
-        toScheme: '', 
-        amount: null, 
+        count: idx + 1,
+        transactionType: '',
+        amcName: '',
+        fromScheme: '',
+        toScheme: '',
+        amount: null,
         units: null
       })
     }
@@ -151,46 +151,47 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
 
   // side effect to handle reset after submission 
   useEffect(() => {
-    if(didReset) {
+    if (didReset) {
       setIsCollapsed(false);
       setActiveTab('systematic')
     }
-  
+
   }, [didReset])
 
   // side effect to collapse after reviewed 
   useEffect(() => {
-    if(hasReviewed)
+    if (hasReviewed)
       setIsCollapsed(true);
-  
+
   }, [hasReviewed])
 
   return (
     <div className='flex flex-col'>
       <Tabs tabs={tabs} onTabChange={onTabChange} activeTab={activeTab} isCollapsed={isCollapsed} toggleCollapsed={toggleCollapsed} isAddVisible={isAddVisible} addFormInstance={addFormInstance} />
       <div className='relative border border-gray-400 rounded-lg mt-2'>
+        <div className={`transition-all duration-300 ${isCollapsed ? 'max-h-screen' : 'max-h-0 overflow-hidden  delay-75'}`}>
+          <table className={`table-auto border-collapse mx-1 md:mx-3 my-2 `}>
+            <tbody>
+              <tr className="">
+                <td className="px-2 text-center whitespace-nowrap text-black-900 bg-gray-200 text-xs">{summary.count}</td>
+                <td className="px-2 py-1 border-r whitespace-nowrap">{summary.transactionType}</td>
+                <td className="px-2 py-1 border-r whitespace-nowrap">{summary.amcName}</td>
+                <td className="px-2 py-1 border-r whitespace-nowrap">
+                  <div>{summary.fromScheme}</div>
+                  <hr className="my-1" />
+                  <div>{summary.toScheme}</div>
+                </td>
+                <td className="px-2 py-1 whitespace-nowrap">
+                  <div>{summary.amount}</div>
+                  <hr className="my-1" />
+                  <div>{summary.units}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <table className={`table-auto border-collapse mx-1 md:mx-3 my-2 transition-opacity ease-linear duration-500 ${isCollapsed ? 'opacity-100' : 'collapse opacity-0'}`}>
-          <tbody>
-            <tr className="">
-              <td className="px-2 text-center whitespace-nowrap text-black-900 bg-gray-200 text-xs">{summary.count}</td>
-              <td className="px-2 py-1 border-r whitespace-nowrap">{summary.transactionType}</td>
-              <td className="px-2 py-1 border-r whitespace-nowrap">{summary.amcName}</td>
-              <td className="px-2 py-1 border-r whitespace-nowrap">
-                <div>{summary.fromScheme}</div>
-                <hr className="my-1" />
-                <div>{summary.toScheme}</div>
-              </td>
-              <td className="px-2 py-1 whitespace-nowrap">
-                <div>{summary.amount}</div>
-                <hr className="my-1" />
-                <div>{summary.units}</div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <section className={`transition-all ease-in-out duration-300 overflow-visible ${isCollapsed ? "max-h-0 opacity-0 pointer-events-none" : 'max-h-[1280px] md:max-h-[620px] opacity-100'}`}>
+        <section className={`transition-all duration-300 ${isCollapsed ? "max-h-0 pointer-events-none overflow-hidden" : 'max-h-[1280px]'}`}>
           <div className="flex justify-between my-2 mb-4 px-3">
             <Badge text={'Transaction'} count={idx + 1} />
             {idx > 0 && <div className='text-center -my-2'>
@@ -200,10 +201,10 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
 
           {
             activeTab === 'systematic' ?
-              <SystematicForm index={idx} updateCollapsed={updateCollapsed}/> :
+              <SystematicForm index={idx} updateCollapsed={updateCollapsed} /> :
               activeTab === 'purchRedemp' ?
-                <PurchRedempForm index={idx} updateCollapsed={updateCollapsed}/> :
-                <SwitchForm index={idx} updateCollapsed={updateCollapsed}/>
+                <PurchRedempForm index={idx} updateCollapsed={updateCollapsed} /> :
+                <SwitchForm index={idx} updateCollapsed={updateCollapsed} />
           }</section>
       </div>
     </div>

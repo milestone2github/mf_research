@@ -10,7 +10,7 @@ import Toast from "../common/Toast";
 
 const AssociatePayout = () => {
   const navigate = useNavigate()
-  const [total, setTotal] = useState(null)
+  const [total, setTotal] = useState(0)
   const [load, setLoad] = useState(false)
   const [data, setData] = useState({});
   const { userData } = useSelector(state => state.user);
@@ -225,8 +225,11 @@ const AssociatePayout = () => {
         <Toast/>
         <div className=" flex justify-between">
           <h1 className="text-2xl font-semibold">Associate Payouts</h1>
-          {load ? <p>Calclating</p> : total ? <p className=" text-xl flex items-center">Overall Payout :
-            &nbsp; <MdOutlineCurrencyRupee />{total}</p> : <p>Total : Error Occured while Calculating</p>}
+          {load ? <p>Calclating...</p> : <p className=" text-xl flex items-center">Overall Payout :
+            &nbsp; <MdOutlineCurrencyRupee />{total.toLocaleString('en-IN', {
+              maximumFractionDigits: 2,
+              minimumFractionDigits: 0
+            })}</p>}
         </div>
         <div className=" rounded-2xl p-2 ">
           <table className="main-table  w-full mt-4">
@@ -250,7 +253,7 @@ const AssociatePayout = () => {
                     <td>
                       {details.processableCount} / {details.entryCount}
                     </td>
-                    <td>₹ {details.totalPayout.toFixed(2)}</td>
+                    <td>₹ {details.totalPayout.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}</td>
                     <td style={details.highestStatus.status === "In Cool off Period" ? { color: "blue", fontWeight: "700" } : { color: details.highestStatus.color, fontWeight: "700" }}>
                       {details.highestStatus.status}
                     </td>

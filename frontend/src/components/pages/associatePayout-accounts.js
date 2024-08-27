@@ -9,7 +9,7 @@ import PayoutConfirmModal from "../common/PayoutConfirmModal";
 const AssociatePayoutAccounts = () => {
   const [originalData, setOriginalData] = useState([]);
   const [data, setData] = useState({});
-  const [total, setTotal] = useState(null);
+  const [total, setTotal] = useState(0);
   const [load, setLoad] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -412,8 +412,8 @@ const AssociatePayoutAccounts = () => {
     <div>
       <div className=" flex justify-between">
         <h1 className="text-2xl font-semibold">Associate Payout - Accounts</h1>
-        {load ? <p>Calclating</p> : total ? <p className=" text-xl flex items-center">Overall Payout :
-          &nbsp; <MdOutlineCurrencyRupee />{total}</p> : <p>Total : Error Occured while Calculating</p>}
+        {load ? <p>Calclating</p> : <p className=" text-xl flex items-center">Overall Payout :
+          &nbsp; <MdOutlineCurrencyRupee />{total.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}</p>}
       </div>
       <button className=" bg-blue-600 rounded text-white py-3 px-3 hover:bg-blue-700"
         onClick={() => downloadAllData("download")}
@@ -453,7 +453,7 @@ const AssociatePayoutAccounts = () => {
                 <td>
                   {details.processableCount} / {details.entryCount}
                 </td>
-                <td>₹ {details.totalPayout.toFixed(2)}</td>
+                <td>₹ {details.totalPayout.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 2})}</td>
                 <td className="" style={details.highestStatus.status === "In Cool off Period" ? { color: "blue", fontWeight: "700" } : { color: details.highestStatus.color, fontWeight: "700" }}>
                   {details.highestStatus.status}
                 </td>

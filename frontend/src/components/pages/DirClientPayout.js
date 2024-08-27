@@ -9,7 +9,7 @@ import { updateToast } from "../../reducers/ToastSlice";
 
 const DirClientPayouts = () => {
   const [data, setData] = useState([]);
-  const [total, setTotal] = useState(null)
+  const [total, setTotal] = useState(0)
   const [load, setLoad] = useState(false)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,7 +32,7 @@ const DirClientPayouts = () => {
     try {
       setLoad(true)
       let sum = 0
-      data.forEach((item)=>{
+      data.forEach((item) => {
         sum = sum + item.Referral_Amount
       })
       setLoad(false)
@@ -46,7 +46,7 @@ const DirClientPayouts = () => {
     gettotalsum(data)
   }, [data])
   useEffect(() => {
-    if(!permissions.find(perm => perm === 'Direct Client Payout')){ return; }
+    if (!permissions.find(perm => perm === 'Direct Client Payout')) { return; }
     setLoading(true);
     axios
       .get(
@@ -138,23 +138,23 @@ const DirClientPayouts = () => {
         emailData,
         { withCredentials: true }
       );
-      
-      if(response.status !== 200) {
+
+      if (response.status !== 200) {
         throw new Error(response.data.error || 'something went wrong ')
       }
       console.log("Email sent:", response.data?.message);
-  
+
       setButtonStates(prevState => ({
         ...prevState,
         [id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
       }));
-  
+
       dispatch(
         updateToast({ type: "success", message: "Request sent" })
       );
     } catch (error) {
       console.error("Error sending email:", error.message);
-  
+
       dispatch(
         updateToast({ type: "error", message: `Error sending request for release` })
       );
@@ -162,38 +162,41 @@ const DirClientPayouts = () => {
   };
 
   const handleProceedPayout = async (name) => {
-    if(name?.toLowerCase() !== selectedPayoutItem?.leadName?.toLowerCase()) {
+    if (name?.toLowerCase() !== selectedPayoutItem?.leadName?.toLowerCase()) {
       setPayoutModalError('Client name does not match!')
       return
     }
 
-    let {id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate} = selectedPayoutItem
+    let { id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate } = selectedPayoutItem
     await requestEarlyRelease(id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate)
-    
+
     setLoadingRelease(false)
     setIsConfimPayoutModalOpen(false)
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
   }
 
-  if(!permissions.find(perm => perm === 'Direct Client Payout')) 
+  if (!permissions.find(perm => perm === 'Direct Client Payout'))
     return (<AccessDenied />)
 
-  if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div> 
+  if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>
   if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
-      <Toast/>
-       <div className=" flex justify-between">
-          <h1 className="text-2xl font-semibold">Dir Client Payouts</h1>
-        { load ? <p>Calclating</p>: total ? <p className=" text-xl flex items-center">Overall Payout : 
-         &nbsp; <MdOutlineCurrencyRupee/>{String(total).slice(0,8)}</p>  : <p>Total : Error Occured while Calculating</p>}
-        </div>
+      <Toast />
+      <div className=" flex justify-between">
+        <h1 className="text-2xl font-semibold">Dir Client Payouts</h1>
+        {load ? <p>Calclating...</p> : <p className=" text-xl flex items-center">Overall Payout :
+          &nbsp; <MdOutlineCurrencyRupee />{total.toLocaleString('en-IN', {
+            maximumFractionDigits: 2,
+            minimumFractionDigits: 0
+          })}</p>}
+      </div>
       <table className="main-table w-full">
         <thead className=" whitespace-nowrap">
-          <tr  className=" bg-black text-white ">
+          <tr className=" bg-black text-white ">
             <th className="  text-left py-6 pl-4">Client Name</th>
             <th className="  text-left ">Lead UCC</th>
             <th>Payout %</th>
@@ -206,47 +209,50 @@ const DirClientPayouts = () => {
         </thead>
         <tbody>
           {data.map((item, index) => (
-              <tr  key={index} className="detail-row text-sm text-center border-b-[1px] border-solid border-black ">
-                <td className=" p-4 text-left w-[11rem]">{item["Insurance_Lead_Name"]}</td>
-                <td>{item["Lead_ID"]}</td>
-                <td className=" px-[2rem]">{item["Merged_Referral_Fee"]}%</td>
-                <td>₹ {item["Referral_Amount"]}</td>
-                <td className=" text-center w-[10rem]  ">{item["Insurance_Type"]}</td>
-                <td>{item["Payout_Release_Date"]}</td>
-                <td style={{ color: item.statusDetails.color , textAlign:"center" , fontWeight:"700" }}>
-                  {item.statusDetails.status}
-                </td>
-                <button className="rounded  p-3 m-3 text-white"
-                  style={{
-                    backgroundColor: buttonStates[item["id"]]?.color || "#2563eb",
-                    cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
-                  }}
-                  disabled={buttonStates[item["id"]]?.disabled}
-                  onClick={() => {
-                    setIsConfimPayoutModalOpen(true); 
-                    setSelectedPayoutItem({
-                      id: item.id,
-                      leadID: item.Lead_ID,
-                      leadName: item.Insurance_Lead_Name,
-                      insuranceType: item.Insurance_Type,
-                      Associate_Name: item.Associate_Name,
-                      Merged_Referral_Fee: item.Merged_Referral_Fee,
-                      Referral_Amount: item.Referral_Amount,
-                      payoutReleaseDate: item.Payout_Release_Date,
-                    })
-                  }}
-                >
-                  {buttonStates[item["id"]]?.text || "Request Early Release"}
-                </button>
-              </tr>
-            ))}
+            <tr key={index} className="detail-row text-sm text-center border-b-[1px] border-solid border-black ">
+              <td className=" p-4 text-left w-[11rem]">{item["Insurance_Lead_Name"]}</td>
+              <td>{item["Lead_ID"]}</td>
+              <td className=" px-[2rem]">{item["Merged_Referral_Fee"]}%</td>
+              <td className="whitespace-nowrap">₹ {item["Referral_Amount"].toLocaleString('en-IN', {
+                maximumFractionDigits: 2,
+                minimumFractionDigits: 0
+              })}</td>
+              <td className=" text-center w-[10rem]  ">{item["Insurance_Type"]}</td>
+              <td>{item["Payout_Release_Date"]}</td>
+              <td style={{ color: item.statusDetails.color, textAlign: "center", fontWeight: "700" }}>
+                {item.statusDetails.status}
+              </td>
+              <button className="rounded  p-3 m-3 text-white"
+                style={{
+                  backgroundColor: buttonStates[item["id"]]?.color || "#2563eb",
+                  cursor: buttonStates[item["id"]]?.disabled ? "not-allowed" : "pointer"
+                }}
+                disabled={buttonStates[item["id"]]?.disabled}
+                onClick={() => {
+                  setIsConfimPayoutModalOpen(true);
+                  setSelectedPayoutItem({
+                    id: item.id,
+                    leadID: item.Lead_ID,
+                    leadName: item.Insurance_Lead_Name,
+                    insuranceType: item.Insurance_Type,
+                    Associate_Name: item.Associate_Name,
+                    Merged_Referral_Fee: item.Merged_Referral_Fee,
+                    Referral_Amount: item.Referral_Amount,
+                    payoutReleaseDate: item.Payout_Release_Date,
+                  })
+                }}
+              >
+                {buttonStates[item["id"]]?.text || "Request Early Release"}
+              </button>
+            </tr>
+          ))}
         </tbody>
       </table>
-      <PayoutConfirmModal 
+      <PayoutConfirmModal
         isOpen={isConfirmPayoutModalOpen}
         title={'Enter client name to request early release'}
         handleCancel={() => {
-          setIsConfimPayoutModalOpen(false); 
+          setIsConfimPayoutModalOpen(false);
           setSelectedPayoutItem(null);
           setPayoutModalError(null)
         }}

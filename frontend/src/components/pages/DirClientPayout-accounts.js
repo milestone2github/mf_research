@@ -325,7 +325,10 @@ const DirectClientPayouts = () => {
               <td className="py-5 w-[12rem] text-left pl-4">{item["Insurance_Lead_Name"]}</td>
               <td className="w-[7rem]">{item["Lead_ID"]}</td>
               <td className="w-[7rem]">{item["Merged_Referral_Fee"]}%</td>
-              <td>₹ {item["Referral_Amount"]}</td>
+              <td className="whitespace-nowrap">₹ {item["Referral_Amount"].toLocaleString('en-IN', {
+                maximumFractionDigits: 2,
+                minimumFractionDigits: 0
+              })}</td>
               <td className="w-[9rem] mx-6">{item["Insurance_Type"]}</td>
               <td>{item["Payout_Release_Date"]}</td>
               <td style={{ color: item.statusDetails.color, fontWeight: "700" }}>
