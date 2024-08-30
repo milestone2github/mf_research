@@ -13,8 +13,8 @@ const transactionSchema = new mongoose.Schema({
   transactionType: String,
   transactionFor: String, //systematic only
   amcName: {type: String, required: true},
-  schemeName: {type: String, required: true}, //switch to scheme
-  fromSchemeName: String, //switch from scheme only
+  schemeName: {type: String, trim: true}, //switch to scheme
+  fromSchemeName: String, //switch from scheme and swp source scheme
   folioNumber: {type: String, required: true},
   transactionUnits: String,
   amount: Number,
