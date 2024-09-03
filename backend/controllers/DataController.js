@@ -9,7 +9,7 @@ const Transactions = require("../models/Transactions");
 const { formatDateToDDMMYYYYHHMMSSss } = require("../utils/formatDate");
 const { schemeMap } = require("../utils/maps");
 require('dotenv').config()
-
+// nodejs
 
 const getKycStatus = async (req, res) => {
   try {
