@@ -16,6 +16,7 @@ const tabs = [
     { name: 'Operations Dashboard', to: 'https://ops.mnivesh.com', label: 'OPS Dashboard' },
     { name: 'Links', to: '/links', label: 'Links' },
     { name: 'Mint', to: '/mint', label: 'Mint' },
+    { name: 'Workdrive', to: '/workdrive', label: 'Workdrive Files' },
 ]
 
 const Sidebar = () => {
@@ -23,7 +24,7 @@ const Sidebar = () => {
     const permissions = userData?.role?.permissions;
 
     const allowedTabs = tabs.filter(tab =>
-        tab.name === 'Calculator' || tab.name === 'Home' || permissions?.find(permission => permission === tab.name)
+        tab.name === 'Workdrive' ||tab.name === 'Calculator' || tab.name === 'Home' || permissions?.find(permission => permission === tab.name)
     )
 
     return (

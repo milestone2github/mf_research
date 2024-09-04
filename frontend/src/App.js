@@ -5,6 +5,7 @@ import {
   useNavigate,
   useLocation,
 } from "react-router-dom";
+
 import PortfolioReport from "./components/pages/PortfolioReport";
 import ExistingPortfolio from "./components/pages/ExistingPortfolio";
 import CasImport from "./components/pages/CasImport";
@@ -43,6 +44,7 @@ import AboutUs from "./components/links/AboutUs";
 import AllLinks from "./components/links/AllLinks";
 import AppLink from "./components/links/AppLink";
 import Mint from "./components/pages/Mint";
+import WorkdriveForm from "./components/pages/workdrive";
 
 function App() {
   const location = useLocation().pathname
@@ -71,6 +73,7 @@ function App() {
               <Route path="/dir-client-payout-accounts" element={<Protected><DirectClientPayouts /></Protected>} />
               <Route path="/mf-trans-form" element={<Protected><MfTransForm /></Protected>} />
               <Route path="/nfo-form" element={<Protected><NfoForm /></Protected>} />
+              <Route path="/workdrive" element = {<Protected><WorkdriveForm /></Protected>} />
               <Route path="/login" element={<Loginpage />} />
               <Route path="/links" element={<Protected><InternalLink /></Protected>} >
                 <Route path="" element={<AllLinks />} />

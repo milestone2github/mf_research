@@ -8,8 +8,37 @@ const generateHtmlOfNfo = require("../utils/generateHtmlOfNfo");
 const Transactions = require("../models/Transactions");
 const { formatDateToDDMMYYYYHHMMSSss } = require("../utils/formatDate");
 const { schemeMap } = require("../utils/maps");
+const querystring = require('querystring');
+const mongoose = require('mongoose');
+
 require('dotenv').config()
 // nodejs
+// Create a new MongoDB connection
+const newDbConnection = mongoose.createConnection('mongodb+srv://milestonegpt4:kv6A5KW7sUKJ9jOQ@cluster0.krug8nd.mongodb.net/your-database-name', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// Handle connection events
+newDbConnection.on('connected', () => {
+  console.log('Connected to MongoDB');
+});
+newDbConnection.on('error', (err) => {
+  console.error('Error connecting to MongoDB', err);
+});
+
+// Define the schema
+const NoteSchema = new mongoose.Schema({
+  clientName: String,
+  nameforproject: String,
+  date: String,
+  note: String,
+  error: String,
+  proceeded: Boolean,
+});
+
+// Create the model using the established connection
+const Note = newDbConnection.model('Note', NoteSchema);
 
 const getKycStatus = async (req, res) => {
   try {
@@ -959,6 +988,184 @@ const addNfoSchemeToSchemes = async (req, res) => {
   }
 }
 
+// Workdrive code
+async function exchangeCodeForToken(authCode) {
+  const tokenUrl = 'https://accounts.zoho.com/oauth/v2/token';
+  const payload = querystring.stringify({
+      client_id: process.env.ZOHO_CLIENT_ID,
+      client_secret: process.env.ZOHO_CLIENT_SECRET,
+      grant_type: 'authorization_code',
+      code: authCode,
+      redirect_uri: process.env.ZOHO_REDIRECT_URI_WORKDRIVE
+  });
+
+  try {
+      const response = await axios.post(tokenUrl, payload, {
+          headers: { 
+              'Content-Type': 'application/x-www-form-urlencoded' 
+          }
+      });
+      return response.data.access_token;
+  } catch (error) {
+      console.error('Error exchanging code for token:', error.response ? error.response.data : error.message);
+      throw new Error('Failed to exchange code for token');
+  }
+}
+
+async function getUserDetails(accessToken) {
+  const url = 'https://www.zohoapis.com/workdrive/api/v1/users/me';
+  const headers = { 'Authorization': `Zoho-oauthtoken ${accessToken}` };
+  try {
+      const response = await axios.get(url, { headers });
+      return response.data;
+  } catch (error) {
+      console.error('Error fetching user details:', error.response ? error.response.data : error.message);
+      throw new Error('Failed to fetch user details');
+  }
+}
+
+async function getTeamDetails(accessToken, zuid) {
+  const url = `https://www.zohoapis.com/workdrive/api/v1/users/${zuid}/teams`;
+  const headers = { 'Authorization': `Zoho-oauthtoken ${accessToken}` };
+  try {
+      const response = await axios.get(url, { headers });
+      return response.data;
+  } catch (error) {
+      console.error('Error fetching team details:', error.response ? error.response.data : error.message);
+      throw new Error('Failed to fetch team details');
+  }
+}
+
+async function getTeamMemberDetails(accessToken, teamId) {
+  const url = `https://www.zohoapis.com/workdrive/api/v1/teams/${teamId}/currentuser`;
+  const headers = { 'Authorization': `Zoho-oauthtoken ${accessToken}` };
+  try {
+      const response = await axios.get(url, { headers });
+      return response.data;
+  } catch (error) {
+      console.error('Error fetching team member details:', error.response ? error.response.data : error.message);
+      throw new Error('Failed to fetch team member details');
+  }
+}
+
+async function getPrivateSpaceDetails(accessToken, teamMemberId) {
+  const url = `https://www.zohoapis.com/workdrive/api/v1/users/${teamMemberId}/privatespace`;
+  const headers = { 'Authorization': `Zoho-oauthtoken ${accessToken}` };
+  try {
+      const response = await axios.get(url, { headers });
+      return response.data;
+  } catch (error) {
+      console.error('Error fetching private space details:', error.response ? error.response.data : error.message);
+      throw new Error('Failed to fetch private space details');
+  }
+}
+
+async function fetchWorkdriveItems(accessToken, folderId) {
+  const url = `https://www.zohoapis.com/workdrive/api/v1/privatespace/${folderId}/files?page%5Blimit%5D=50&page%5Boffset%5D=0`;
+  const headers = { 
+      'Authorization': `Zoho-oauthtoken ${accessToken}`,
+      'Content-Type': 'application/json'
+  };
+
+  try {
+      const response = await axios.get(url, { headers });
+      if (response.status === 200) {
+          const data = response.data;
+          const fileInfo = data.data.map(item => ({
+              name: item.attributes.name,
+              link: item.attributes.permalink
+          }));
+          return fileInfo;
+      } else {
+          throw new Error(`Failed to retrieve data: ${response.status}, ${response.statusText}`);
+      }
+  } catch (error) {
+      console.error('Error fetching WorkDrive items:', error.response ? error.response.data : error.message);
+      throw new Error('Failed to fetch WorkDrive items');
+  }
+}
+
+async function apinote(req, res){
+  try {
+      const newNote = new Note(req.body);
+      await newNote.save();
+      res.status(201).send(newNote);
+  } catch (err) {
+      res.status(500).send({ error: 'Failed to save note data' });
+  }
+}
+
+// API endpoint to fetch history data by project name
+async function apinoteproject(req, res){
+  try {
+      const notes = await Note.find({ nameforproject: req.params.nameforproject });
+      res.status(200).send(notes);
+  } catch (err) {
+      res.status(500).send({ error: 'Failed to fetch history data' });
+  }
+}
+async function apinoteproject(req, res){
+  try {
+      const notes = await Note.find({ nameforproject: req.params.nameforproject });
+      res.status(200).send(notes);
+  } catch (err) {
+      res.status(500).send({ error: 'Failed to fetch history data' });
+  }
+}
+async function apinoteallproject(req, res){
+  try {
+      const notes = await Note.find();
+      res.status(200).send(notes);
+  } catch (err) {
+      res.status(500).send({ error: 'Failed to fetch history data' });
+  }
+}
+
+async function  workdrivezohocallback(req, res){
+  const authCode = req.query.code;
+  console.log(`Auth Code received: ${authCode}`);
+  
+  try {
+      const accessToken = await exchangeCodeForToken(authCode);
+      console.log(`Access Token received: ${accessToken}`);
+
+      const userDetails = await getUserDetails(accessToken);
+      console.log('User Details:', userDetails);
+
+      const zuid = userDetails.data.attributes.zuid;
+
+      const teamDetails = await getTeamDetails(accessToken, zuid);
+      console.log('Team Details:', teamDetails);
+
+      const teamId = teamDetails.data[0].id;
+
+      const teamMemberDetails = await getTeamMemberDetails(accessToken, teamId);
+      console.log('Team Member Details:', teamMemberDetails);
+
+      const teamMemberId = teamMemberDetails.data.id;
+
+      const folderDetails = await getPrivateSpaceDetails(accessToken, teamMemberId);
+      console.log('Private Space Details:', folderDetails);
+
+      const folderId = folderDetails.data[0].id;
+
+      const files = await fetchWorkdriveItems(accessToken, folderId);
+      files.forEach((file, index) => {
+          file.id = index + 1; // Adds an incrementing ID starting from 1
+          file.type = 'File';
+          file.proceeded = false;
+      });
+      console.log('Files:', files);
+      // Serialize the files data into a query string parameter
+      const filesData = encodeURIComponent(JSON.stringify(files));
+
+      // Redirect to frontend with files data
+      res.redirect(`${process.env.FRONTEND_URL}/workdrive?success=true&files=${filesData}`);
+  } catch (error) {
+      console.error('Error during callback processing:', error.response ? error.response.data : error.message);
+      res.redirect(`${process.env.FRONTEND_URL}/workdrive?success=false`);
+  }
+}
 module.exports = {
   getInvestors,
   getAmcNames,
@@ -974,6 +1181,10 @@ module.exports = {
   getIsin,
   getAllNfoAmc,
   getKycStatus,
-  addNfoSchemeToSchemes
+  addNfoSchemeToSchemes,
+  apinote,
+  apinoteproject,
+  workdrivezohocallback,
+  apinoteallproject
 }
 

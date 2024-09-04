@@ -1,8 +1,8 @@
-const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin, addNfoSchemeToSchemes } = require('../controllers/DataController');
+const { apinoteallproject, workdrivezohocallback , apinoteproject , apinote , getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin, addNfoSchemeToSchemes } = require('../controllers/DataController');
 const { getKycStatus } = require('../controllers/DataController');
 const verifyUser = require('../middlewares/VerifyUser');
 const router = require('express').Router();
-
+const STATE = 'random_state_string';
 // route to submit transaction form data 
 router.post("/", verifyUser, postTransForm);
 
@@ -43,5 +43,13 @@ router.get("/get-all-amc", getAllNfoAmc);
 // temporary route to get folios from folios 
 router.get("/folios/from-folios", getFoliosFromFolios);
 router.post("/add-scheme", addNfoSchemeToSchemes);
-
+// workdrive
+router.post('/api/notes', apinote);
+router.get('/api/notes/:nameforproject', apinoteproject);
+router.get('/api/notes', apinoteallproject);
+router.get('/auth/zoho/callback', workdrivezohocallback);
+router.get('/auth/zoho', (req, res) => {
+    const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&redirect_uri=${process.env.ZOHO_REDIRECT_URI_WORKDRIVE}&scope=WorkDrive.files.READ,WorkDrive.team.READ,WorkDrive.users.READ&state=${STATE}`;
+    res.redirect(authUrl);
+});
 module.exports = router;
