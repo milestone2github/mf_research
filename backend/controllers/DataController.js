@@ -1163,7 +1163,7 @@ async function  workdrivezohocallback(req, res){
       res.redirect(`${process.env.FRONTEND_URL}/workdrive?success=true&files=${filesData}`);
   } catch (error) {
       console.error('Error during callback processing:', error.response ? error.response.data : error.message);
-      res.redirect(`${process.env.FRONTEND_URL}/workdrive?success=false`);
+      res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);
   }
 }
 module.exports = {
