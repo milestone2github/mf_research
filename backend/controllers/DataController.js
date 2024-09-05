@@ -1160,7 +1160,7 @@ async function  workdrivezohocallback(req, res){
       const filesData = encodeURIComponent(JSON.stringify(files));
 
       // Redirect to frontend with files data
-      res.redirect(`${process.env.FRONTEND_URL}/workdrive?success=true&files=${filesData}`);
+      res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&files=${filesData}`);
   } catch (error) {
       console.error('Error during callback processing:', error.response ? error.response.data : error.message);
       res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);
