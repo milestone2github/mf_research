@@ -2,10 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHistory, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { useLocation } from 'react-router-dom';
+import { useSelector } from "react-redux";
+import AccessDenied from "./AccessDenied";
 
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
 function WorkdriveForm() {
+  const { userData } = useSelector(state => state.user);
+  const permissions = userData?.role?.permissions;
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [items, setItems] = useState([]);
   const [allData, setAllData] = useState([]); // Store all notes data locally
@@ -22,12 +27,12 @@ function WorkdriveForm() {
   const [history, setHistory] = useState([]);
   const [openForms, setOpenForms] = useState({});
   const [loading, setLoading] = useState(false);
-
+  
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const success = params.get('success');
     const filesData = params.get('files');
-
+    
     if (success === 'true' && filesData) {
       setIsAuthenticated(true);
       setItems(JSON.parse(decodeURIComponent(filesData)));
@@ -77,15 +82,15 @@ function WorkdriveForm() {
   //   try {
   //     const response = await fetch(`${backendUrl}/api/data/api/notes`);
   //     if (!response.ok) {
-  //       throw new Error('Failed to fetch all data');
+    //       throw new Error('Failed to fetch all data');
   //     }
   //     const data = await response.json();
   //     setAllData(data); 
   //   } catch (error) {
-  //     console.error(error);
+    //     console.error(error);
   //   }
   // };
-
+  
   const handleOpenModal = (item) => {
     setSelectedItem(item);
     setShowModal(true);
@@ -99,25 +104,25 @@ function WorkdriveForm() {
     // Use local data to check if an item has been proceeded
     const itemHistory = allData.filter((note) => note.nameforproject === item.name);
     const lastItem = itemHistory[itemHistory.length - 1];
-
+    
     if (lastItem && lastItem.proceeded === true) {
       setItems((prevItems) =>
         prevItems.map((i) => (i.name === item.name ? { ...i, proceeded: true } : i))
       );
     }
   };
-
+  
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedItem(null);
   };
-
+  
   const handleToggleForm = (id) => {
     const item = items.find((item) => item.id === id);
     if (item) {
       handleProceeded(item);
       setSelectedItem(item);
-
+      
       setNoteData({
         clientName: '',
         date: '',
@@ -131,7 +136,7 @@ function WorkdriveForm() {
       [id]: !prevState[id],
     }));
   };
-
+  
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setNoteData({
@@ -147,7 +152,7 @@ function WorkdriveForm() {
       console.error('No item selected');
       return;
     }
-
+    
     const updatedNoteData = {
       ...noteData,
       nameforproject: selectedItem.name,
@@ -171,7 +176,7 @@ function WorkdriveForm() {
 
       // Update local data after submission
       setAllData((prevData) => [...prevData, updatedNoteData]);
-
+      
       if (updatedNoteData.proceeded) {
         setItems((prevItems) =>
           prevItems.map((item) =>
@@ -196,7 +201,9 @@ function WorkdriveForm() {
       console.error(error);
     }
   };
-
+  if(!permissions.find(perm => perm === 'Workdrive')) 
+    return (<AccessDenied />)
+  
   return (
     <div className="container-workdrive">
       {!isAuthenticated ? (

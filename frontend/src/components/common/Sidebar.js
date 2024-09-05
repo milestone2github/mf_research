@@ -24,7 +24,7 @@ const Sidebar = () => {
     const permissions = userData?.role?.permissions;
 
     const allowedTabs = tabs.filter(tab =>
-        tab.name === 'Workdrive' ||tab.name === 'Calculator' || tab.name === 'Home' || permissions?.find(permission => permission === tab.name)
+        tab.name === 'Calculator' || tab.name === 'Home' || permissions?.find(permission => permission === tab.name)
     )
 
     return (
