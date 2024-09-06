@@ -43,7 +43,7 @@ function Toast() {
   return (
     <div
       id="alert-1"
-      className={`absolute top-12 shadow-md left-1/2 -translate-x-1/2 z-[1001] flex items-center p-4 mb-4 ${colorStyle.text} rounded-lg border ${colorStyle.border} ${colorStyle.bg} transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed top-12 shadow-md left-1/2 -translate-x-1/2 z-[1001] flex items-center p-4 mb-4 ${colorStyle.text} rounded-lg border ${colorStyle.border} ${colorStyle.bg} transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
       role="alert"
     >
       <FaCircleInfo />

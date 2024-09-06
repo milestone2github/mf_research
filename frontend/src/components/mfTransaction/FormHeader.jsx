@@ -52,6 +52,7 @@ function FormHeader() {
     dispatch(handleChange({ name: 'panNumber', value: option.pan || '' }))
     dispatch(handleChange({ name: 'familyHead', value: option.familyHead || '' }))
     dispatch(handleChange({ name: 'iWellCode', value: option.iWellCode || '' }))
+    dispatch(handleChange({ name: 'relationshipManager', value: option.relationshipManager || '' }))
 
     // reset other option lists 
     dispatch(resetAllOptionLists())

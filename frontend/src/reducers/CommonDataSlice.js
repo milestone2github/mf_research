@@ -8,7 +8,8 @@ const commonDataSlice = createSlice({
             panNumber: '',
             investorName: '',
             familyHead: '',
-            iWellCode: ''
+            iWellCode: '',
+            relationshipManager: ''
         }
     },
     reducers: {
@@ -23,7 +24,8 @@ const commonDataSlice = createSlice({
                 panNumber: '',
                 investorName: '',
                 familyHead: '',
-                iWellCode: ''
+                iWellCode: '',
+                relationshipManager: ''
             }
         }
     }

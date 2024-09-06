@@ -1,4 +1,4 @@
-const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin, addNfoSchemeToSchemes } = require('../controllers/DataController');
+const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin, addNfoSchemeToSchemes, createMarketingUser, updateMarketingUser, getMarketingUser } = require('../controllers/DataController');
 const { getKycStatus } = require('../controllers/DataController');
 const verifyUser = require('../middlewares/VerifyUser');
 const router = require('express').Router();
@@ -37,9 +37,17 @@ router.post("/nfo", verifyUser, postNewFundOfferForm);
 // route to get ucc data 
 router.get("/isin", getIsin);
 
+// route to create new marketing user 
+router.post('/marketing/user', verifyUser, createMarketingUser)
+
+// route to FETCH marketing user 
+router.get('/marketing/user', verifyUser, getMarketingUser)
+
+// route to update marketing user 
+router.patch('/marketing/user/:id', verifyUser, updateMarketingUser)
+
 // temporary route to get all amcs 
 router.get("/get-all-amc", getAllNfoAmc);
-
 // temporary route to get folios from folios 
 router.get("/folios/from-folios", getFoliosFromFolios);
 router.post("/add-scheme", addNfoSchemeToSchemes);

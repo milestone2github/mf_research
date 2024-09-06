@@ -8,6 +8,9 @@ const generateHtmlOfNfo = require("../utils/generateHtmlOfNfo");
 const Transactions = require("../models/Transactions");
 const { formatDateToDDMMYYYYHHMMSSss } = require("../utils/formatDate");
 const { schemeMap } = require("../utils/maps");
+const MarketingUser = require("../models/MarketingUser");
+const User = require("../models/User");
+const { toTitleCase } = require("../utils/formatString");
 require('dotenv').config()
 
 
@@ -187,7 +190,7 @@ const postTransForm = async (req, res) => {
     let allFormsData = []; // to post all entries at once to zoho flow
 
     // modify transaction preference from string to Date 
-    const { transactionPreference } = formData.commonData;
+    const { transactionPreference, relationshipManager } = formData.commonData;
     if (transactionPreference === 'ASAP') {
       formData.commonData.transactionPreference = new Date()
     }
@@ -196,6 +199,9 @@ const postTransForm = async (req, res) => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       formData.commonData.transactionPreference = tomorrow
     }
+
+    // modify relationshipManager's name 
+    formData.commonData.relationshipManager = toTitleCase(relationshipManager)
 
     let results = [];
     if (!req.session || !req.session.user) {
@@ -341,7 +347,7 @@ const postTransForm = async (req, res) => {
       });
 
       // send email to user 
-      sendEmail("noreply@mnivesh.niveshonline.com", "MF Transactions", generateHtmlContent(mailData), email, "pramod@niveshonline.com"); //test include cc address
+      sendEmail("noreply@mnivesh.niveshonline.com", "MF Transactions", generateHtmlContent(mailData), email, "pramod@niveshonline.com");
 
       res.status(200).json(results);
     } else {
@@ -516,96 +522,6 @@ const getNfoAmc = async (req, res) => {
   }
 }
 
-// const getNfoSchemes = async (req, res) => { // accepts amc in query
-//   const { amc, schemePlan, purchaseTrxMode } = req.query;
-//   try {
-//     const bseCollection = req.milestoneDb.collection('bseschemes')
-
-//     const today = new Date();
-//     const nextDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-//     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 1); // First day of next of next month
-
-//     const formatDateString = (date) => {
-//       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-//       const day = String(date.getDate());
-//       const month = monthNames[date.getMonth()];
-//       const year = date.getFullYear();
-//       return `${month} ${day} ${year}`;
-//     }
-
-//     const nextDayString = formatDateString(nextDay);
-//     const nextMonthString = formatDateString(nextMonth);
-
-//     // console.log('current date: ', nextDayString) //test
-//     // console.log('next month end date: ', nextMonthString) //test
-//     let matchStage = {
-//       "ReOpeningDateParsed": {
-//         $gt: new Date(nextDayString),
-//         $lt: new Date(nextMonthString)
-//       }
-//     }
-
-//     if (amc) {
-//       matchStage['AMC Code'] = { $in: Array.isArray(amc) ? amc : [amc] }
-//     }
-//     if (schemePlan) {
-//       matchStage['Scheme Plan'] = { $in: Array.isArray(schemePlan) ? schemePlan : [schemePlan] }
-//     }
-//     if (purchaseTrxMode) {
-//       matchStage['Purchase Transaction mode'] = { $in: Array.isArray(purchaseTrxMode) ? purchaseTrxMode : [purchaseTrxMode] }
-//     }
-
-//     const data = await bseCollection.aggregate([
-//       {
-//         $match: {
-//           "ReOpening Date": { $exists: true, $type: "string" }
-//         }
-//       },
-//       {
-//         $addFields: {
-//           "ReOpeningDateCleaned": {
-//             $replaceAll: {
-//               input: "$ReOpening Date",
-//               find: "  ",
-//               replacement: " "
-//             }
-//           }
-//         }
-//       },
-//       {
-//         $addFields: {
-//           "ReOpeningDateParsed": {
-//             $dateFromString: {
-//               dateString: "$ReOpeningDateCleaned",
-//               format: "%b %d %Y"
-//             }
-//           }
-//         }
-//       },
-//       {
-//         $match: matchStage
-//       },
-//       { $sort: { "ReOpeningDateParsed": 1 } },
-//       // {
-//       //   $project: {
-//       //     _id: 0,
-//       //     "Scheme Name": 1,
-//       //     "ReOpeningDateParsed": 1
-//       //     "ISIN": 1
-//       //   }
-//       // }
-//     ]).toArray();
-
-//     if (!data) {
-//       return res.status(400).json({ message: 'Error getting NFO schemes', data: null })
-//     }
-
-//     res.status(200).json({ message: 'Found NFO schemes', data })
-//   } catch (error) {
-//     console.log('Error while getting NFO schemes', error.message)
-//     res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` })
-//   }
-// }
 const getNfoSchemes = async (req, res) => {
   let { amc, schemePlan, purchaseTrxMode } = req.query;
   try {
@@ -742,7 +658,6 @@ const getUcc = async (req, res) => {
 }
 
 const postNewFundOfferForm = async (req, res) => {
-  console.log('POST /api/data/nfo') //test
   const { investorName, pan, familyHead, ucc, amc, schemeCode, schemeName, folio, amount, schemeOption } = req.body;
 
   // create unique session id 
@@ -792,22 +707,6 @@ const postNewFundOfferForm = async (req, res) => {
     res.status(500).json({ error: `Error saving NFO: ${error.message}` })
   }
 }
-// const getUcc = async (req, res) => {
-
-//   try {
-//     const clientMasterCollection = req.milestoneDb.collection('BSEclientmaster');
-//     const data = await clientMasterCollection.aggregate([
-//       {$group: {
-//         "_id": "$Tax_Status"
-//       }}
-//     ]).toArray();
-
-//     res.status(200).json({ message: 'UCC data found', data })
-//   } catch (error) {
-//     console.log('Error while getting UCC data', error.message)
-//     res.status(500).json({ error: `Error while getting UCC data: ${error.message}` })
-//   }
-// }
 
 const getFoliosFromInvestwell = async (req, res) => {
   let pan = req.query.pan;
@@ -919,6 +818,112 @@ const getIsin = async (req, res) => { // accepts amc in query
   }
 }
 
+// create marketing user doc 
+const createMarketingUser = async (req, res) => {
+  const {email, company, phone} = req.body
+  const user = req.user._id;
+  const validationErrors = []
+
+  // Email validation regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  // Phone validation regex
+  const phoneRegex = /^\d{10,12}$/;
+
+  if(!email || !company || !phone) {
+    validationErrors.push('Email, phone, and company name all are required')
+  }
+  if(!emailRegex.test(email)) {
+    validationErrors.push('Invalid email address')
+  }
+  if(!phoneRegex.test(phone)) {
+    validationErrors.push('Invalid phone number')
+  }
+  
+  if(validationErrors.length) {
+    return res.status(400).json({error: validationErrors})
+  }
+
+  try {
+    const newUser = await MarketingUser.findOneAndUpdate(
+      {user}, 
+      {email, phone, company}, 
+      {upsert: true, new: true}
+    )
+
+    if(!newUser) {
+      throw new Error("DB error while creating marketing user")
+    }
+
+    res.status(201).json({message: 'Created', data: newUser})
+  } catch (error) {
+    console.error('Error creating marketing user: ', error.message)
+    res.status(500).json({error: error.message})
+  }
+}
+
+// update marketing user 
+const updateMarketingUser = async (req, res) => {
+  const {email, company, phone} = req.body
+  const id = req.params.id
+  const validationErrors = []
+  let updateFields = {}
+
+  // Email validation regex
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  // Phone validation regex
+  const phoneRegex = /^\d{10,12}$/;
+
+  if(!email || !company || !phone) {
+    validationErrors.push('Email, phone, or company one of them is required')
+  }
+  if(email) {
+    updateFields.email = email
+    if(!emailRegex.test(email)) {
+      validationErrors.push('Invalid email address')
+    }
+  }
+  if(phone) {
+    updateFields.phone = phone
+    if(!phoneRegex.test(phone)) {
+      validationErrors.push('Invalid phone number')
+    }
+  }
+
+  if(company) {updateFields.company = company}
+  
+  if(validationErrors.length) {
+    return res.status(400).json({error: validationErrors})
+  }
+
+  try {
+    const updatedUser = await MarketingUser.findByIdAndUpdate(id, updateFields, {new: true}).lean()
+    if(!updatedUser) {
+      throw new Error("DB error while updating marketing user")
+    }
+
+    res.status(201).json({message: 'Updated', data: updatedUser})
+  } catch (error) {
+    console.error('Error updating marketing user: ', error.message)
+    res.status(500).json({error: error.message})
+  }
+}
+
+// route to get marketing user 
+const getMarketingUser = async (req, res) => {
+  try {
+    const user = await MarketingUser.findOne({user: req.user._id}).lean()
+    if(!user) {
+      return res.status(404).json({error: 'Marketing user not found'})
+    }
+    res.status(200).json({message: 'User found', data: user})
+  } catch (error) {
+    console.error('Error getting marketing user: ', error.message)
+    res.status(500).json({error: error.message})
+  }
+}
+
 // temporary controller to get all amcs 
 const getAllNfoAmc = async (req, res) => {
   try {
@@ -944,6 +949,7 @@ const getAllNfoAmc = async (req, res) => {
   }
 }
 
+// temporary 
 const addNfoSchemeToSchemes = async (req, res) => {
   const { amcName, schemeName } = req.query
   try {
@@ -974,6 +980,9 @@ module.exports = {
   getIsin,
   getAllNfoAmc,
   getKycStatus,
+  createMarketingUser,
+  updateMarketingUser,
+  getMarketingUser,
   addNfoSchemeToSchemes
 }
 

@@ -7,6 +7,7 @@ import userReducer from '../reducers/UserSlice'
 import optionListsReducer from '../reducers/OptionListsSlice'
 import transactionReducer from '../reducers/TransactionSlice'
 import toastSlice from "../reducers/ToastSlice";
+import MarketingUserSlice from "../reducers/MarketingUserSlice";
 
 export default configureStore({
     reducer: {
@@ -17,6 +18,7 @@ export default configureStore({
         user: userReducer,
         optionLists: optionListsReducer,
         transactions: transactionReducer,
-        toast: toastSlice 
+        toast: toastSlice,
+        marketingUser: MarketingUserSlice 
     }
 })

@@ -42,6 +42,7 @@ import InternalLink from "./components/pages/InternalLink";
 import AboutUs from "./components/links/AboutUs";
 import AllLinks from "./components/links/AllLinks";
 import AppLink from "./components/links/AppLink";
+import MarketingTemplates from "./components/pages/MarketingTemplates";
 import Mint from "./components/pages/Mint";
 
 function App() {
@@ -77,6 +78,7 @@ function App() {
                 <Route path="about_us" element={<AboutUs />} />
                 <Route path="app_link" element={<AppLink />} />
               </Route>
+              <Route path="/marketing-templates" element={<Protected><MarketingTemplates/></Protected>} />
               <Route path="/mint" element={<Protected><Mint/></Protected>} />
 
               <Route path="/calculator" element={<Protected><Calculators /></Protected>} >

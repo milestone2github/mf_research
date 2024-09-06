@@ -7,6 +7,8 @@ const transactionSchema = new mongoose.Schema({
   investorName: String,
   familyHead: String,
   iWellCode: String,
+  relationshipManager: {type: String, trim: true},
+  serviceManager: {type: String, trim: true},
   registrantName: String,
   registrantEmail: {type: String, required: true},
   category: {type: String, enum: ['systematic', 'purchredemp', 'switch']},

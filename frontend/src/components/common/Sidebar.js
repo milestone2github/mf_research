@@ -15,6 +15,7 @@ const tabs = [
     { name: 'NFO', to: '/nfo-form', label: 'NFO Transaction' },
     { name: 'Operations Dashboard', to: 'https://ops.mnivesh.com', label: 'OPS Dashboard' },
     { name: 'Links', to: '/links', label: 'Links' },
+    { name: 'Marketing Templates', to: '/marketing-templates', label: 'Marketing Templates' },
     { name: 'Mint', to: '/mint', label: 'Mint' },
 ]
 
