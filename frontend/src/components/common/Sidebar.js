@@ -17,6 +17,7 @@ const tabs = [
     { name: 'Links', to: '/links', label: 'Links' },
     { name: 'Marketing Templates', to: '/marketing-templates', label: 'Marketing Templates' },
     { name: 'Mint', to: '/mint', label: 'Mint' },
+    { name: 'Workdrive', to: '/workdrive', label: 'Workdrive Files' },
 ]
 
 const Sidebar = () => {
