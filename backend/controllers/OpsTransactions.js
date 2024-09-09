@@ -166,9 +166,9 @@ const removeFraction = async (req, res) => {
   }
 }
 
-// get transactions group by family head + rm 
-const getTransactionsGroupByFhAndRm = async (req, res) => {
-  const smFilter = req.query.smFilter || 'my'
+// get transactions group by family head
+const getTransactionsGroupByFh = async (req, res) => {
+  const smFilter = req.query.smFilter || 'all'
   const userName = req.user?.name
   let matchStage = {}
   let uptoDate = new Date()
@@ -194,7 +194,7 @@ const getTransactionsGroupByFhAndRm = async (req, res) => {
       
       {
         $addFields: {
-          familyHeadRelationshipManager: { $concat: ["$familyHead", "-", { $ifNull: ["$relationshipManager", ""]}] },
+          // familyHeadRelationshipManager: { $concat: ["$familyHead", "-", { $ifNull: ["$relationshipManager", ""]}] },
           transactionCount: {$cond: [
             {$eq: [{ $size: "$transactionFractions" }, 0]}, 
             1, 
@@ -248,7 +248,7 @@ const getTransactionsGroupByFhAndRm = async (req, res) => {
       
       {
         $group: {
-          _id: "$familyHeadRelationshipManager",
+          _id: "$familyHead",
           count: { $sum: "$transactionCount" },
           investorName: { $first: "$investorName" },
           familyHead: { $first: "$familyHead" },
@@ -277,14 +277,14 @@ const getTransactionsGroupByFhAndRm = async (req, res) => {
   }
 }
 
-// get transactions of matching family head and RM group by category 
-const getTransactionsByFamilyHeadAndRm = async (req, res) => {
-  const { fh, rm } = req.query;
+// get transactions of matching family head group by category 
+const getTransactionsFilterByFamilyHead = async (req, res) => {
+  const { fh } = req.query;
   const smFilter = req.query.smFilter || 'all'
   const userName = req.user?.name
 
-  if (!fh || !rm) {
-    return res.status(400).json({ error: 'family head and relationship manager are required to get transactions' })
+  if (!fh) {
+    return res.status(400).json({ error: 'family head is required to get transactions' })
   }
   
   // if its Saturday set it to upcoming Monday otherwise the next Day
@@ -296,7 +296,7 @@ const getTransactionsByFamilyHeadAndRm = async (req, res) => {
     uptoDate.setDate(uptoDate.getDate() + 1)
   }
   
-  let matchStage = { transactionPreference: { $lte: uptoDate }, familyHead: fh, relationshipManager: rm }
+  let matchStage = { transactionPreference: { $lte: uptoDate }, familyHead: fh }
   if(smFilter === 'my') {
     matchStage.serviceManager = toTitleCase(userName)
   }
@@ -794,13 +794,47 @@ const nfoTransactions = async (req, res) => {
   }
 }
 
+// TEMPORARY set relationship manager 
+const setRelationshipManager = async (req, res) => {
+  const { rm } = req.query;
+  const rmMap = {
+    'Ishu Mavar': 'Ishu Mavar',
+    'Sagar Maini': 'Sagar Maini',
+    'Ved Prakash Sharma': 'Pramod Bhutani',
+    'ruby': 'Ruby',
+    'Yatin Munjal': 'Yatin Munjal'
+  }
+
+  try {
+    // Update all matching transactions
+    const result = await Transactions.updateMany(
+      { registrantName: rm },
+      { $set: { relationshipManager: rmMap[rm]} }
+    );
+
+    // If no transactions were updated, send a 404 error
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'No transactions found to update relationship manager' });
+    }
+
+    res.status(200).json({ message: 'Updated relationship manager', data: {
+      registrantName: rm,
+      relationshipManager: rmMap[rm],
+      modifiedCount: result.modifiedCount 
+    } });
+  } catch (error) {
+    console.error('Error updating relationship manager: ', error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getGroupedTransactions,
   getTransactionsBySession,
   addNewFraction,
   removeFraction,
-  getTransactionsGroupByFhAndRm,
-  getTransactionsByFamilyHeadAndRm,
+  getTransactionsGroupByFh,
+  getTransactionsFilterByFamilyHead,
   addAllFractions,
   generateLink,
   getAllAmcNames,
@@ -813,5 +847,6 @@ module.exports = {
   updatePreferenceDate,
   getSMNames,
   setServiceManager,
-  updateNote
+  updateNote,
+  setRelationshipManager //TEMPORARY
 }
