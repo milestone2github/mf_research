@@ -740,6 +740,41 @@ const setServiceManager = async (req, res) => {
   }
 };
 
+// update note
+const updateNote = async (req, res) => {
+  const transactionId = req.params.id
+  const note = req.body.note
+  const fractionId = req.body.fractionId
+
+  if(!transactionId) {
+    return res.status(400).json({error: 'Transaction Id is required'})
+  }
+  if(!note) {
+    return res.status(400).json({error: 'Nothing to update'})
+  }
+
+  try {
+    let transaction;
+    if(!fractionId) {
+      transaction = await Transactions.findByIdAndUpdate(transactionId, {note}, {new: true}).lean()
+    }
+
+    else {
+      transaction = await Transactions.findOneAndUpdate({
+        _id: transactionId, 'transactionFractions._id': fractionId
+      }, {'transactionFractions.$.note': note,}, {new: true}).lean()
+    }
+    if(!transaction) {
+      throw new Error("Transaction not found")
+    }
+
+    res.status(200).json({message: 'Note updated', data: transaction})
+  } catch (error) {
+    console.error('Error updating note: ', error.message)
+    res.status(500).json({error: error.message})
+  }
+};
+
 // get all NFO transactions 
 const nfoTransactions = async (req, res) => {
   const items = Number(req.query.items) || 10
@@ -777,5 +812,6 @@ module.exports = {
   updateOrderId,
   updatePreferenceDate,
   getSMNames,
-  setServiceManager
+  setServiceManager,
+  updateNote
 }

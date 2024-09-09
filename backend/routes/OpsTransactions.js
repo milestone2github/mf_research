@@ -1,4 +1,4 @@
-const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, getTransactionsGroupByFhAndRm, getTransactionsByFamilyHeadAndRm, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, updatePreferenceDate, getSMNames, setServiceManager } = require('../controllers/OpsTransactions');
+const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, getTransactionsGroupByFhAndRm, getTransactionsByFamilyHeadAndRm, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, updatePreferenceDate, getSMNames, setServiceManager, updateNote } = require('../controllers/OpsTransactions');
 const verifyUser = require('../middlewares/VerifyUser')
 const router = require('express').Router();
 
@@ -20,5 +20,6 @@ router.get('/sm-names', getSMNames);
 router.patch('/service-manager', setServiceManager);
 router.patch('/update-status/:id', updateApprovalStatus);
 router.patch('/preference-date/:id', updatePreferenceDate);
+router.patch('/note/:id', updateNote);
 
 module.exports = router

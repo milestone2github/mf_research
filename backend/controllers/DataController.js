@@ -17,10 +17,7 @@ const mongoose = require('mongoose');
 
 require('dotenv').config()
 // Create a new MongoDB connection
-const newDbConnection = mongoose.createConnection('mongodb+srv://milestonegpt4:kv6A5KW7sUKJ9jOQ@cluster0.krug8nd.mongodb.net/your-database-name', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+const newDbConnection = mongoose.createConnection('mongodb+srv://milestonegpt4:kv6A5KW7sUKJ9jOQ@cluster0.krug8nd.mongodb.net/your-database-name');
 
 // Handle connection events
 newDbConnection.on('connected', () => {
@@ -229,9 +226,6 @@ const postTransForm = async (req, res) => {
       formData.commonData.transactionPreference = tomorrow
     }
 
-    // modify relationshipManager's name 
-    formData.commonData.relationshipManager = toTitleCase(relationshipManager)
-
     let results = [];
     if (!req.session || !req.session.user) {
       return res.status(401).json({ message: "User not logged in" });
@@ -248,8 +242,19 @@ const postTransForm = async (req, res) => {
       ...formData.commonData,
       registrantName: name,
       registrantEmail: email,
+      relationshipManager: toTitleCase(relationshipManager),
       sessionId
     };
+
+    // check if any transaction exist with same familyHead whose SM is set 
+    const transactionWithSm = await Transactions.findOne({
+      familyHead: formData.commonData.familyHead,
+      serviceManager: {$nin : [null, '']}
+    }).lean()
+
+    if(transactionWithSm) {
+      formData.commonData.serviceManager = transactionWithSm.serviceManager
+    }
 
     const { systematicData, purchRedempData, switchData } = formData
 
@@ -291,7 +296,6 @@ const postTransForm = async (req, res) => {
         }
       };
     }
-
 
     if (purchRedempData?.length) {
       for (const element of purchRedempData) {

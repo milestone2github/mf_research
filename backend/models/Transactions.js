@@ -31,6 +31,7 @@ const transactionSchema = new mongoose.Schema({
   chequeNumber: {type: String, maxLength: 6},
   sessionId: String,
   orderId: String,
+  note: {type: String, trim: true, maxLength: 1200},
   status: {type: String, enum: statusEnum},
   approvalStatus: {type: String, enum: approvalStatusEnum, default: ''},
   linkStatus: {type: String, enum: ['generated', 'locked', 'unlocked'], default: 'unlocked'},
@@ -40,6 +41,7 @@ const transactionSchema = new mongoose.Schema({
     addedBy: String, 
     orderId: String,
     folioNumber: String,
+    note: {type: String, trim: true, maxLength: 1200},
     linkStatus: {type: String, enum: ['initialized', 'generated', 'deleted']},
     status: {type: String, enum: statusEnum},
     approvalStatus: {type: String, enum: approvalStatusEnum, default: ''}
