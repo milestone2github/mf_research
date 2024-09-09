@@ -543,6 +543,7 @@ const filteredTransactions = async (req, res) => {
   const skipItems = items * (page - 1)
   let filters = {}
 
+  // Apply filters based on query parameters
   if (minDate) {
     minDate = new Date(minDate)
     filters.transactionPreference = { $gte: minDate }
@@ -593,39 +594,39 @@ const filteredTransactions = async (req, res) => {
     filters.transactionFor = transactionFor
   }
 
+  // Define sorting options
   const sortMap = new Map()
-  sortMap.set('trxdate-asc', {transactionPreference: 1})
-  sortMap.set('trxdate-desc', {transactionPreference: -1})
-  sortMap.set('amount-asc', {amount: 1})
-  sortMap.set('amount-desc', {amount: -1})
+  sortMap.set('trxdate-asc', { transactionPreference: 1 })
+  sortMap.set('trxdate-desc', { transactionPreference: -1 })
+  sortMap.set('amount-asc', { amount: 1 })
+  sortMap.set('amount-desc', { amount: -1 })
   let sortBy = sortMap.get(sort || 'trxdate-desc')
 
   try {
-    // Get total count of transactions
+    // Get total count of filtered transactions
     const totalTransactions = await Transactions.countDocuments(filters)
 
-    // Get total sum of amount and paginated transactions
-    const aggregationPipeline = [
+    // Calculate the total sum of amount for all filtered transactions before applying pagination
+    const totalAmountResult = await Transactions.aggregate([
       { $match: filters },
-      { $sort: sortBy },
-      { $skip: skipItems },
-      { $limit: items }
-    ]
-
-    const transactions = await Transactions.aggregate([
-      ...aggregationPipeline,
       {
         $group: {
           _id: null,
-          totalAmount: { $sum: "$amount" },
-          transactions: { $push: "$$ROOT" }
+          totalAmount: { $sum: "$amount" }
         }
       }
     ])
 
-    const totalAmount = transactions.length > 0 ? transactions[0].totalAmount : 0
-    const paginatedTransactions = transactions.length > 0 ? transactions[0].transactions : []
-    
+    const totalAmount = totalAmountResult.length > 0 ? totalAmountResult[0].totalAmount : 0
+
+    // Fetch paginated transactions after skip and limit
+    const paginatedTransactions = await Transactions.aggregate([
+      { $match: filters },
+      { $sort: sortBy },
+      { $skip: skipItems },
+      { $limit: items }
+    ])
+
     res.status(200).json({
       data: {
         transactions: paginatedTransactions,
