@@ -797,20 +797,21 @@ const nfoTransactions = async (req, res) => {
 
 // TEMPORARY set relationship manager 
 const setRelationshipManager = async (req, res) => {
-  const { rm } = req.query;
+  const { rn } = req.query;
   const rmMap = {
     'Ishu Mavar': 'Ishu Mavar',
     'Sagar Maini': 'Sagar Maini',
     'Ved Prakash Sharma': 'Pramod Bhutani',
     'ruby': 'Ruby',
-    'Yatin Munjal': 'Yatin Munjal'
+    'Yatin Munjal': 'Yatin Munjal',
+    'test_user': 'Test Relationship Manager'
   }
 
   try {
     // Update all matching transactions
     const result = await Transactions.updateMany(
-      { registrantName: rm },
-      { $set: { relationshipManager: rmMap[rm]} }
+      { registrantName: rn, relationshipManager: null },
+      { $set: { relationshipManager: rmMap[rn]} || req.query.rm }
     );
 
     // If no transactions were updated, send a 404 error
@@ -819,8 +820,8 @@ const setRelationshipManager = async (req, res) => {
     }
 
     res.status(200).json({ message: 'Updated relationship manager', data: {
-      registrantName: rm,
-      relationshipManager: rmMap[rm],
+      registrantName: rn,
+      relationshipManager: rmMap[rn] || req.query.rm,
       modifiedCount: result.modifiedCount 
     } });
   } catch (error) {
