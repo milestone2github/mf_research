@@ -43,6 +43,7 @@ const zohoCallback = async (req, res) => {
         name: userExist.nameAsRM || `${decode.first_name} ${decode.last_name}`,
         email: userExist.email,
         mintUsername: userExist.mintUsername,
+        insuranceDashboardId: userExist.insuranceDashboardId,
         role: userExist.role
       };
       res.redirect(redirectUrl ?? '/');
@@ -95,9 +96,9 @@ const verifyGoogleUser = async (req, res) => {
       req.session.user = {
         name: userExist.nameAsRM || req.body.fullname,
         email: userExist.email,
+        insuranceDashboardId: userExist.insuranceDashboardId,
         role: userExist.role
       };
-
       return res.status(200).json({success:true , msg:"logged in successfull" , user:{
         name: req.body.fullname,
         userdata: userExist,

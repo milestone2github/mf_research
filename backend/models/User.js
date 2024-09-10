@@ -13,7 +13,8 @@ const userSchema = mongoose.Schema({
         require: true,
         ref:"ROLES"
     },
-    mintUsername: {type: String, trim: true}
+    mintUsername: {type: String, trim: true},
+    insuranceDashboardId: {type: String, trim: true}
 })
 
 const User = mongoose.model("USERS", userSchema)
