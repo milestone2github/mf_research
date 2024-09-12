@@ -375,13 +375,13 @@ const addAllFractions = async (req, res) => {
 
 // generate link (by trx id)
 const generateLink = async (req, res) => {
-  let { fractionId, platform, orderId } = req.body;
-
+  let { fractionId, platform, orderId, approvalStatus } = req.body;
+  approvalStatus = approvalStatus === '' ? 'Approved' : approvalStatus
   try {
     let transaction;
     // Ensure the new fraction is provided
     if (!fractionId) {
-      transaction = await Transactions.findByIdAndUpdate(req.params.id, { linkStatus: 'generated', orderId }, { new: true })
+      transaction = await Transactions.findByIdAndUpdate(req.params.id, { linkStatus: 'generated', orderId, approvalStatus }, { new: true })
     }
     else {
       // Update the document by pushing the new fraction to the array
@@ -391,6 +391,7 @@ const generateLink = async (req, res) => {
           $set: {
             'transactionFractions.$.linkStatus': 'generated',
             'transactionFractions.$.orderId': orderId,
+            'transactionFractions.$.approvalStatus': approvalStatus,
           }
         },
         { new: true }
