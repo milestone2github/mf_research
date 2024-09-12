@@ -9,7 +9,7 @@ router.get('/transactions-of-fhrm', verifyUser, getTransactionsFilterByFamilyHea
 router.patch('/generate-link/:id', generateLink); //new
 router.patch('/order-id/:id', updateOrderId); //new
 router.patch('/fraction/add/:id', addNewFraction);
-router.patch('/fraction/add-all/:id', addAllFractions);
+router.patch('/fraction/add-all/:id', verifyUser, addAllFractions);
 router.patch('/fraction/remove/:id', removeFraction);
 router.get('/filtered-transactions', filteredTransactions);
 router.get('/nfo-transactions', nfoTransactions);
