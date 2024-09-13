@@ -69,7 +69,7 @@ const optionListsSlice = createSlice({
           familyHead: investor['FAMILY HEAD'],
           email: investor['EMAIL'],
           iWellCode: investor['IWELL CODE'],
-          relationshipManager: investor['RELATIONSHIP MANAGER'],
+          relationshipManager: investor['RELATIONSHIP  MANAGER'],
         })
       })
       state.investorNameOptions = investorOptions;
