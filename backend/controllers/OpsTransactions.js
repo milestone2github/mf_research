@@ -334,42 +334,47 @@ const addAllFractions = async (req, res) => {
   const userName = toTitleCase(req.user.name)
 
   try {
-    // Ensure the new fraction is provided
-    if (!fractions.length) {
-      return res.status(400).json({ error: 'New fraction amount is required' });
+    let trxFractions = []
+    let linkStatus = 'unlocked'
+    let hasFractions = false
+
+    if (fractions?.length) {
+      trxFractions = fractions.map(item => {
+        let status = item.status 
+        if(item.approvalStatus) {
+          status = approvalStatusMap.get(item.approvalStatus)
+        }
+        if (item.fractionAmount) {
+          return {
+            fractionAmount: Number(item.fractionAmount),
+            status: status,
+            addedBy: userName,
+            linkStatus: item.linkStatus || 'initialized',
+            folioNumber: item.folioNumber,
+            approvalStatus: item.approvalStatus,
+            transactionDate: item.transactionDate || Date.now()
+          }
+        }
+      })
+      linkStatus = 'locked'
+      hasFractions = true
     }
 
-    let trxFractions = fractions.map(item => {
-      let status = item.status 
-      if(item.approvalStatus) {
-        status = approvalStatusMap.get(item.approvalStatus)
-      }
-      if (item.fractionAmount) {
-        return {
-          fractionAmount: Number(item.fractionAmount),
-          status: status,
-          addedBy: userName,
-          linkStatus: item.linkStatus || 'initialized',
-          folioNumber: item.folioNumber,
-          approvalStatus: item.approvalStatus,
-          transactionDate: item.transactionDate || Date.now()
-        }
-      }
-    })
     // Update the document by pushing the new fraction to the array
     const transaction = await Transactions.findByIdAndUpdate(req.params.id, {
       $set: { transactionFractions: trxFractions },
-      linkStatus: 'locked'
+      linkStatus,
+      hasFractions
     }, { new: true })
 
     if (!transaction) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    res.status(200).json({ message: 'Fractions added', data: transaction });
+    res.status(200).json({ message: 'Fractions updated', data: transaction });
   } catch (error) {
-    console.error("Error adding fraction: ", error.message);
-    res.status(500).json({ error: `Error adding fractions: ${error.message}` });
+    console.error("Error updating fraction: ", error.message);
+    res.status(500).json({ error: `Error updating fractions: ${error.message}` });
   }
 }
 
@@ -829,7 +834,7 @@ const setRelationshipManager = async (req, res) => {
     console.error('Error updating relationship manager: ', error.message);
     res.status(500).json({ error: error.message });
   }
-};
+};  
 
 module.exports = {
   getGroupedTransactions,
@@ -851,5 +856,5 @@ module.exports = {
   getSMNames,
   setServiceManager,
   updateNote,
-  setRelationshipManager //TEMPORARY
+  setRelationshipManager, //TEMPORARY
 }

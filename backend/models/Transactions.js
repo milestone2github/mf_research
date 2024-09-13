@@ -35,6 +35,7 @@ const transactionSchema = new mongoose.Schema({
   status: {type: String, enum: statusEnum},
   approvalStatus: {type: String, enum: approvalStatusEnum, default: ''},
   linkStatus: {type: String, enum: ['generated', 'locked', 'unlocked'], default: 'unlocked'},
+  hasFractions: {type: Boolean, default: false},
   transactionFractions: [{
     fractionAmount: Number,
     transactionDate: {type: Date, default: Date.now},
