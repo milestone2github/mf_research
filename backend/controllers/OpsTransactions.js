@@ -180,33 +180,35 @@ const getTransactionsGroupByFh = async (req, res) => {
   }
 
   matchStage.transactionPreference = { $lte: uptoDate }
-  if(smFilter === 'my') {
+  if (smFilter === 'my') {
     matchStage.serviceManager = toTitleCase(userName)
   }
-  else if(smFilter === 'ua') {
-    matchStage.serviceManager = {$in: [null, '']}
+  else if (smFilter === 'ua') {
+    matchStage.serviceManager = { $in: [null, ''] }
   }
 
   try {
     // get all transactions group by "family head + rm" 
     const pipeline = [
       { $match: matchStage },
-      
+
       {
         $addFields: {
           // familyHeadRelationshipManager: { $concat: ["$familyHead", "-", { $ifNull: ["$relationshipManager", ""]}] },
-          transactionCount: {$cond: [
-            {$eq: [{ $size: "$transactionFractions" }, 0]}, 
-            1, 
-            { $size: "$transactionFractions"}
-          ]},
-          
+          transactionCount: {
+            $cond: [
+              { $eq: [{ $size: "$transactionFractions" }, 0] },
+              1,
+              { $size: "$transactionFractions" }
+            ]
+          },
+
           pendingCounts: {
             $reduce: {
               input: {
                 $cond: [
                   { $eq: [{ $size: "$transactionFractions" }, 0] },
-                  [{ status: "$status"}],
+                  [{ status: "$status" }],
                   "$transactionFractions"
                 ]
               },
@@ -245,7 +247,7 @@ const getTransactionsGroupByFh = async (req, res) => {
           }
         }
       },
-      
+
       {
         $group: {
           _id: "$familyHead",
@@ -253,7 +255,7 @@ const getTransactionsGroupByFh = async (req, res) => {
           investorName: { $first: "$investorName" },
           familyHead: { $first: "$familyHead" },
           relationshipManager: { $first: "$relationshipManager" },
-          serviceManager: {$first: "$serviceManager"},
+          serviceManager: { $first: "$serviceManager" },
           createdAt: { $min: "$transactionPreference" },
           totalPending: { $sum: "$pendingCounts.total" },
           sysPending: { $sum: "$pendingCounts.sys" },
@@ -261,10 +263,10 @@ const getTransactionsGroupByFh = async (req, res) => {
           switchPending: { $sum: "$pendingCounts.switch" }
         }
       },
-      
+
       { $sort: { createdAt: 1 } }
     ];
-    
+
     const transactions = await Transactions.aggregate(pipeline)
 
     res.status(200).json({
@@ -286,7 +288,7 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
   if (!fh) {
     return res.status(400).json({ error: 'family head is required to get transactions' })
   }
-  
+
   // if its Saturday set it to upcoming Monday otherwise the next Day
   let uptoDate = new Date()
   if (uptoDate.getDay() == 6) {
@@ -295,17 +297,60 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
   else {
     uptoDate.setDate(uptoDate.getDate() + 1)
   }
-  
+
   let matchStage = { transactionPreference: { $lte: uptoDate }, familyHead: fh }
-  if(smFilter === 'my') {
+  if (smFilter === 'my') {
     matchStage.serviceManager = toTitleCase(userName)
   }
-  else if(smFilter === 'ua') {
-    matchStage.serviceManager = {$in: [null, '']}
+  else if (smFilter === 'ua') {
+    matchStage.serviceManager = { $in: [null, ''] }
   }
+
+  let past3days = new Date()
+  past3days.setDate(past3days.getDate() - 3)
+
+  let addStage = {
+    pendingOrRejectedRecently: {
+      $cond: {
+        if: { $eq: ["$hasFractions", false] },
+        then: {
+          $or: [
+            { $eq: ["$status", "PENDING"] },
+            {
+              $and: [
+                { $eq: ["$status", "REJECTED"] },
+                { $gte: ['$updatedAt', past3days] }
+              ]
+            }
+          ]
+        },
+        else: {
+          $anyElementTrue: [{
+            $map: {
+              input: "$transactionFractions",
+              in: {
+                $or: [
+                  { $eq: ["$$this.status", "PENDING"] },
+                  {
+                    $and: [
+                      { $eq: ["$$this.status", "REJECTED"] },
+                      { $gte: ['$updatedAt', past3days] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }]
+        }
+      }
+    }
+  }
+
+  matchStage.pendingOrRejectedRecently = true
 
   try {
     const transactions = await Transactions.aggregate([
+      { $addFields: addStage },
       { $match: matchStage },
       { $sort: { investorName: 1, transactionPreference: 1 } },
       {
@@ -340,8 +385,8 @@ const addAllFractions = async (req, res) => {
 
     if (fractions?.length) {
       trxFractions = fractions.map(item => {
-        let status = item.status 
-        if(item.approvalStatus) {
+        let status = item.status
+        if (item.approvalStatus) {
           status = approvalStatusMap.get(item.approvalStatus)
         }
         if (item.fractionAmount) {
@@ -417,8 +462,8 @@ const generateLink = async (req, res) => {
 // generate link (by trx id)
 const updateOrderId = async (req, res) => {
   let { fractionId, orderId } = req.body;
-  if(!orderId) {
-    return res.status(400).json({error: 'Order ID is required!'})
+  if (!orderId) {
+    return res.status(400).json({ error: 'Order ID is required!' })
   }
 
   try {
@@ -476,17 +521,17 @@ const getAllAmcNames = async (req, res) => {
 
 // get all scheme names of an amc 
 const getSchemeNames = async (req, res) => {
-  const {amc} = req.query
+  const { amc } = req.query
 
-  if(!amc) {
-    return res.status(400).json({error: 'AMC name is required'})
+  if (!amc) {
+    return res.status(400).json({ error: 'AMC name is required' })
   }
 
   try {
     const collection = req.milestoneDb.collection("mfschemesDb");
 
     let result = await collection.aggregate([{
-      $match: {"FUND NAME":  amc}
+      $match: { "FUND NAME": amc }
     }, {
       $group: {
         _id: "$scheme_name",
@@ -509,7 +554,7 @@ const getSchemeNames = async (req, res) => {
 const getRMNames = async (req, res) => {
 
   try {
-    let result = await Employee.find({role: 'relationship manager'}).lean();
+    let result = await Employee.find({ role: 'relationship manager' }).lean();
 
     if (!result) {
       throw new Error("Unable to get RM names")
@@ -527,7 +572,7 @@ const getRMNames = async (req, res) => {
 const getSMNames = async (req, res) => {
 
   try {
-    let result = await Employee.find({role: 'service manager'}).lean();
+    let result = await Employee.find({ role: 'service manager' }).lean();
 
     if (!result) {
       throw new Error("Unable to get SM names")
@@ -654,19 +699,19 @@ const updateApprovalStatus = async (req, res) => {
   const approvalStatus = req.body.approvalStatus
   const fractionId = req.body.fractionId
 
-  if(!transactionId) {
-    return res.status(400).json({error: 'Transaction Id is required'})
+  if (!transactionId) {
+    return res.status(400).json({ error: 'Transaction Id is required' })
   }
-  if(!approvalStatus) {
-    return res.status(400).json({error: 'Approval status is required'})
+  if (!approvalStatus) {
+    return res.status(400).json({ error: 'Approval status is required' })
   }
 
   const status = approvalStatusMap.get(approvalStatus)
   try {
     let transaction;
-    if(!fractionId) {
-      const update = {approvalStatus, status}
-      transaction = await Transactions.findByIdAndUpdate(transactionId, update, {new: true}).lean()
+    if (!fractionId) {
+      const update = { approvalStatus, status }
+      transaction = await Transactions.findByIdAndUpdate(transactionId, update, { new: true }).lean()
     }
 
     else {
@@ -676,16 +721,16 @@ const updateApprovalStatus = async (req, res) => {
       }
       transaction = await Transactions.findOneAndUpdate({
         _id: transactionId, 'transactionFractions._id': fractionId
-      }, update, {new: true}).lean()
+      }, update, { new: true }).lean()
     }
-    if(!transaction) {
+    if (!transaction) {
       throw new Error("Transaction not found")
     }
 
-    res.status(200).json({message: 'Status updated', data: transaction})
+    res.status(200).json({ message: 'Status updated', data: transaction })
   } catch (error) {
     console.error('Error updating status: ', error.message)
-    res.status(500).json({error: error.message})
+    res.status(500).json({ error: error.message })
   }
 }
 
@@ -694,24 +739,24 @@ const updatePreferenceDate = async (req, res) => {
   const transactionId = req.params.id
   const transactionPreference = req.body.transactionPreference
 
-  if(!transactionId) {
-    return res.status(400).json({error: 'Transaction Id is required'})
+  if (!transactionId) {
+    return res.status(400).json({ error: 'Transaction Id is required' })
   }
-  if(!transactionPreference) {
-    return res.status(400).json({error: 'Preference date is required'})
+  if (!transactionPreference) {
+    return res.status(400).json({ error: 'Preference date is required' })
   }
 
   try {
-    const transaction = await Transactions.findByIdAndUpdate(transactionId, {transactionPreference}, {new: true}).lean()
+    const transaction = await Transactions.findByIdAndUpdate(transactionId, { transactionPreference }, { new: true }).lean()
 
-    if(!transaction) {
+    if (!transaction) {
       throw new Error("Transaction not found")
     }
 
-    res.status(200).json({message: 'Preference date updated', data: transaction})
+    res.status(200).json({ message: 'Preference date updated', data: transaction })
   } catch (error) {
     console.error('Error updating preference date: ', error.message)
-    res.status(500).json({error: error.message})
+    res.status(500).json({ error: error.message })
   }
 }
 
@@ -721,7 +766,7 @@ const setServiceManager = async (req, res) => {
 
   if (!fh || !rm) {
     return res.status(400).json({ error: 'Family head and relationship manager are required' });
-  } 
+  }
 
   try {
     // Update all matching transactions
@@ -735,12 +780,14 @@ const setServiceManager = async (req, res) => {
       return res.status(404).json({ error: 'No transactions found to update service manager' });
     }
 
-    res.status(200).json({ message: 'Updated service manager', data: {
-      familyHead: fh,
-      relationshipManager: rm,
-      serviceManager: sm, 
-      modifiedCount: result.modifiedCount 
-    } });
+    res.status(200).json({
+      message: 'Updated service manager', data: {
+        familyHead: fh,
+        relationshipManager: rm,
+        serviceManager: sm,
+        modifiedCount: result.modifiedCount
+      }
+    });
   } catch (error) {
     console.error('Error updating service manager: ', error.message);
     res.status(500).json({ error: error.message });
@@ -753,32 +800,32 @@ const updateNote = async (req, res) => {
   const note = req.body.note
   const fractionId = req.body.fractionId
 
-  if(!transactionId) {
-    return res.status(400).json({error: 'Transaction Id is required'})
+  if (!transactionId) {
+    return res.status(400).json({ error: 'Transaction Id is required' })
   }
-  if(!note) {
-    return res.status(400).json({error: 'Nothing to update'})
+  if (!note) {
+    return res.status(400).json({ error: 'Nothing to update' })
   }
 
   try {
     let transaction;
-    if(!fractionId) {
-      transaction = await Transactions.findByIdAndUpdate(transactionId, {note}, {new: true}).lean()
+    if (!fractionId) {
+      transaction = await Transactions.findByIdAndUpdate(transactionId, { note }, { new: true }).lean()
     }
 
     else {
       transaction = await Transactions.findOneAndUpdate({
         _id: transactionId, 'transactionFractions._id': fractionId
-      }, {'transactionFractions.$.note': note,}, {new: true}).lean()
+      }, { 'transactionFractions.$.note': note, }, { new: true }).lean()
     }
-    if(!transaction) {
+    if (!transaction) {
       throw new Error("Transaction not found")
     }
 
-    res.status(200).json({message: 'Note updated', data: transaction})
+    res.status(200).json({ message: 'Note updated', data: transaction })
   } catch (error) {
     console.error('Error updating note: ', error.message)
-    res.status(500).json({error: error.message})
+    res.status(500).json({ error: error.message })
   }
 };
 
@@ -787,14 +834,14 @@ const nfoTransactions = async (req, res) => {
   const items = Number(req.query.items) || 10
   const page = Number(req.query.page) || 1
   const skipItems = items * (page - 1)
-  
+
   try {
-    const transactions = await NewFundOffer.find().sort({createdAt: -1}).skip(skipItems).limit(items).lean()
+    const transactions = await NewFundOffer.find().sort({ createdAt: -1 }).skip(skipItems).limit(items).lean()
     if (!transactions) {
       throw new Error('Something went wrong, unable to find transactions')
     }
 
-    res.status(200).json({ data: {transactions, page}, message: 'Transactions found' })
+    res.status(200).json({ data: { transactions, page }, message: 'Transactions found' })
   } catch (error) {
     console.log("error getting NFO transactions: ", error.message)
     res.status(500).json({ error: error.message })
@@ -817,7 +864,7 @@ const setRelationshipManager = async (req, res) => {
     // Update all matching transactions
     const result = await Transactions.updateMany(
       { registrantName: rn, relationshipManager: null },
-      { $set: { relationshipManager: rmMap[rn]} || req.query.rm }
+      { $set: { relationshipManager: rmMap[rn] } || req.query.rm }
     );
 
     // If no transactions were updated, send a 404 error
@@ -825,16 +872,75 @@ const setRelationshipManager = async (req, res) => {
       return res.status(404).json({ error: 'No transactions found to update relationship manager' });
     }
 
-    res.status(200).json({ message: 'Updated relationship manager', data: {
-      registrantName: rn,
-      relationshipManager: rmMap[rn] || req.query.rm,
-      modifiedCount: result.modifiedCount 
-    } });
+    res.status(200).json({
+      message: 'Updated relationship manager', data: {
+        registrantName: rn,
+        relationshipManager: rmMap[rn] || req.query.rm,
+        modifiedCount: result.modifiedCount
+      }
+    });
   } catch (error) {
     console.error('Error updating relationship manager: ', error.message);
     res.status(500).json({ error: error.message });
   }
-};  
+};
+
+// *** RECONCILATION CONTROLLERS *** 
+const getRecoTransactions = async (req, res) => {
+  //NOT IN USE
+  const smFilter = req.query.smFilter || 'all'
+  const userName = req.user?.name
+
+  let matchStage = {}
+  if (smFilter === 'my') {
+    matchStage.serviceManager = toTitleCase(userName)
+  }
+  else if (smFilter === 'ua') {
+    matchStage.serviceManager = { $in: [null, ''] }
+  }
+  //
+
+  let addStage = {
+    approved: {
+      $cond: {
+        if: { $eq: ["$hasFractions", false] },
+        then: {
+           $eq: ["$status", "APPROVED"] 
+        },
+        else: {
+          $allElementsTrue: [{
+            $map: {
+              input: "$transactionFractions",
+              in: {
+                 $eq: ["$$this.status", "APPROVED"]
+              }
+            }
+          }]
+        }
+      }
+    }
+  }
+
+  matchStage.approved = true
+
+  try {
+    const transactions = await Transactions.aggregate([
+      { $addFields: addStage },
+      { $match: matchStage },
+      { $sort: { investorName: 1, transactionPreference: -1 } }
+    ])
+
+    if (!transactions) {
+      throw new Error('Transactions not found!')
+    }
+
+
+    res.status(200).json({ message: 'Found transactions', data: transactions })
+  } catch (error) {
+    console.log('Error getting transactions: ', error.message)
+    res.status(500).json({ error: `Error getting transactions: ${error.message}` })
+  }
+}
 
 module.exports = {
   getGroupedTransactions,
@@ -846,7 +952,7 @@ module.exports = {
   addAllFractions,
   generateLink,
   getAllAmcNames,
-  getSchemeNames, 
+  getSchemeNames,
   getRMNames,
   filteredTransactions,
   nfoTransactions,
@@ -857,4 +963,6 @@ module.exports = {
   setServiceManager,
   updateNote,
   setRelationshipManager, //TEMPORARY
+
+  getRecoTransactions
 }

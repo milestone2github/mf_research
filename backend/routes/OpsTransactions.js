@@ -1,4 +1,4 @@
-const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, updatePreferenceDate, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead } = require('../controllers/OpsTransactions');
+const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, updatePreferenceDate, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead, getRecoTransactions } = require('../controllers/OpsTransactions');
 const verifyUser = require('../middlewares/VerifyUser')
 const router = require('express').Router();
 
@@ -22,5 +22,8 @@ router.patch('/update-status/:id', updateApprovalStatus);
 router.patch('/preference-date/:id', updatePreferenceDate);
 router.patch('/note/:id', updateNote);
 router.patch('/relationship-manager', setRelationshipManager); //TEMPORARY
+
+// RECONCILLATION ROUTES 
+router.get('/reconciliation',  getRecoTransactions)
 
 module.exports = router

@@ -11,7 +11,9 @@ approvalStatusMap.set('Technical Issue', 'PENDING')
 approvalStatusMap.set('Client Declined', 'REJECTED')
 approvalStatusMap.set('RM Declined', 'REJECTED')
 approvalStatusMap.set('Submitted to RTA', 'PENDING')
+approvalStatusMap.set('System Update Awaiting', 'PENDING')
 approvalStatusMap.set('RM Hold the Execution', 'PENDING')
+approvalStatusMap.set('Wrongly / Double Entry', 'PENDING')
 approvalStatusMap.set('Onboarding Pending', 'PENDING')
 
 module.exports = {schemeMap, approvalStatusMap};
