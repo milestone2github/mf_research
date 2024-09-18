@@ -1,4 +1,4 @@
-const { getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin, addNfoSchemeToSchemes, createMarketingUser, updateMarketingUser, getMarketingUser, apinote, apinoteproject, apinoteallproject, workdrivezohocallback } = require('../controllers/DataController');
+const { workdrivezohoaccess, getInvestors, getAmcNames, getSchemeNames, getFolios, postTransForm, getUcc, getFoliosFromInvestwell, getNfoSchemes, getNfoAmc, getAllNfoAmc, postNewFundOfferForm, getFoliosFromFolios, getIsin, addNfoSchemeToSchemes, createMarketingUser, updateMarketingUser, getMarketingUser, apinote, apinoteproject, apinoteallproject, workdrivezohocallback } = require('../controllers/DataController');
 const { getKycStatus } = require('../controllers/DataController');
 const verifyUser = require('../middlewares/VerifyUser');
 const router = require('express').Router();
@@ -56,8 +56,9 @@ router.post('/api/notes', apinote);
 router.get('/api/notes/:nameforproject', apinoteproject);
 router.get('/api/notes', apinoteallproject);
 router.get('/auth/zoho/callback', workdrivezohocallback);
+router.get('/zoho/access', workdrivezohoaccess);
 router.get('/auth/zoho', (req, res) => {
-    const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&redirect_uri=${process.env.ZOHO_REDIRECT_URI_WORKDRIVE}&scope=WorkDrive.files.READ,WorkDrive.team.READ,WorkDrive.users.READ&state=${STATE}`;
+    const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&redirect_uri=${process.env.ZOHO_REDIRECT_URI_WORKDRIVE}&scope=WorkDrive.files.READ,WorkDrive.team.READ,WorkDrive.users.READ,WorkDrive.teamfolders.READ&state=${STATE}`;
     res.redirect(authUrl);
 });
 module.exports = router;

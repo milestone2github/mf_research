@@ -1057,6 +1057,17 @@ async function getTeamMemberDetails(accessToken, teamId) {
       throw new Error('Failed to fetch team member details');
   }
 }
+async function getTeamFolderDetails(accessToken, teamId) {
+  const url = `https://www.zohoapis.com/workdrive/api/v1/teams/${teamId}/teamfolders?page%5Blimit%5D=50&page%5Boffset%5D=0`;
+  const headers = { 'Authorization': `Zoho-oauthtoken ${accessToken}` };
+  try {
+      const response = await axios.get(url, { headers });
+      return response.data;
+  } catch (error) {
+      console.error('Error fetching team member details:', error.response ? error.response.data : error.message);
+      throw new Error('Failed to fetch team member details');
+  }
+}
 
 async function getPrivateSpaceDetails(accessToken, teamMemberId) {
   const url = `https://www.zohoapis.com/workdrive/api/v1/users/${teamMemberId}/privatespace`;
@@ -1071,7 +1082,7 @@ async function getPrivateSpaceDetails(accessToken, teamMemberId) {
 }
 
 async function fetchWorkdriveItems(accessToken, folderId) {
-  const url = `https://www.zohoapis.com/workdrive/api/v1/privatespace/${folderId}/files?page%5Blimit%5D=50&page%5Boffset%5D=0`;
+  const url = `https://www.zohoapis.com/workdrive/api/v1/teamfolders/${folderId}/files?page%5Blimit%5D=50&page%5Boffset%5D=0`;
   const headers = { 
       'Authorization': `Zoho-oauthtoken ${accessToken}`,
       'Content-Type': 'application/json'
@@ -1083,7 +1094,8 @@ async function fetchWorkdriveItems(accessToken, folderId) {
           const data = response.data;
           const fileInfo = data.data.map(item => ({
               name: item.attributes.name,
-              link: item.attributes.permalink
+              link: item.attributes.permalink,
+              type: item.attributes.icon_class,
           }));
           return fileInfo;
       } else {
@@ -1094,6 +1106,51 @@ async function fetchWorkdriveItems(accessToken, folderId) {
       throw new Error('Failed to fetch WorkDrive items');
   }
 }
+async function fetchParent(accessToken, folderId) {
+  const url = `https://www.zohoapis.com/workdrive/api/v1/files/${folderId}`;
+  const headers = { 
+      'Authorization': `Zoho-oauthtoken ${accessToken}`,
+      'Content-Type': 'application/json'
+  };
+
+  try {
+      const response = await axios.get(url, { headers });
+      if (response.status === 200) {
+          const data = response.data;
+          const fileInfo = data.data.attributes.parent_id;
+          return fileInfo;
+      } else {
+          throw new Error(`Failed to retrieve data: ${response.status}, ${response.statusText}`);
+      }
+  } catch (error) {
+      console.error('Error fetching WorkDrive items:', error.response ? error.response.data : error.message);
+      throw new Error('Failed to fetch WorkDrive items');
+  }
+}
+// async function fetchWorkdriveItems(accessToken, folderId) {
+//   const url = `https://www.zohoapis.com/workdrive/api/v1/privatespace/${folderId}/files?page%5Blimit%5D=50&page%5Boffset%5D=0`;
+//   const headers = { 
+//       'Authorization': `Zoho-oauthtoken ${accessToken}`,
+//       'Content-Type': 'application/json'
+//   };
+
+//   try {
+//       const response = await axios.get(url, { headers });
+//       if (response.status === 200) {
+//           const data = response.data;
+//           const fileInfo = data.data.map(item => ({
+//               name: item.attributes.name,
+//               link: item.attributes.permalink
+//           }));
+//           return fileInfo;
+//       } else {
+//           throw new Error(`Failed to retrieve data: ${response.status}, ${response.statusText}`);
+//       }
+//   } catch (error) {
+//       console.error('Error fetching WorkDrive items:', error.response ? error.response.data : error.message);
+//       throw new Error('Failed to fetch WorkDrive items');
+//   }
+// }
 
 async function apinote(req, res){
   try {
@@ -1149,20 +1206,27 @@ async function  workdrivezohocallback(req, res){
 
       const teamId = teamDetails.data[0].id;
 
-      const teamMemberDetails = await getTeamMemberDetails(accessToken, teamId);
-      console.log('Team Member Details:', teamMemberDetails);
+      const teamFolderDetails = await getTeamFolderDetails(accessToken, teamId);
+      console.log('Team Member Details:', teamFolderDetails);
+      const searchName = "IT Department"; 
+      const folder = teamFolderDetails.data.find(folder => folder.attributes.display_html_name === searchName);
+      const folderId = folder.id;
 
-      const teamMemberId = teamMemberDetails.data.id;
+      // const teamMemberDetails = await getTeamMemberDetails(accessToken, teamId);
+      // console.log('Team Member Details:', teamMemberDetails);
 
-      const folderDetails = await getPrivateSpaceDetails(accessToken, teamMemberId);
-      console.log('Private Space Details:', folderDetails);
+      // const teamMemberId = teamMemberDetails.data.id;
 
-      const folderId = folderDetails.data[0].id;
+      // const folderDetails = await getPrivateSpaceDetails(accessToken, teamMemberId);
+      // console.log('Private Space Details:', folderDetails);
 
+      // const folderId = folderDetails.data[0].id;
+      
+      // parent: item.attributes.parent_id
       const files = await fetchWorkdriveItems(accessToken, folderId);
       files.forEach((file, index) => {
           file.id = index + 1; // Adds an incrementing ID starting from 1
-          file.type = 'File';
+          // file.type = 'File';
           file.proceeded = false;
       });
       console.log('Files:', files);
@@ -1170,7 +1234,32 @@ async function  workdrivezohocallback(req, res){
       const filesData = encodeURIComponent(JSON.stringify(files));
 
       // Redirect to frontend with files data
-      res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&files=${filesData}`);
+      res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}`);
+  } catch (error) {
+      console.error('Error during callback processing:', error.response ? error.response.data : error.message);
+      res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);
+  }
+}
+async function  workdrivezohoaccess(req, res){
+  const accessToken = req.query.token;
+  const url  = req.query.id;
+  const parts = url.split('/');
+  const folderId = parts[parts.length - 1];
+  console.log(folderId);
+  try {
+    
+    const files = await fetchWorkdriveItems(accessToken, folderId);
+    files.forEach((file, index) => {
+          file.id = index + 1; // Adds an incrementing ID starting from 1
+          // file.type = 'File';
+          file.proceeded = false;
+        });
+        const filesData = encodeURIComponent(JSON.stringify(files));
+        const parent = await fetchParent(accessToken, folderId);
+        if(parent === "6m6kqfd043f4414f5421dafec9298f0e3398c"){
+          res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}`);
+        }
+        res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&parent=${parent}&token=${accessToken}&files=${filesData}`);
   } catch (error) {
       console.error('Error during callback processing:', error.response ? error.response.data : error.message);
       res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);
@@ -1198,6 +1287,8 @@ module.exports = {
   apinote,
   apinoteproject,
   workdrivezohocallback,
-  apinoteallproject
+  workdrivezohoaccess,
+  apinoteallproject,
+
 }
 

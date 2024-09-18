@@ -1,6 +1,6 @@
 const Employee = require("../models/Employee");
 const NewFundOffer = require("../models/NewFundOffer");
-const OpsFilter = require("../models/OpsFilters");
+// const OpsFilter = require("../models/OpsFilters");
 const Transactions = require("../models/Transactions");
 const { toTitleCase } = require("../utils/formatString");
 const { approvalStatusMap } = require("../utils/maps");
