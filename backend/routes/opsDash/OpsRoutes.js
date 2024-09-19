@@ -1,5 +1,5 @@
-const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, updatePreferenceDate, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead, getRecoTransactions } = require('../controllers/OpsTransactions');
-const verifyUser = require('../middlewares/VerifyUser')
+const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, updatePreferenceDate, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead, getRecoTransactions } = require('../../controllers/opsDash/OpsTransactions');
+const verifyUser = require('../../middlewares/VerifyUser')
 const router = require('express').Router();
 
 router.get('/', getGroupedTransactions);
@@ -24,6 +24,9 @@ router.patch('/note/:id', updateNote);
 router.patch('/relationship-manager', setRelationshipManager); //TEMPORARY
 
 // RECONCILLATION ROUTES 
-router.get('/reconciliation',  getRecoTransactions)
+router.use('/reconciliation',  require('./Reconciliation'))
+
+// SAVED FILTERS ROUTES
+router.use('/saved-filters', require('./SavedFilters'))
 
 module.exports = router
