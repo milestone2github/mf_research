@@ -11,6 +11,8 @@ const { schemeMap } = require("../utils/maps");
 const MarketingUser = require("../models/MarketingUser");
 const User = require("../models/User");
 const { toTitleCase } = require("../utils/formatString");
+const searchName = process.env.DEPT || "6myr677aa7bb389754f5b817b3f5a91ed6c9b"; 
+      
 require('dotenv').config()
 const querystring = require('querystring');
 const mongoose = require('mongoose');
@@ -1208,9 +1210,11 @@ async function  workdrivezohocallback(req, res){
 
       const teamFolderDetails = await getTeamFolderDetails(accessToken, teamId);
       console.log('Team Member Details:', teamFolderDetails);
-      const searchName = "IT Department"; 
-      const folder = teamFolderDetails.data.find(folder => folder.attributes.display_html_name === searchName);
+      // const searchName = "IT Department"; 
+      // const folder = teamFolderDetails.data.find(folder => folder.attributes.display_html_name === searchName);
+      const folder = teamFolderDetails.data.find(folder => folder.id === searchName);
       const folderId = folder.id;
+      console.log(folderId)
 
       // const teamMemberDetails = await getTeamMemberDetails(accessToken, teamId);
       // console.log('Team Member Details:', teamMemberDetails);
@@ -1256,13 +1260,14 @@ async function  workdrivezohoaccess(req, res){
         });
         const filesData = encodeURIComponent(JSON.stringify(files));
         const parent = await fetchParent(accessToken, folderId);
-        if(parent === "6m6kqfd043f4414f5421dafec9298f0e3398c"){
-          res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}`);
+        const workdrive = "6m6kqfd043f4414f5421dafec9298f0e3398c";
+        if(parent === workdrive){
+          return res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}`);
         }
-        res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&parent=${parent}&token=${accessToken}&files=${filesData}`);
+        return res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&parent=${parent}&token=${accessToken}&files=${filesData}`);
   } catch (error) {
       console.error('Error during callback processing:', error.response ? error.response.data : error.message);
-      res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);
+      return res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);
   }
 }
 module.exports = {
