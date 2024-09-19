@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaCheckCircle, FaHistory } from "react-icons/fa";
+import { FaFile, FaFolder,FaCheckCircle, FaHistory } from "react-icons/fa";
 import { useLocation } from 'react-router-dom';
 import { useSelector } from "react-redux";
 import AccessDenied from "./AccessDenied";
@@ -9,7 +9,8 @@ const backendUrl = process.env.REACT_APP_API_BASE_URL;
 function WorkdriveForm() {
   const { userData } = useSelector(state => state.user);
   const permissions = userData?.role?.permissions;
-
+  const [tokn,setToken] = useState();
+  const [parent,setParent] = useState();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [items, setItems] = useState([]);
   const [allData, setAllData] = useState([]); // Store all notes data locally
@@ -31,8 +32,11 @@ function WorkdriveForm() {
     const params = new URLSearchParams(location.search);
     const success = params.get('success');
     const filesData = params.get('files');
-    
+    const token = params.get('token');
+    const parent = params.get('parent');
     if (success === 'true' && filesData) {
+      setToken(token);
+      setParent(parent);
       setIsAuthenticated(true);
       setItems(JSON.parse(decodeURIComponent(filesData)));
 
@@ -214,12 +218,20 @@ function WorkdriveForm() {
       ) : (
         <div className="mt-1">
           <h1 className="text-gray-900 mb-4 text-2xl font-semibold">Files/Folder</h1>
+          {parent && 
+          <a href={`${backendUrl}/api/data/zoho/access?token=${tokn}&id=${parent}`} className="text-black-500 hover:underline">
+          <button className="mx-2 bg-gray-800 text-white px-2 py-2 mb-5 rounded">
+          {'<< Back To Previous'}
+          </button>
+        </a>
+          }
           <table className="table-auto w-full text-left border-collapse border border-gray-300">
             <thead>
               <tr>
-                <th className="px-4 py-2 border border-gray-300">S.No.</th>
+                <th className="px-2 py-1 text-center border border-gray-300">S.No.</th>
                 <th className="px-4 py-2 border border-gray-300">File Name</th>
-                <th className="px-4 py-2 text-center border border-gray-300">Links</th>
+                {/* <th className="px-4 py-2 text-center border border-gray-300">Links</th> */}
+                <th className="px-4 py-2 text-center border border-gray-300">Type</th>
                 <th className="px-4 py-2 text-center border border-gray-300">Actions</th>
               </tr>
             </thead>
@@ -227,19 +239,36 @@ function WorkdriveForm() {
               {items.map((item, index) => (
                 <React.Fragment key={index}>
                   <tr>
-                    <td className="px-4 py-2 border border-gray-300 text-center">
+                    <td className="px-2 py-1 border border-gray-300 text-center">
                       {index + 1}
                     </td>
-                    <td className="px-4 py-2 border border-gray-300">
+                    { item.type==="folder"
+                      ?<td className="px-4 py-2 border border-gray-300">
+                      <a href={`${backendUrl}/api/data/zoho/access?token=${tokn}&id=${item.link}`} className="text-black-500 hover:underline">
+                        <FaFolder className='inline-block text-black-500 mr-2 mb-1 text-2xl'/>{item.name}
+                      </a>
                       {item.proceeded && (
                         <FaCheckCircle className='inline-block text-green-500 mr-2'/>
                       )}
-                      {item.name}
+                      
+                    </td>:
+                      <td className="px-4 py-2 border border-gray-300">
+                      <a href={item.link} target="_blank" className="text-black-500 hover:underline">
+                        <FaFile className='inline-block text-black-500 mr-2 text-1xl'/>{item.name}
+                      </a>
+                      {item.proceeded && (
+                        <FaCheckCircle className='inline-block text-green-500 mr-2'/>
+                      )}
+                      
                     </td>
-                    <td className="px-4 py-2 text-center border border-gray-300">
+                    }
+                    {/* <td className="px-4 py-2 text-center border border-gray-300">
                       <a href={item.link} target="_blank" className="text-blue-500 hover:underline">
                         Open
                       </a>
+                    </td> */}
+                    <td className="px-4 py-2 text-center border border-gray-300">
+                      {item.type==="folder"?item.type.charAt(0).toUpperCase() + item.type.slice(1):"File"}
                     </td>
                     <td className="px-4 py-2 text-center border border-gray-300">
                       <button
@@ -312,7 +341,7 @@ function WorkdriveForm() {
                               />
                               <label className="text-sm">Proceeded</label>
                             </div>
-                            <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+                            <button type="submit" className="bg-blue-500 hover:bg-black-700 text-white font-bold py-2 px-4 rounded w-full">
                               Submit
                             </button>
                           </form>
