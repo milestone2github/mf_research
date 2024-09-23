@@ -249,6 +249,8 @@ const getTransactionsGroupByFh = async (req, res) => {
         }
       },
 
+      {$match : {"pendingCounts.total": {$gt: 0}}},
+
       {
         $group: {
           _id: "$familyHead",
@@ -428,14 +430,21 @@ const addAllFractions = async (req, res) => {
 const generateLink = async (req, res) => {
   let { fractionId, platform, orderId, approvalStatus } = req.body;
   approvalStatus = approvalStatus === '' ? 'Approved' : approvalStatus
+  let status = null
+  if(approvalStatus === 'Approved') {
+    status = 'APPROVED'
+  }
+  
   try {
     let transaction;
-    // Ensure the new fraction is provided
     if (!fractionId) {
-      transaction = await Transactions.findByIdAndUpdate(req.params.id, { linkStatus: 'generated', orderId, approvalStatus }, { new: true })
+      transaction = await Transactions.findByIdAndUpdate(
+        req.params.id, 
+        { linkStatus: 'generated', orderId, approvalStatus, ...(status ? {status} : {}) }, 
+        { new: true }
+      )
     }
     else {
-      // Update the document by pushing the new fraction to the array
       transaction = await Transactions.findOneAndUpdate(
         { _id: req.params.id, 'transactionFractions._id': fractionId },
         {
@@ -443,6 +452,7 @@ const generateLink = async (req, res) => {
             'transactionFractions.$.linkStatus': 'generated',
             'transactionFractions.$.orderId': orderId,
             'transactionFractions.$.approvalStatus': approvalStatus,
+            ...(status ? {'transactionFractions.$.status': status }: {})
           }
         },
         { new: true }

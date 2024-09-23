@@ -90,8 +90,6 @@ exports.getRecoTransactions = async (req, res) => {
       {$group: {_id: null, totalCount: {$sum: 1}, totalAmount: {$sum: "$amount"}} }
     ])
 
-    console.log(totalCountAndTotalAmount)
-
     if (!transactions) {
       throw new Error('Transactions not found!')
     }
