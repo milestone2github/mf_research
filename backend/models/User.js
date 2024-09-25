@@ -14,7 +14,8 @@ const userSchema = mongoose.Schema({
         ref:"ROLES"
     },
     mintUsername: {type: String, trim: true},
-    insuranceDashboardId: {type: String, trim: true}
+    insuranceDashboardId: {type: String, trim: true},
+    folderId: {type: String, trim: true},
 })
 
 const User = mongoose.model("USERS", userSchema)

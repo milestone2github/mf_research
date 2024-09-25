@@ -15,32 +15,8 @@ const searchName = process.env.DEPT || "6myr677aa7bb389754f5b817b3f5a91ed6c9b";
       
 require('dotenv').config()
 const querystring = require('querystring');
-const mongoose = require('mongoose');
-
-require('dotenv').config()
-// Create a new MongoDB connection
-const newDbConnection = mongoose.createConnection('mongodb+srv://milestonegpt4:kv6A5KW7sUKJ9jOQ@cluster0.krug8nd.mongodb.net/your-database-name');
-
-// Handle connection events
-newDbConnection.on('connected', () => {
-  console.log('Connected to MongoDB');
-});
-newDbConnection.on('error', (err) => {
-  console.error('Error connecting to MongoDB', err);
-});
-
-// Define the schema
-const NoteSchema = new mongoose.Schema({
-  clientName: String,
-  nameforproject: String,
-  date: String,
-  note: String,
-  error: String,
-  proceeded: Boolean,
-});
-
-// Create the model using the established connection
-const Note = newDbConnection.model('Note', NoteSchema);
+const Workdrive = require("../models/Workdrive");
+const { request } = require("http");
 
 const getKycStatus = async (req, res) => {
   try {
@@ -1104,7 +1080,7 @@ async function fetchWorkdriveItems(accessToken, folderId) {
           throw new Error(`Failed to retrieve data: ${response.status}, ${response.statusText}`);
       }
   } catch (error) {
-      console.error('Error fetching WorkDrive items:', error.response ? error.response.data : error.message);
+      console.error('Error fetching WorkDrive items:',  error.message);
       throw new Error('Failed to fetch WorkDrive items');
   }
 }
@@ -1156,8 +1132,8 @@ async function fetchParent(accessToken, folderId) {
 
 async function apinote(req, res){
   try {
-      const newNote = new Note(req.body);
-      await newNote.save();
+      const newNote = Workdrive.create(req.body);
+      // await newNote.save();
       res.status(201).send(newNote);
   } catch (err) {
       res.status(500).send({ error: 'Failed to save note data' });
@@ -1167,23 +1143,16 @@ async function apinote(req, res){
 // API endpoint to fetch history data by project name
 async function apinoteproject(req, res){
   try {
-      const notes = await Note.find({ nameforproject: req.params.nameforproject });
+      const notes = await Workdrive.find({ nameforproject: req.params.nameforproject });
       res.status(200).send(notes);
   } catch (err) {
       res.status(500).send({ error: 'Failed to fetch history data' });
   }
 }
-async function apinoteproject(req, res){
-  try {
-      const notes = await Note.find({ nameforproject: req.params.nameforproject });
-      res.status(200).send(notes);
-  } catch (err) {
-      res.status(500).send({ error: 'Failed to fetch history data' });
-  }
-}
+
 async function apinoteallproject(req, res){
   try {
-      const notes = await Note.find();
+      const notes = await Workdrive.find();
       res.status(200).send(notes);
   } catch (err) {
       res.status(500).send({ error: 'Failed to fetch history data' });
@@ -1192,55 +1161,47 @@ async function apinoteallproject(req, res){
 
 async function  workdrivezohocallback(req, res){
   const authCode = req.query.code;
-  console.log(`Auth Code received: ${authCode}`);
   
   try {
       const accessToken = await exchangeCodeForToken(authCode);
-      console.log(`Access Token received: ${accessToken}`);
 
-      const userDetails = await getUserDetails(accessToken);
-      console.log('User Details:', userDetails);
+      // const userDetails = await getUserDetails(accessToken);
 
-      const zuid = userDetails.data.attributes.zuid;
+      // const zuid = userDetails.data.attributes.zuid;
 
-      const teamDetails = await getTeamDetails(accessToken, zuid);
-      console.log('Team Details:', teamDetails);
+      // const teamDetails = await getTeamDetails(accessToken, zuid);
 
-      const teamId = teamDetails.data[0].id;
+      // const teamId = teamDetails.data[0].id;
 
-      const teamFolderDetails = await getTeamFolderDetails(accessToken, teamId);
-      console.log('Team Member Details:', teamFolderDetails);
+      // const teamFolderDetails = await getTeamFolderDetails(accessToken, teamId);
       // const searchName = "IT Department"; 
       // const folder = teamFolderDetails.data.find(folder => folder.attributes.display_html_name === searchName);
-      const folder = teamFolderDetails.data.find(folder => folder.id === searchName);
-      const folderId = folder.id;
-      console.log(folderId)
-
+      // const folder = teamFolderDetails.data.find(folder => folder.id === searchName);
+      // const folderId = folder.id;
       // const teamMemberDetails = await getTeamMemberDetails(accessToken, teamId);
       // console.log('Team Member Details:', teamMemberDetails);
-
+      
       // const teamMemberId = teamMemberDetails.data.id;
-
+      
       // const folderDetails = await getPrivateSpaceDetails(accessToken, teamMemberId);
       // console.log('Private Space Details:', folderDetails);
 
       // const folderId = folderDetails.data[0].id;
       
       // parent: item.attributes.parent_id
-      const files = await fetchWorkdriveItems(accessToken, folderId);
+      const user = await User.findOne({email:req.session.user.email}).lean();
+      const files = await fetchWorkdriveItems(accessToken, user.folderId); // Access folderId only after query is resolved
       files.forEach((file, index) => {
           file.id = index + 1; // Adds an incrementing ID starting from 1
           // file.type = 'File';
           file.proceeded = false;
       });
-      console.log('Files:', files);
-      // Serialize the files data into a query string parameter
       const filesData = encodeURIComponent(JSON.stringify(files));
 
       // Redirect to frontend with files data
       res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}`);
   } catch (error) {
-      console.error('Error during callback processing:', error.response ? error.response.data : error.message);
+      console.error('Error during callback processing:',  error.message);
       res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);
   }
 }
@@ -1249,7 +1210,6 @@ async function  workdrivezohoaccess(req, res){
   const url  = req.query.id;
   const parts = url.split('/');
   const folderId = parts[parts.length - 1];
-  console.log(folderId);
   try {
     
     const files = await fetchWorkdriveItems(accessToken, folderId);
