@@ -21,7 +21,7 @@ exports.getSavedFilters = async (req, res) => {
 exports.addSavedFilters = async (req, res) => {
   const user = req.user._id;
   const { at, reco } = req.body;
-  const maxSize = 3; //saved filters limit
+  const maxSize = process.env.VITE_SAVED_FILTER_LIMIT || 5; //saved filters limit
 
   if (!at && !reco) {
     return res.status(400).json({ error: 'Please provide a filter to save' })
@@ -36,7 +36,6 @@ exports.addSavedFilters = async (req, res) => {
         allTrxFilters: at ? { values: [at], activeIdx: 0 } : {values: []},
         reconciliationFilters: reco ? { values:  [reco] } : {values: []},
       }).then(filter => {
-        console.log('created new doc') //test
         return res.status(200).json({ message: 'Saved filters updated successfully', data: filter });
       })
     }
@@ -77,8 +76,7 @@ exports.addSavedFilters = async (req, res) => {
 
 // route to remove a saved filter 
 exports.removeSavedFilters = async (req, res) => {
-  const user = req.query.userid;//test
-  // const user = req.user._id;
+  const user = req.user._id;
   const { at, reco } = req.body;
 
   if (!at && !reco) {
@@ -137,21 +135,27 @@ exports.removeSavedFilters = async (req, res) => {
 // route to update active a saved filter 
 exports.updateActiveSavedFilters = async (req, res) => {
   const user = req.user._id;
-  const atIdx = Number(req.query.atIdx);
-  const recoIdx = Number(req.query.recoIdx);
-  const maxLimit = 5
+  let atIdx = req.query.atIdx;
+  let recoIdx = req.query.recoIdx;
+  const maxLimit = process.env.VITE_SAVED_FILTER_LIMIT || 5
 
   if(!atIdx && !recoIdx) {
     return res.status(400).json({ error: 'Please provide a valid index' })
   }
 
+  let update = {}
+  if(atIdx) {
+    atIdx = Number(atIdx)
+    update["allTrxFilters.activeIdx"] = atIdx
+  }
+  if(recoIdx) {
+    recoIdx = Number(recoIdx)
+    update["reconciliationFilters.activeIdx"] = recoIdx
+  }
+
   if (atIdx < 0 || atIdx > (maxLimit-1) || recoIdx < 0 || recoIdx > (maxLimit-1)) {
     return res.status(400).json({ error: 'Please provide a valid index' })
   }
-
-  let update = {}
-  if (atIdx) { update["allTrxFilters.activeIdx"] = atIdx }
-  if (recoIdx) { update["reconciliationFilters.activeIdx"] = recoIdx }
 
   try {
     const currentFilter = await OpsFilter.findOneAndUpdate({ user }, update, { new: true }).lean();
