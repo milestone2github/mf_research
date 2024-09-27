@@ -748,27 +748,31 @@ const updateApprovalStatus = async (req, res) => {
 }
 
 // update preference date using id 
-const updatePreferenceDate = async (req, res) => {
+const updateTransaction = async (req, res) => {
   const transactionId = req.params.id
-  const transactionPreference = req.body.transactionPreference
+  const {transactionPreference, sipSwpStpDate} = req.body
 
   if (!transactionId) {
     return res.status(400).json({ error: 'Transaction Id is required' })
   }
-  if (!transactionPreference) {
-    return res.status(400).json({ error: 'Preference date is required' })
+  let update = {}
+  if (transactionPreference) {
+    update.transactionPreference = transactionPreference
+  }
+  if (sipSwpStpDate) {
+    update.sipSwpStpDate = sipSwpStpDate
   }
 
   try {
-    const transaction = await Transactions.findByIdAndUpdate(transactionId, { transactionPreference }, { new: true }).lean()
+    const transaction = await Transactions.findByIdAndUpdate(transactionId, update, { new: true }).lean()
 
     if (!transaction) {
       throw new Error("Transaction not found")
     }
 
-    res.status(200).json({ message: 'Preference date updated', data: transaction })
+    res.status(200).json({ message: 'Transaction updated', data: transaction })
   } catch (error) {
-    console.error('Error updating preference date: ', error.message)
+    console.error('Error updating transaction: ', error.message)
     res.status(500).json({ error: error.message })
   }
 }
@@ -914,7 +918,7 @@ module.exports = {
   nfoTransactions,
   updateApprovalStatus,
   updateOrderId,
-  updatePreferenceDate,
+  updateTransaction,
   getSMNames,
   setServiceManager,
   updateNote,

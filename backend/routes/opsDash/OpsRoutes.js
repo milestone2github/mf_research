@@ -1,4 +1,4 @@
-const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, updatePreferenceDate, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead, getRecoTransactions } = require('../../controllers/opsDash/OpsTransactions');
+const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead, updateTransaction } = require('../../controllers/opsDash/OpsTransactions');
 const verifyUser = require('../../middlewares/VerifyUser')
 const router = require('express').Router();
 
@@ -19,7 +19,7 @@ router.get('/rm-names', getRMNames);
 router.get('/sm-names', getSMNames);
 router.patch('/service-manager', setServiceManager);
 router.patch('/update-status/:id', updateApprovalStatus);
-router.patch('/preference-date/:id', updatePreferenceDate);
+router.patch('/update-transction/:id', updateTransaction);
 router.patch('/note/:id', updateNote);
 router.patch('/relationship-manager', setRelationshipManager); //TEMPORARY
 
