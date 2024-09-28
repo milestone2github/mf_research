@@ -440,7 +440,7 @@ const generateLink = async (req, res) => {
     if (!fractionId) {
       transaction = await Transactions.findByIdAndUpdate(
         req.params.id, 
-        { linkStatus: 'generated', orderId, approvalStatus, ...(status ? {status} : {}) }, 
+        { linkStatus: 'generated', orderId, orderPlatform: platform, approvalStatus, ...(status ? {status} : {}) }, 
         { new: true }
       )
     }
@@ -452,6 +452,7 @@ const generateLink = async (req, res) => {
             'transactionFractions.$.linkStatus': 'generated',
             'transactionFractions.$.orderId': orderId,
             'transactionFractions.$.approvalStatus': approvalStatus,
+            'transactionFractions.$.orderPlatform': platform,
             ...(status ? {'transactionFractions.$.status': status }: {})
           }
         },
@@ -472,7 +473,7 @@ const generateLink = async (req, res) => {
 
 // generate link (by trx id)
 const updateOrderId = async (req, res) => {
-  let { fractionId, orderId } = req.body;
+  let { fractionId, orderId, platform } = req.body;
   if (!orderId) {
     return res.status(400).json({ error: 'Order ID is required!' })
   }
@@ -481,7 +482,7 @@ const updateOrderId = async (req, res) => {
     let transaction;
     // Ensure the new fraction is provided
     if (!fractionId) {
-      transaction = await Transactions.findByIdAndUpdate(req.params.id, { orderId }, { new: true })
+      transaction = await Transactions.findByIdAndUpdate(req.params.id, { orderId, orderPlatform: platform }, { new: true })
     }
     else {
       // Update the document by pushing the new fraction to the array
@@ -599,11 +600,17 @@ const getSMNames = async (req, res) => {
 
 // get all transactions with filter 
 const filteredTransactions = async (req, res) => {
-  let { minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort, minAmount, maxAmount, smName, transactionFor, status, approvalStatus } = req.query
+  let { minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort, minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey } = req.query
   const items = Number(req.query.items) || 10
   const page = Number(req.query.page) || 1
   const skipItems = items * (page - 1)
   let filters = {}
+
+  const searchByLookup = {
+    'family head': 'familyHead',
+    'investor name': 'investorName',
+    'PAN': 'panNumber',
+  }
 
   // Apply filters based on query parameters
   if (minDate) {
@@ -656,6 +663,10 @@ const filteredTransactions = async (req, res) => {
   if(type === 'Switch') {filters.category = 'switch'}
   else if (type) {
     filters.transactionType = type
+  }
+
+  if(searchBy && searchKey) {
+    filters[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') }
   }
 
   // Define sorting options

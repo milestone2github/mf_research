@@ -2,11 +2,17 @@ const Transactions = require("../../models/Transactions")
 const { toTitleCase } = require("../../utils/formatString")
 
 exports.getRecoTransactions = async (req, res) => {
-  let { minDate, maxDate, amcName, schemeName, rmName, type, sort, minAmount, maxAmount} = req.query
+  let { minDate, maxDate, amcName, schemeName, rmName, type, sort, minAmount, maxAmount, searchBy, searchKey} = req.query
   const items = Number(req.query.items) || 20
   const page = Number(req.query.page) || 1
   const skipItems = items * (page - 1)
   let filters = {}
+
+  const searchByLookup = {
+    'family head': 'familyHead',
+    'investor name': 'investorName',
+    'PAN': 'panNumber',
+  }
   
   if (minDate) {
     minDate = new Date(minDate)
@@ -42,6 +48,10 @@ exports.getRecoTransactions = async (req, res) => {
   if(type === 'Switch') {filters.category = 'switch'}
   else if (type) {
     filters.transactionType = type
+  }
+
+  if(searchBy && searchKey) {
+    filters[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') }
   }
 
   // Define sorting options
