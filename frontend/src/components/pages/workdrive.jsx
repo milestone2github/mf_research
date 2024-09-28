@@ -1,185 +1,153 @@
-import React, { useEffect, useState } from 'react';
-import { FaFile, FaFolder,FaCheckCircle, FaHistory } from "react-icons/fa";
-import { useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import {
+  FaCheckCircle,
+  FaHistory,
+  FaFile,
+  FaFolder,
+  FaFileWord,
+  FaFileExcel,
+  FaFilePowerpoint,
+  FaFilePdf,
+  FaFileArchive,
+  FaFileImage,
+  FaFileVideo,
+  FaFileAudio,
+} from "react-icons/fa";
+import { useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import AccessDenied from "./AccessDenied";
 
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
-function WorkdriveForm() {
-  const { userData } = useSelector(state => state.user);
+function Workdrive() {
+  const { userData } = useSelector((state) => state.user);
   const permissions = userData?.role?.permissions;
-  const [tokn,setToken] = useState();
-  const [parent,setParent] = useState();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [items, setItems] = useState([]);
-  const [allData, setAllData] = useState([]); // Store all notes data locally
+  const [allData, setAllData] = useState([]);
+  const [parent, setParent] = useState(null); // To track parent directory
+  const [token, setToken] = useState(""); // Token for authentication
   const location = useLocation();
-  const [showModal, setShowModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [noteData, setNoteData] = useState({
-    clientName: '',
-    date: '',
-    note: '',
-    error: '',
+    clientName: "",
+    date: "",
+    note: "",
+    error: "",
     proceeded: false,
   });
   const [history, setHistory] = useState([]);
-  const [openForms, setOpenForms] = useState({});
   const [loading, setLoading] = useState(false);
-  
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const success = params.get('success');
-    const filesData = params.get('files');
-    const token = params.get('token');
-    const parent = params.get('parent');
-    if (success === 'true' && filesData) {
-      setToken(token);
-      setParent(parent);
+    const success = params.get("success");
+    const filesData = params.get("files");
+    const tokenParam = params.get("token");
+    const parentParam = params.get("parent");
+
+    if (success === "true" && filesData) {
       setIsAuthenticated(true);
       setItems(JSON.parse(decodeURIComponent(filesData)));
-
-      // Fetch all history data only once
+      setToken(tokenParam);
+      setParent(parentParam);
       fetchAllNotes();
+    } else {
+      handleLogin(); // Automatically handle login if not authenticated
     }
   }, [location]);
+
   useEffect(() => {
     if (items.length > 0 && allData.length > 0) {
-      const updatedItems = [...items]; // Create a copy of items
-  
-      for (let i = 0; i < allData.length; i++) {
-        const note = allData[i];
-  
-        // Find the corresponding item in the items array
-        for (let j = 0; j < updatedItems.length; j++) {
-          if (updatedItems[j].name === note.nameforproject && note.proceeded) {
-            updatedItems[j].proceeded = true;
+      const updatedItems = [...items];
+      for (let note of allData) {
+        for (let item of updatedItems) {
+          if (item.name === note.nameforproject && note.proceeded) {
+            item.proceeded = true;
           }
         }
       }
-  
-      setItems(updatedItems); // Update the items state
+      setItems(updatedItems);
     }
   }, [items, allData]);
-  
-  // Fetch all notes from the API
+
   const fetchAllNotes = async () => {
     try {
       const response = await fetch(`${backendUrl}/api/data/api/notes`);
       if (!response.ok) {
-        throw new Error('Failed to fetch all data');
+        throw new Error("Failed to fetch all data");
       }
       const data = await response.json();
-      
-      setAllData(data); // Store all fetched data locally
+      setAllData(data);
     } catch (error) {
       console.error(error);
-      setAllData([]); // In case of error, set an empty array
+      setAllData([]);
     }
   };
+
   const handleLogin = () => {
     window.location.href = `${backendUrl}/api/data/auth/zoho`;
   };
-  // const fetchAllNotes = async () => {
-  //   try {
-  //     const response = await fetch(`${backendUrl}/api/data/api/notes`);
-  //     if (!response.ok) {
-    //       throw new Error('Failed to fetch all data');
-  //     }
-  //     const data = await response.json();
-  //     setAllData(data); 
-  //   } catch (error) {
-    //     console.error(error);
-  //   }
-  // };
-  
-  const handleOpenModal = (item) => {
-    setSelectedItem(item);
-    setShowModal(true);
 
-    // Access history data from local storage instead of making another API call
-    const itemHistory = allData.filter((note) => note.nameforproject === item.name);
+  const handleOpenNoteModal = (item) => {
+    setSelectedItem(item);
+    setShowNoteModal(true);
+    setShowHistoryModal(false);
+  };
+
+  const handleOpenHistoryModal = (item) => {
+    setSelectedItem(item);
+    setShowHistoryModal(true);
+    setShowNoteModal(false);
+    const itemHistory = allData.filter(
+      (note) => note.nameforproject === item.name
+    );
     setHistory(itemHistory);
   };
 
-  const handleProceeded = (item) => {
-    // Use local data to check if an item has been proceeded
-    const itemHistory = allData.filter((note) => note.nameforproject === item.name);
-    const lastItem = itemHistory[itemHistory.length - 1];
-    
-    if (lastItem && lastItem.proceeded === true) {
-      setItems((prevItems) =>
-        prevItems.map((i) => (i.name === item.name ? { ...i, proceeded: true } : i))
-      );
-    }
-  };
-  
   const handleCloseModal = () => {
-    setShowModal(false);
+    setShowNoteModal(false);
+    setShowHistoryModal(false);
     setSelectedItem(null);
   };
-  
-  const handleToggleForm = (id) => {
-    const item = items.find((item) => item.id === id);
-    if (item) {
-      handleProceeded(item);
-      setSelectedItem(item);
-      
-      setNoteData({
-        clientName: '',
-        date: '',
-        note: '',
-        error: '',
-        proceeded: false,
-      });
-    }
-    setOpenForms((prevState) => ({
-      ...prevState,
-      [id]: !prevState[id],
-    }));
-  };
-  
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setNoteData({
       ...noteData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!selectedItem) {
-      console.error('No item selected');
+      console.error("No item selected");
       return;
     }
-    
     const updatedNoteData = {
       ...noteData,
       nameforproject: selectedItem.name,
     };
-
-    // Update local history state without fetching from backend
     setHistory((prevHistory) => [...prevHistory, updatedNoteData]);
 
     try {
       const response = await fetch(`${backendUrl}/api/data/api/notes`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(updatedNoteData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save note data');
+        throw new Error("Failed to save note data");
       }
 
-      // Update local data after submission
       setAllData((prevData) => [...prevData, updatedNoteData]);
-      
+
       if (updatedNoteData.proceeded) {
         setItems((prevItems) =>
           prevItems.map((item) =>
@@ -188,229 +156,285 @@ function WorkdriveForm() {
         );
       }
 
-      setOpenForms((prevState) => ({
-        ...prevState,
-        [selectedItem.id]: false,
-      }));
-
-      setNoteData({
-        clientName: '',
-        date: '',
-        note: '',
-        error: '',
-        proceeded: false,
-      });
+      handleCloseModal();
     } catch (error) {
       console.error(error);
     }
   };
-  if(!permissions.find(perm => perm === 'Workdrive')) 
-    return (<AccessDenied />)
-  
+
+  // Navigate back to parent folder
+  const handleGoBack = () => {
+    window.location.href = `${backendUrl}/api/data/zoho/access?token=${token}&id=${parent}`;
+  };
+
+  const handleFolderClick = (item) => {
+    window.location.href = `${backendUrl}/api/data/zoho/access?token=${token}&id=${item.link}`;
+  };
+
+  // Helper function to get the correct icon based on file type
+  const getFileIcon = (item) => {
+    const extension = item.type;
+    switch (extension) {
+      case 'writer':
+        return <FaFileWord className="inline-block text-blue-500 mr-2 text-2xl" />;
+      case 'sheet':
+        return <FaFileExcel className="inline-block text-green-500 mr-2 text-2xl" />;
+      case 'ppt':
+      case 'pptx':
+        return <FaFilePowerpoint className="inline-block text-orange-500 mr-2 text-2xl" />;
+      case 'pdf':
+        return <FaFilePdf className="inline-block text-red-500 mr-2 text-2xl" />;
+      case 'zip':
+      case 'rar':
+      case '7z':
+        return <FaFileArchive className="inline-block text-yellow-500 mr-2 text-2xl" />;
+      case 'img':
+        return <FaFileImage className="inline-block text-purple-500 mr-2 text-2xl" />;
+      case 'video':
+        return <FaFileVideo className="inline-block text-red-400 mr-2 text-2xl" />;
+      case 'audio':
+        return <FaFileAudio className="inline-block text-purple-400 mr-2 text-2xl" />;
+      default:
+        return <FaFile className="inline-block text-gray-500 mr-2 text-2xl" />;
+    }
+  };
+
+  if (!permissions.find((perm) => perm === "Workdrive")) return <AccessDenied />;
+
   return (
-    <div className="container-workdrive">
-      {!isAuthenticated ? (
-        <div className="text-center mt-60">
-          <button onClick={handleLogin} className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-            Access Files
-          </button>
-        </div>
-      ) : (
-        <div className="mt-1">
-          <h1 className="text-gray-900 mb-4 text-2xl font-semibold">Files/Folder</h1>
-          {parent && 
-          <a href={`${backendUrl}/api/data/zoho/access?token=${tokn}&id=${parent}`} className="text-black-500 hover:underline">
-          <button className="mx-2 bg-gray-800 text-white px-2 py-2 mb-5 rounded">
-          {'<< Back To Previous'}
-          </button>
-        </a>
-          }
-          <table className="table-auto w-full text-left border-collapse border border-gray-300">
-            <thead>
-              <tr>
-                <th className="px-2 py-1 text-center border border-gray-300">S.No.</th>
-                <th className="px-4 py-2 border border-gray-300">File Name</th>
-                {/* <th className="px-4 py-2 text-center border border-gray-300">Links</th> */}
-                <th className="px-4 py-2 text-center border border-gray-300">Type</th>
-                <th className="px-4 py-2 text-center border border-gray-300">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <React.Fragment key={index}>
-                  <tr>
-                    <td className="px-2 py-1 border border-gray-300 text-center">
-                      {index + 1}
-                    </td>
-                    { item.type==="folder"
-                      ?<td className="px-4 py-2 border border-gray-300">
-                      <a href={`${backendUrl}/api/data/zoho/access?token=${tokn}&id=${item.link}`} className="text-black-500 hover:underline">
-                        <FaFolder className='inline-block text-black-500 mr-2 mb-1 text-2xl'/>{item.name}
-                      </a>
-                      {item.proceeded && (
-                        <FaCheckCircle className='inline-block text-green-500 mr-2'/>
-                      )}
-                      
-                    </td>:
-                      <td className="px-4 py-2 border border-gray-300">
-                      <a href={item.link} target="_blank" className="text-black-500 hover:underline">
-                        <FaFile className='inline-block text-black-500 mr-2 text-1xl'/>{item.name}
-                      </a>
-                      {item.proceeded && (
-                        <FaCheckCircle className='inline-block text-green-500 mr-2'/>
-                      )}
-                      
-                    </td>
-                    }
-                    {/* <td className="px-4 py-2 text-center border border-gray-300">
-                      <a href={item.link} target="_blank" className="text-blue-500 hover:underline">
-                        Open
-                      </a>
-                    </td> */}
-                    <td className="px-4 py-2 text-center border border-gray-300">
-                      {item.type==="folder"?item.type.charAt(0).toUpperCase() + item.type.slice(1):"File"}
-                    </td>
-                    <td className="px-4 py-2 text-center border border-gray-300">
-                      <button
-                        className={`bg-gray-800 text-white px-4 py-2 rounded ${item.proceeded ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={() => handleToggleForm(item.id)}
-                        disabled={item.proceeded}
-                      >
-                        {openForms[item.id] ? 'Close Form' : 'Add Note'}
-                      </button>
-                      <button className="mx-2 bg-gray-800 text-white px-2 py-2 rounded" onClick={() => handleOpenModal(item)}>
-                      <FaHistory />
-                      </button>
-                    </td>
-                  </tr>
-                  {openForms[item.id] && (
-                    <tr>
-                      <td colSpan="3" className="px-4 py-4">
-                        <div className="p-3 bg-gray-300 rounded ml-auto" style={{ maxWidth: '450px' }}>
-                          <form onSubmit={handleSubmit} className="flex flex-col">
-                            <div className="mb-2">
-                              <label className="block text-sm font-semibold">Client Name</label>
-                              <input
-                                type="text"
-                                name="clientName"
-                                value={noteData.clientName}
-                                onChange={handleInputChange}
-                                required
-                                className="border border-gray-300 rounded px-3 py-2 w-full"
-                              />
-                            </div>
-                            <div className="mb-2">
-                              <label className="block text-sm font-semibold">Date</label>
-                              <input
-                                type="date"
-                                name="date"
-                                value={noteData.date}
-                                onChange={handleInputChange}
-                                required
-                                className="border border-gray-300 rounded px-3 py-2 w-full"
-                              />
-                            </div>
-                            <div className="mb-2">
-                              <label className="block text-sm font-semibold">Note</label>
-                              <input
-                                type="text"
-                                name="note"
-                                value={noteData.note}
-                                onChange={handleInputChange}
-                                required
-                                className="border border-gray-300 rounded px-3 py-2 w-full"
-                              />
-                            </div>
-                            <div className="mb-2">
-                              <label className="block text-sm font-semibold">Any Error</label>
-                              <input
-                                type="text"
-                                name="error"
-                                value={noteData.error}
-                                onChange={handleInputChange}
-                                className="border border-gray-300 rounded px-3 py-2 w-full"
-                              />
-                            </div>
-                            <div className="mb-3 flex items-center">
-                              <input
-                                type="checkbox"
-                                name="proceeded"
-                                checked={noteData.proceeded}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              <label className="text-sm">Proceeded</label>
-                            </div>
-                            <button type="submit" className="bg-blue-500 hover:bg-black-700 text-white font-bold py-2 px-4 rounded w-full">
-                              Submit
-                            </button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
+    <div className="container mx-auto p-5">
+      <div className="mt-5">
 
+        {/* Go back to previous folder */}
+        {parent && (
+          <button
+            onClick={handleGoBack}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 mb-5 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+          >
+            {"<< Back to Previous"}
+          </button>
+        )}
+
+        <table className="table-fixed w-full border border-gray-300 shadow-lg rounded-lg">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 border text-left border-gray-300">Name</th>
+              <th className="w-1/12 px-4 py-2 text-center border border-gray-300">
+                Type
+              </th>
+              <th className="w-2/12 px-4 py-2 text-center border border-gray-300">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, index) => (
+              <tr
+                key={index}
+                className="bg-white hover:bg-gray-50 transition-all duration-150"
+              >
+                <td className="px-4 py-2 border border-gray-300">
+                  {item.type === "folder" ? (
+                    <a
+                      href="#"
+                      onClick={() => handleFolderClick(item)}
+                      className="text-black-500 hover:underline"
+                    >
+                      <FaFolder className="inline-block text-blue-500 mr-2 text-2xl" />
+                      {item.name}
+                    </a>
+                  ) : (
+                    <a href={item.link} target="_blank" className="text-black-500 hover:underline">
+                      {getFileIcon(item)}
+                      {item.name}
+                    </a>
                   )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+                  {item.proceeded && (
+                    <span> <FaCheckCircle className="inline-block text-green-500 mr-2" /></span> 
+                  )}
+                </td>
+                <td className="px-4 py-2 text-center border border-gray-300">
+                  {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+                </td>
+                <td className="px-4 py-2 text-center border border-gray-300">
+                  <button
+                    className={`bg-blue-400 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow-lg transition-transform transform hover:scale-105 ${
+                      item.proceeded ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={() => handleOpenNoteModal(item)}
+                    disabled={item.proceeded}
+                  >
+                    Add Note
+                  </button>
+                  <button
+                    className="ml-2 bg-white-300 text-orange-500 px-2 py-2 rounded-full transition-transform transform hover:scale-[1.20]"
+                    onClick={() => handleOpenHistoryModal(item)}
+                  >
+                    <FaHistory />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-          <div className={`fixed inset-0 z-50 flex items-start justify-center ${showModal ? 'block' : 'hidden'}`}>
-            <div className="fixed inset-0 bg-black opacity-50" onClick={handleCloseModal}></div> {/* Modal backdrop */}
-
-            <div className="bg-white rounded-lg shadow-lg z-50 p-6 max-w-2xl mx-auto relative mt-10" style={{maxWidth:"850px",minWidth:"800px"}}> {/* Added mt-10 for margin from the top */}
-              <div className="flex justify-between items-center border-b pb-2 mb-4">
-                <h2 className="text-lg font-bold">History for {selectedItem?.name}</h2>
-                <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700 focus:outline-none text-3xl p-2">
-                  &times;
-                </button>
-              </div>
-
-              <div className="modal-body mt-4">
-                {loading ? (
-                  <div className="text-center">
-                    <p>Loading...</p>
-                  </div>
-                ) : history.length > 0 ? (
-                  <table className="table-auto w-full text-left border-collapse border border-gray-300">
-                    <thead>
-                      <tr>
-                        <th className="px-4 py-2 border border-gray-300">Client Name</th>
-                        <th className="px-4 py-2 border border-gray-300">Date</th>
-                        <th className="px-4 py-2 border border-gray-300">Note</th>
-                        <th className="px-4 py-2 border border-gray-300">Error</th>
-                        <th className="px-4 py-2 border border-gray-300">Proceeded</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((entry, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-2 border border-gray-300">{entry.clientName || 'N/A'}</td>
-                          <td className="px-4 py-2 border border-gray-300">{entry.date || 'N/A'}</td>
-                          <td className="px-4 py-2 border border-gray-300 break-all">{entry.note || 'N/A'}</td>
-                          <td className="px-4 py-2 border border-gray-300 break-all">{entry.error || 'N/A'}</td>
-                          <td className="px-4 py-2 border border-gray-300">
-                            {entry.proceeded ? (
-                              <FaCheckCircle className="text-green-500"/>
-                            ) : (
-                              ''
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-center">No history available for this project.</p>
-                )}
-              </div>
+        {/* Modal for "Add Note" */}
+        {showNoteModal && selectedItem && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75">
+            <div className="bg-white p-8 rounded-lg shadow-lg max-w-lg w-full">
+              <h2 className="text-lg font-bold mb-4">
+                Add Note for {selectedItem?.name}
+              </h2>
+              <form
+                onSubmit={handleSubmit}
+                className="flex flex-col space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-semibold">
+                    Client Name
+                  </label>
+                  <input
+                    type="text"
+                    name="clientName"
+                    value={noteData.clientName}
+                    onChange={handleInputChange}
+                    required
+                    className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold">Date</label>
+                  <input
+                    type="date"
+                    name="date"
+                    value={noteData.date}
+                    onChange={handleInputChange}
+                    required
+                    className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold">Note</label>
+                  <input
+                    type="text"
+                    name="note"
+                    value={noteData.note}
+                    onChange={handleInputChange}
+                    required
+                    className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold">
+                    Any Error
+                  </label>
+                  <input
+                    type="text"
+                    name="error"
+                    value={noteData.error}
+                    onChange={handleInputChange}
+                    className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="proceeded"
+                    checked={noteData.proceeded}
+                    onChange={handleInputChange}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-semibold">
+                    Mark as Proceeded
+                  </span>
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
+        )}
 
-        </div>
-      )}
+        {/* Modal for history */}
+        {showHistoryModal && selectedItem && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75">
+            <div className="bg-white p-8 rounded-lg shadow-lg w-auto overflow-auto">
+              <h2 className="text-lg font-bold mb-4">
+                History for {selectedItem?.name}
+              </h2>
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <table className="table-auto w-full border border-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 border border-gray-300 w-1/6">
+                        Client Name
+                      </th>
+                      <th className="px-4 py-2 border border-gray-300 w-1/4">
+                        Date
+                      </th>
+                      <th className="px-4 py-2 border border-gray-300 w-1/5">
+                        Note
+                      </th>
+                      <th className="px-4 py-2 border border-gray-300 w-1/5">
+                        Error
+                      </th>
+                      <th className="px-4 py-2 border border-gray-300 w-1/12">
+                        Proceeded
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((note, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-2 border border-gray-300">
+                          {note.clientName}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-300">
+                          {note.date}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-300 break-words max-w-xs">
+                          {note.note}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-300 break-words max-w-xs">
+                          {note.error}
+                        </td>
+                        <td className="px-4 py-2 border border-gray-300 text-center">
+                          {note.proceeded && (
+                            <FaCheckCircle className="inline-block text-green-500" />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <button
+                onClick={handleCloseModal}
+                className="bg-gray-800 text-white font-bold py-2 px-4 rounded-lg mt-4"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-export default WorkdriveForm;
+export default Workdrive;
