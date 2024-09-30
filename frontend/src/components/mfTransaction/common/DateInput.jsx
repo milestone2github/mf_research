@@ -3,6 +3,31 @@ import React from 'react'
 function DateInput(props) {
   const { id, value, index, onChange, label, placeHolder, minDate, maxDate, required, disable, pattern } = props;
 
+  // Handle date change and reset to blank if invalid date is entered
+  const handleDateChange = (event) => {
+    const inputDate = new Date(event.target.value);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    if (inputDate < currentDate) {
+      alert("Selected date cannot be in the past!");
+      
+      // Simulate an event object when resetting the value
+      const newEvent = {
+        target: {
+          name: event.target.name,
+          value: '',
+          dataset: event.target.dataset,
+        }
+      };
+
+      onChange(newEvent);
+      return;
+    }
+
+    onChange(event);
+  };
+
   return (
     <div className='flex flex-col gap-1'>
       <label 
@@ -24,7 +49,7 @@ function DateInput(props) {
         placeholder={placeHolder}
         pattern={pattern}
         value={value}
-        onChange={onChange}/>
+        onChange={handleDateChange}/>
     </div>
   )
 }
