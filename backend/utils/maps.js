@@ -15,5 +15,6 @@ approvalStatusMap.set('System Update Awaiting', 'PENDING')
 approvalStatusMap.set('RM Hold the Execution', 'PENDING')
 approvalStatusMap.set('Wrongly / Double Entry', 'PENDING')
 approvalStatusMap.set('Onboarding Pending', 'PENDING')
+approvalStatusMap.set('Folio Creation Awaiting', 'PENDING')
 
 module.exports = {schemeMap, approvalStatusMap};

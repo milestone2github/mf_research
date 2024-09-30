@@ -28,7 +28,7 @@ const approvalStatusEnum = [
   "Submitted to RTA",
   "System Update Awaiting",
   "RM Hold the Execution",
-  "Wrongly / Double Entry",
+  "Folio Creation Awaiting",
   "Onboarding Pending"
 ]
 

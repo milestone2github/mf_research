@@ -428,7 +428,7 @@ const addAllFractions = async (req, res) => {
 
 // generate link (by trx id)
 const generateLink = async (req, res) => {
-  let { fractionId, platform, orderId, approvalStatus } = req.body;
+  let { fractionId, platform, orderId, approvalStatus, paymentMode } = req.body;
   approvalStatus = approvalStatus === '' ? 'Approved' : approvalStatus
   let status = null
   if(approvalStatus === 'Approved') {
@@ -440,7 +440,14 @@ const generateLink = async (req, res) => {
     if (!fractionId) {
       transaction = await Transactions.findByIdAndUpdate(
         req.params.id, 
-        { linkStatus: 'generated', orderId, orderPlatform: platform, approvalStatus, ...(status ? {status} : {}) }, 
+        { 
+          linkStatus: 'generated', 
+          orderId, 
+          orderPlatform: platform, 
+          approvalStatus, 
+          ...(status ? {status} : {}), 
+          ...(paymentMode ? {paymentMode} : {})
+        }, 
         { new: true }
       )
     }
@@ -453,7 +460,8 @@ const generateLink = async (req, res) => {
             'transactionFractions.$.orderId': orderId,
             'transactionFractions.$.approvalStatus': approvalStatus,
             'transactionFractions.$.orderPlatform': platform,
-            ...(status ? {'transactionFractions.$.status': status }: {})
+            ...(status ? {'transactionFractions.$.status': status }: {}),
+            ...(paymentMode ? {paymentMode: paymentMode }: {})
           }
         },
         { new: true }
@@ -726,9 +734,9 @@ const updateApprovalStatus = async (req, res) => {
   if (!transactionId) {
     return res.status(400).json({ error: 'Transaction Id is required' })
   }
-  if (!approvalStatus) {
-    return res.status(400).json({ error: 'Approval status is required' })
-  }
+  // if (!approvalStatus) {
+  //   return res.status(400).json({ error: 'Approval status is required' })
+  // }
 
   const status = approvalStatusMap.get(approvalStatus)
   try {
