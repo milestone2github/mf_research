@@ -7,7 +7,7 @@ const initialState = {
         purch_redempSchemeName: '',
         purch_redempSchemeOption: '',
         purch_redempFolio: '',
-        purch_redempTransactionUnits_Amount: 'Amount Given in next question',
+        purch_redempTransactionUnits_Amount: 'Amount in next question',
         purch_redempTransactionAmount: 1,
         purch_redempPaymentMode: '',
         purchaseChequeNumber: ''

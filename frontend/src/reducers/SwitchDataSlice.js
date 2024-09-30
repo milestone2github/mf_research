@@ -8,7 +8,7 @@ const initialState = {
         switchToScheme: '',
         switchToSchemeOption: '',
         switchFolio: '',
-        switchTransactionUnits_Amount: 'Amount Given in next question',
+        switchTransactionUnits_Amount: 'Amount in next question',
         switchTransactionAmount: 1,
     }]
 }
