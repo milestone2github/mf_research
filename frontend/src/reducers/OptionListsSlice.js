@@ -11,7 +11,7 @@ const initialState = {
   amcNameOptions: [],
   schemeNameOptions: [],
   schemeOptionOptions: ['Growth', 'IDCW / Dividend'],
-  sipPauseMonthsOptions: ['Not Applicable', '2 Months', '3 Months', 'Maximum Months'],
+  sipPauseMonthsOptions: ['Not Applicable', '1 Month', '2 Months', '3 Months', '4 Months', 'Maximum Months'],
   sip_stp_swpDateOptions: [
     "",
     "1 to 10",
@@ -34,7 +34,8 @@ const initialState = {
   redemptionTraxUnits_AmountOptions: ['Amount in next question', 'Long Term Units', 'Redeem All Units', 'Units in next question', 'Unlocked Units'],
   switchTraxUnits_AmountOptions: ['Amount Given in next question', 'Long Term Units', 'Switch All Units', 'Units in next question', 'Unlocked Units'],
   sysPaymentModeOptions: ['Netbanking', 'Mandate', 'Cheque', 'NEFT/RTGS', 'Zero Balance', 'UPI'],
-  purchPaymentModeOptions: ['Netbanking', 'Mandate', 'Cheque', 'NEFT/RTGS', 'UPI']
+  purchPaymentModeOptions: ['Netbanking', 'Mandate', 'Cheque', 'NEFT/RTGS', 'UPI'],
+  frequencyOptions: [ 'Daily', 'Weekly', 'Monthly', 'Annually' ]
 }
 
 const optionListsSlice = createSlice({
