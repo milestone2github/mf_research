@@ -321,7 +321,7 @@ function SystematicForm({ index, updateCollapsed }) {
       {/* Frequency Dropdown */}
       {['SIP', 'STP', 'SWP'].includes(systematicItem.systematicTraxType) &&
         systematicItem.systematicTraxFor === 'Registration' && (
-        <div className='grow shrink basis-72'>
+        <div className='grow shrink basis-72 max-w-full md:max-w-[calc(50%-32px)] lg:max-w-[calc(33%-39.6px)]'>
           <PreFilledSelect
             id='systematicFrequency'
             index={index}
