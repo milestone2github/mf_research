@@ -169,8 +169,16 @@ const removeFraction = async (req, res) => {
 
 // get transactions group by family head
 const getTransactionsGroupByFh = async (req, res) => {
+  const {searchBy, searchKey} = req.query
   const smFilter = req.query.smFilter || 'all'
   const userName = req.user?.name
+
+  const searchByLookup = {
+    'family head': 'familyHead',
+    'investor name': 'investorName',
+    'PAN': 'panNumber',
+  }
+
   let matchStage = {}
   let uptoDate = new Date()
   if (uptoDate.getDay() == 6) {
@@ -186,6 +194,10 @@ const getTransactionsGroupByFh = async (req, res) => {
   }
   else if (smFilter === 'ua') {
     matchStage.serviceManager = { $in: [null, ''] }
+  }
+
+  if(searchBy && searchKey) {
+    matchStage[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i')}
   }
 
   try {
@@ -659,7 +671,7 @@ const filteredTransactions = async (req, res) => {
     filters.serviceManager = Array.isArray(smName) ? { $in: smName.map(name => toTitleCase(name)) } : toTitleCase(smName)
   }
   if (status) {
-    filters.status = status
+    filters.status = Array.isArray(status) ? {$in: status} : status 
   }
   if (approvalStatus) {
     filters.approvalStatus = approvalStatus
