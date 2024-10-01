@@ -29,7 +29,8 @@ function SystematicForm({ index, updateCollapsed }) {
     transactionTypeOptions,
     folioOptions,
     folioOptionsWithNew,
-    sysPaymentModeOptions
+    sysPaymentModeOptions,
+    frequencyOptions
   } = useSelector(state => state.optionLists);
 
   // use useDispatch hook to use reducers 
@@ -316,6 +317,22 @@ function SystematicForm({ index, updateCollapsed }) {
           />
         </div>
       }
+
+      {/* Frequency Dropdown */}
+      {['SIP', 'STP', 'SWP'].includes(systematicItem.systematicTraxType) &&
+        systematicItem.systematicTraxFor === 'Registration' && (
+        <div className='grow shrink basis-72 max-w-full md:max-w-[calc(50%-32px)] lg:max-w-[calc(33%-39.6px)]'>
+          <PreFilledSelect
+            id='systematicFrequency'
+            index={index}
+            label='Frequency'
+            options={frequencyOptions} // Use frequency options from the store
+            selectedOption={systematicItem.systematicFrequency}
+            onSelect={handleSelectChange}
+            updateCollapsed={updateCollapsed}
+          />
+        </div>
+      )}
 
       {systematicItem.systematicPaymentMode === 'Cheque' && <div className='grow shrink basis-72 max-w-full md:max-w-[calc(50%-32px)] lg:max-w-[calc(33%-39.6px)]'>
         <TextInput
