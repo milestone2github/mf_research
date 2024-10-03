@@ -127,7 +127,7 @@ const CalculatorList = () => {
       <h1 className="text-2xl font-bold text-gray-700">Financial Calculators</h1>
       <div className="calculator-list">
         {allowedCalculators.length <= 0 ? <NoCalculatorsAllowed /> 
-        : allowedCalculators.map((calc) => (
+        : calculators.map((calc) => (
           <Link to={calc.route} key={calc.route} className="calculator-card">
             <img src={calc.icon} alt={calc.title} className="calculator-icon" />
             <h2>{calc.title}</h2>
