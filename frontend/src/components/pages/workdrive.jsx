@@ -268,7 +268,7 @@ function Workdrive() {
                   )}
                 </td>
                 <td className="px-4 py-2 text-center border border-gray-300">
-                  {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+                {item.type === "unknownfile" ? "File" : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
                 </td>
                 <td className="px-4 py-2 text-center border border-gray-300">
                   <button
