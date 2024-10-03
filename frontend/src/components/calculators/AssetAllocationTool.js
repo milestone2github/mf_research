@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Pie } from "react-chartjs-2";
 import "./AssetAllocationTool.css";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import BackButton from "../common/BackButton";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -80,13 +81,37 @@ const AssetAllocationAdvisorTool = () => {
   };
 
   return (
-    <div className="asset-allocation-advisor-tool">
-      <h2>Asset Allocation Advisor Tool</h2>
-      <div className={`form-chart-container ${showChart ? "with-chart" : ""}`}>
-        <div className={`form-section ${showChart ? "move-left" : ""}`}>
-          <div>
-            <label htmlFor="riskProfile">Risk Profile:</label>
+    <div className="px-3">
+      <div className="relative flex">
+        <span className="absolute left-0 top-1/2 -translate-y-1/2">
+          <BackButton />
+        </span>
+
+        <div className="flex flex-col w-fit mx-auto">
+          <h2 className="text-2xl text-dark-blue md:text-3xl font-bold mx-auto my-1">
+            Asset Allocation Advisor Tool
+          </h2>
+          <span className="w-full bg-yellow-600 h-2 text-start"></span>
+        </div>
+      </div>
+
+      <div
+        className={`form-chart-container flex flex-wrap items-start justify-between gap-7 mt-6 ${
+          showChart ? "with-chart" : ""
+        }`}
+      >
+        {/* Form Section */}
+        <div
+          className={`form-section grow basis-72 md:basis-[40%] w-full md:w-1/2 rounded-lg bg-slate-100 p-4 px-6 ${
+            showChart ? "move-left" : ""
+          }`}
+        >
+          <div className="mb-4">
+            <label htmlFor="riskProfile" className="text-gray-600">
+              Risk Profile
+            </label>
             <select
+              className="mt-1 block w-full bg-primary-white border-2 border-gray-300 rounded-lg px-3 py-2 text-gray-600 focus:border-blue-500 focus:outline-none"
               value={riskProfile}
               onChange={(e) => setRiskProfile(e.target.value)}
             >
@@ -96,39 +121,54 @@ const AssetAllocationAdvisorTool = () => {
               <option value="aggressive">Aggressive</option>
             </select>
           </div>
-          <div>
-            <label htmlFor="investmentGoal">Investment Goal:</label>
+          <div className="mb-4">
+            <label htmlFor="investmentGoal" className="text-gray-600">
+              Investment Goal
+            </label>
             <input
+              className="mt-1 block w-full bg-primary-white border-2 border-gray-300 rounded-lg px-3 py-2 text-gray-600 focus:border-blue-500 focus:outline-none"
               type="text"
               placeholder="Investment Goal"
               value={investmentGoal}
               onChange={(e) => setInvestmentGoal(e.target.value)}
             />
           </div>
-          <div>
-            <label htmlFor="timeHorizon">Time Horizon (years):</label>
+          <div className="mb-4">
+            <label htmlFor="timeHorizon" className="text-gray-600">
+              Time Horizon (years)
+            </label>
             <input
+              className="mt-1 block w-full bg-primary-white border-2 border-gray-300 rounded-lg px-3 py-2 text-gray-600 focus:border-blue-500 focus:outline-none"
               type="number"
               placeholder="Time Horizon"
               value={timeHorizon}
               onChange={(e) => setTimeHorizon(e.target.value)}
             />
           </div>
-          <button onClick={calculateAssetAllocation}>Calculate</button>
+          <button
+            onClick={calculateAssetAllocation}
+            className="w-full bg-yellow-600 text-white font-bold py-2 px-4 rounded hover:bg-[#b57b00] transition-all duration-300"
+          >
+            Calculate
+          </button>
         </div>
 
+        {/* Chart Section */}
         {showChart && (
-          <div className="chart-section slide-in-right">
-            <h3>Asset Allocation</h3>
-            <Pie data={chartData} />
-            <div className="allocation-chart-placeholder">
-              Chart showing {allocation.equity}% Equity, {allocation.debt}% Debt,{" "}
-              {allocation.others}% Others
+          <div className="chart-section grow shrink basis-72 md:basis-[40%] w-full md:w-1/2 rounded-lg bg-slate-100 p-4 px-6 slide-in-right">
+            <h3 className="text-lg font-bold mb-4">Asset Allocation</h3>
+            <div className="chart-container" style={{ maxWidth: "200px", margin: "0 auto" }}>
+              <Pie data={chartData} />
             </div>
-            <p>Equity: {allocation.equity}%</p>
-            <p>Debt: {allocation.debt}%</p>
-            <p>Others: {allocation.others}%</p>
-            <p>{getProfileExplanation()}</p>
+            <div className="allocation-summary mt-4 text-center text-sm">
+              <p className="text-lg font-semibold">Asset Allocation Breakdown</p>
+              <p>
+                <span className="text-yellow-600 font-bold">{allocation.equity}%</span> Equity,{" "}
+                <span className="text-blue-500 font-bold">{allocation.debt}%</span> Debt,{" "}
+                <span className="text-green-500 font-bold">{allocation.others}%</span> Others
+              </p>
+              <p className="mt-2 font-semibold">{getProfileExplanation()}</p>
+            </div>
           </div>
         )}
       </div>

@@ -1,5 +1,4 @@
-/* Global Styles */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 body {
   font-family: "Poppins", sans-serif;
@@ -8,95 +7,31 @@ body {
 }
 
 :root {
-  --primary-color: #2ecc71;
-  --secondary-color: #e74c3c;
-  --background-color: #f8f9fa;
-  --text-color: #333;
-  --border-color: #aaa;
-  --highlight-color: #c7c4c4;
+  --primary-color: #2196f3;
+  --secondary-color: #e91e63;
 }
-
-/* Container for the Goal-Based Investment Calculator */
-.goal-based-investment-calculator {
-  background: var(--background-color);
-  border-radius: 8px;
-  padding: 20px;
-  max-width: 600px;
-  margin: 40px auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  animation: fadeIn 0.5s ease-out;
-}
-
-/* Heading Styles */
-.goal-based-investment-calculator h2 {
-  font-weight: 700;
-  font-size: 24px;
-  color: var(--primary-color);
+.info li{
+  background-color:#673AB7;
+  background-color:#395282;
+  color: rgb(237, 237, 237);
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap:0.5rem;
+  border-radius: 0.25rem;
+  padding-block: 1.5rem;
+  align-items: center;
   text-align: center;
-  margin-bottom: 20px;
 }
-
-/* Label Styles */
-.goal-based-investment-calculator label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 5px;
-  color: var(--text-color);
+.info li .values{
+  order: 1;
+  font-size: 2rem;
 }
-
-/* Input Field Styles */
-.goal-based-investment-calculator input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 16px;
-  margin-bottom: 15px;
-  transition: border 0.3s ease;
-}
-
-.goal-based-investment-calculator input:focus {
-  border-color: var(--primary-color);
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.25);
-}
-
-/* Button Styles */
-.goal-based-investment-calculator button {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  font-size: 16px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 12px 24px;
-  width: 100%;
-  margin-top: 10px;
-}
-
-.goal-based-investment-calculator button:hover {
-  background-color: #27ae60;
-}
-
-/* Result Display */
-.goal-based-investment-calculator h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--secondary-color);
-  text-align: center;
-  margin-top: 20px;
-}
-
-/* Fade-in Animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.info li p {
+  order: 2;
+  font-size: 0.875rem;
+  font-weight: normal;
+  color: #c7c4c4;
+  color: #dadada;
 }
