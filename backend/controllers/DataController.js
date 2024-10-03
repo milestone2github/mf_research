@@ -256,6 +256,7 @@ const postTransForm = async (req, res) => {
           sipPauseMonths: element.sipPauseMonths,
           tenure: element.tenureOfSip_swp_stp,
           chequeNumber: element.systematicChequeNumber,
+          frequency: element.systematicFrequency,
           status: 'PENDING',
         }
 

@@ -27,6 +27,7 @@ const transactionSchema = new mongoose.Schema({
   sipSwpStpDate: Date, //systematic only
   sipPauseMonths: String, //systematic only
   tenure: String, //systematic only
+  frequency: String, //systematic only
   transactionDate: Date,
   chequeNumber: {type: String, maxLength: 6},
   sessionId: String,
