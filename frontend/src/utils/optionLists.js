@@ -55,7 +55,7 @@ const transactionOptions = new Array('Registration', 'Pause', 'Cancellation')
 
 // list of SIP Pause Months 
 const sipPauseMonthsOptions = [
-  'Not Applicable', '2 Months', '3 Months', 'Maximum Months'
+  'Not Applicable', '1 Month', '2 Months', '3 Months', '4 Months', 'Maximum Months'
 ]
 
 // list of transaction types 

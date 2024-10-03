@@ -256,6 +256,7 @@ const postTransForm = async (req, res) => {
           sipPauseMonths: element.sipPauseMonths,
           tenure: element.tenureOfSip_swp_stp,
           chequeNumber: element.systematicChequeNumber,
+          frequency: element.systematicFrequency,
           status: 'PENDING',
         }
 
@@ -1159,11 +1160,6 @@ async function apinoteallproject(req, res){
   }
 }
 
-async function  workdrivezohocallback(req, res){
-  const authCode = req.query.code;
-  
-  try {
-      const accessToken = await exchangeCodeForToken(authCode);
 
       // const userDetails = await getUserDetails(accessToken);
 
@@ -1189,6 +1185,17 @@ async function  workdrivezohocallback(req, res){
       // const folderId = folderDetails.data[0].id;
       
       // parent: item.attributes.parent_id
+// const cookieOptions = {
+//   maxAge: 3600000,
+//   httpOnly: true,
+//   secure: process.env.NODE_ENV === 'production',
+//   sameSite: 'Strict',
+// };
+async function  workdrivezohocallback(req, res){
+  const authCode = req.query.code;
+  
+  try {
+      const accessToken = await exchangeCodeForToken(authCode);
       const user = await User.findOne({email:req.session.user.email}).lean();
       const files = await fetchWorkdriveItems(accessToken, user.folderId); // Access folderId only after query is resolved
       files.forEach((file, index) => {
@@ -1197,9 +1204,14 @@ async function  workdrivezohocallback(req, res){
           file.proceeded = false;
       });
       const filesData = encodeURIComponent(JSON.stringify(files));
-
+      let pathVariables = [
+        { name: 'Home', value: `${user.folderId}` },
+      ];
+      pathVariables = encodeURIComponent(JSON.stringify(pathVariables));
       // Redirect to frontend with files data
-      res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}`);
+      // res.cookie('filesData', encodeURIComponent(filesData), cookieOptions);
+      // res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&path=${pathVariables}`);
+      res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}&path=${pathVariables}`);
   } catch (error) {
       console.error('Error during callback processing:',  error.message);
       res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);
@@ -1208,6 +1220,8 @@ async function  workdrivezohocallback(req, res){
 async function  workdrivezohoaccess(req, res){
   const accessToken = req.query.token;
   const url  = req.query.id;
+  const name  = req.query.name;
+  let path  = JSON.parse(decodeURIComponent(req.query.path));
   const parts = url.split('/');
   const folderId = parts[parts.length - 1];
   try {
@@ -1219,12 +1233,16 @@ async function  workdrivezohoaccess(req, res){
           file.proceeded = false;
         });
         const filesData = encodeURIComponent(JSON.stringify(files));
-        const parent = await fetchParent(accessToken, folderId);
         const workdrive = "6m6kqfd043f4414f5421dafec9298f0e3398c";
-        if(parent === workdrive){
-          return res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}`);
+        const itemExists = path.some(item => item.value === folderId);
+        if (!itemExists) {
+          path.push({name: `${name}`, value: `${folderId}`});
         }
-        return res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&parent=${parent}&token=${accessToken}&files=${filesData}`);
+        path = encodeURIComponent(JSON.stringify(path));
+        // res.cookie('filesData', encodeURIComponent(filesData), cookieOptions);
+        // return res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&path=${path}`);
+        return res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=true&token=${accessToken}&files=${filesData}&path=${path}`);
+        
   } catch (error) {
       console.error('Error during callback processing:', error.response ? error.response.data : error.message);
       return res.redirect(`${process.env.DEFAULT_FRONTEND_URL}/workdrive?success=false`);

@@ -2,7 +2,7 @@
 const mongoose = require("mongoose")
 
 const workdriveschema = mongoose.Schema({
-    name: {
+    clientName: {
         type: String,
         require: true,
     },

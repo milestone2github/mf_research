@@ -25,7 +25,7 @@ function Workdrive() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [items, setItems] = useState([]);
   const [allData, setAllData] = useState([]);
-  const [parent, setParent] = useState(null); // To track parent directory
+  const [path, setPath] = useState(null);
   const [token, setToken] = useState(""); // Token for authentication
   const location = useLocation();
   const [showNoteModal, setShowNoteModal] = useState(false);
@@ -42,17 +42,25 @@ function Workdrive() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // const getCookie = (name) => {
+    //   const value = `; ${document.cookie}`;
+    //   const parts = value.split(`; ${name}=`);
+    //   if (parts.length === 2) return parts.pop().split(';').shift();
+    // };
+
     const params = new URLSearchParams(location.search);
     const success = params.get("success");
+    // const filesData = getCookie('filesData');
     const filesData = params.get("files");
     const tokenParam = params.get("token");
-    const parentParam = params.get("parent");
+    const pathData = params.get("path")?.split(",");
 
     if (success === "true" && filesData) {
       setIsAuthenticated(true);
       setItems(JSON.parse(decodeURIComponent(filesData)));
       setToken(tokenParam);
-      setParent(parentParam);
+      setPath(JSON.parse(decodeURIComponent(pathData)));
+      console.log(JSON.parse(decodeURIComponent(pathData)))
       fetchAllNotes();
     } else {
       handleLogin(); // Automatically handle login if not authenticated
@@ -162,13 +170,14 @@ function Workdrive() {
     }
   };
 
-  // Navigate back to parent folder
-  const handleGoBack = () => {
-    window.location.href = `${backendUrl}/api/data/zoho/access?token=${token}&id=${parent}`;
-  };
-
-  const handleFolderClick = (item) => {
-    window.location.href = `${backendUrl}/api/data/zoho/access?token=${token}&id=${item.link}`;
+  const handleFolderClick = (value, name) => {
+    const indexToRemove = path.findIndex(item => item.value === value && item.name === name);
+    let updatedPath = path;
+    if (indexToRemove !== -1) {
+      updatedPath = path.slice(0, indexToRemove); // Keep everything before the matched item
+    }
+    const serializedPath = encodeURIComponent(JSON.stringify(updatedPath));
+    window.location.href = `${backendUrl}/api/data/zoho/access?token=${token}&id=${value}&path=${serializedPath}&name=${name}`;
   };
 
   // Helper function to get the correct icon based on file type
@@ -204,16 +213,21 @@ function Workdrive() {
   return (
     <div className="container mx-auto p-5">
       <div className="mt-5">
-
-        {/* Go back to previous folder */}
-        {parent && (
-          <button
-            onClick={handleGoBack}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 mb-5 rounded-lg shadow-lg transition-transform transform hover:scale-105"
-          >
-            {"<< Back to Previous"}
-          </button>
-        )}
+        <div>
+          <div className="text-gray-800 mb-4 text-xl">
+            {path && path.map((item, index) => (
+              <span key={index}>
+                {index > 0 && " > "}
+                <button
+                  onClick={() => handleFolderClick(item.value, item.name)}
+                  className={`${index === path.length - 1 ? 'text-blue-600' : 'text-black'} hover:underline`}
+                >
+                  {item.name}
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
 
         <table className="table-fixed w-full border border-gray-300 shadow-lg rounded-lg">
           <thead className="bg-gray-50">
@@ -237,7 +251,7 @@ function Workdrive() {
                   {item.type === "folder" ? (
                     <a
                       href="#"
-                      onClick={() => handleFolderClick(item)}
+                      onClick={() => handleFolderClick(item.link, item.name)}
                       className="text-black-500 hover:underline"
                     >
                       <FaFolder className="inline-block text-blue-500 mr-2 text-2xl" />
@@ -250,17 +264,16 @@ function Workdrive() {
                     </a>
                   )}
                   {item.proceeded && (
-                    <span> <FaCheckCircle className="inline-block text-green-500 mr-2" /></span> 
+                    <span> <FaCheckCircle className="inline-block text-green-500 mr-2" /></span>
                   )}
                 </td>
                 <td className="px-4 py-2 text-center border border-gray-300">
-                  {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+                {item.type === "unknownfile" ? "File" : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
                 </td>
                 <td className="px-4 py-2 text-center border border-gray-300">
                   <button
-                    className={`bg-blue-400 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow-lg transition-transform transform hover:scale-105 ${
-                      item.proceeded ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
+                    className={`bg-blue-400 hover:bg-blue-800 text-white px-4 py-2 rounded-lg shadow-lg transition-transform transform hover:scale-105 ${item.proceeded ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                     onClick={() => handleOpenNoteModal(item)}
                     disabled={item.proceeded}
                   >
@@ -382,7 +395,7 @@ function Workdrive() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-2 border border-gray-300 w-1/6">
-                        Client Name
+                        Name
                       </th>
                       <th className="px-4 py-2 border border-gray-300 w-1/4">
                         Date
