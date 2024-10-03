@@ -618,124 +618,161 @@ const getSMNames = async (req, res) => {
   }
 }
 
-// get all transactions with filter 
+// get all transactions with filter (all.jsx page)
 const filteredTransactions = async (req, res) => {
-  let { minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort, minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey } = req.query
-  const items = Number(req.query.items) || 10
-  const page = Number(req.query.page) || 1
-  const skipItems = items * (page - 1)
-  let filters = {}
+  let {
+    minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort,
+    minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey
+  } = req.query;
+
+  const items = Number(req.query.items) || 10;
+  const page = Number(req.query.page) || 1;
+  const skipItems = items * (page - 1);
+
+  let filterStage1 = {};
+  let filterStage2 = {};
+  let fractionFilters = {};
 
   const searchByLookup = {
     'family head': 'familyHead',
     'investor name': 'investorName',
     'PAN': 'panNumber',
-  }
+  };
 
-  // Apply filters based on query parameters
+  // Stage 1 filters
   if (minDate) {
-    minDate = new Date(minDate)
-    filters.transactionPreference = { $gte: minDate }
+    minDate = new Date(minDate);
+    filterStage1.transactionPreference = { $gte: minDate };
   }
   if (maxDate) {
-    maxDate = new Date(maxDate)
-    filters.transactionPreference = { $lte: maxDate }
+    maxDate = new Date(maxDate);
+    filterStage1.transactionPreference = { $lte: maxDate };
   }
   if (minDate && maxDate) {
-    filters.transactionPreference = { $gte: minDate, $lte: maxDate }
-  }
-
-  if (minAmount?.toString()) {
-    filters.amount = { $gte: Number(minAmount) }
-  }
-  if (maxAmount?.toString()) {
-    filters.amount = { $lte: Number(maxAmount) }
-  }
-  if (minAmount?.toString() && maxAmount?.toString()) {
-    filters.amount = { $gte: Number(minAmount), $lte: Number(maxAmount) }
+    filterStage1.transactionPreference = { $gte: minDate, $lte: maxDate };
   }
 
   if (amcName) {
-    filters.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName
+    filterStage1.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName;
   }
   if (schemeName) {
-    filters.schemeName = Array.isArray(schemeName) ? { $in: schemeName } : schemeName
+    filterStage1.schemeName = Array.isArray(schemeName) ? { $in: schemeName } : schemeName;
   }
   if (rmName) {
-    filters.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName)
+    filterStage1.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName);
   }
   if (orderId) {
-    filters.orderId = orderId
+    filterStage1.orderId = orderId;
   }
   if (smName) {
-    filters.serviceManager = Array.isArray(smName) ? { $in: smName.map(name => toTitleCase(name)) } : toTitleCase(smName)
-  }
-  if (status) {
-    filters.status = Array.isArray(status) ? {$in: status} : status 
-  }
-  if (approvalStatus) {
-    filters.approvalStatus = approvalStatus
+    filterStage1.serviceManager = Array.isArray(smName) ? { $in: smName.map(name => toTitleCase(name)) } : toTitleCase(smName);
   }
   if (transactionFor) {
-    filters.transactionFor = transactionFor
+    filterStage1.transactionFor = transactionFor;
   }
 
-  if(type === 'Switch') {filters.category = 'switch'}
-  else if (type) {
-    filters.transactionType = type
+  if (type === 'Switch') {
+    filterStage1.category = 'switch';
+  } else if (type) {
+    filterStage1.transactionType = type;
   }
 
-  if(searchBy && searchKey) {
-    filters[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') }
+  // stage 2 filters 
+  if (status) {
+    filterStage2.status = Array.isArray(status) ? { $in: status } : status;
+    fractionFilters['transactionFractions.status'] = Array.isArray(status) ? { $in: status } : status;
+  }
+  if (approvalStatus) {
+    filterStage2.approvalStatus = approvalStatus;
+    fractionFilters['transactionFractions.approvalStatus'] = approvalStatus;
   }
 
-  // Define sorting options
-  const sortMap = new Map()
-  sortMap.set('trxdate-asc', { transactionPreference: 1 })
-  sortMap.set('trxdate-desc', { transactionPreference: -1 })
-  sortMap.set('amount-asc', { amount: 1 })
-  sortMap.set('amount-desc', { amount: -1 })
-  let sortBy = sortMap.get(sort || 'trxdate-desc')
+  if (minAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount) };
+  }
+  if (maxAmount?.toString()) {
+    filterStage2.amount = { $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $lte: Number(maxAmount) };
+  }
+  if (minAmount?.toString() && maxAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+  }
+
+  if (searchBy && searchKey) {
+    filterStage1[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') };
+  }
+
+  // sorting options
+  const sortMap = new Map();
+  sortMap.set('trxdate-asc', { transactionPreference: 1 });
+  sortMap.set('trxdate-desc', { transactionPreference: -1 });
+  sortMap.set('amount-asc', { amount: 1 });
+  sortMap.set('amount-desc', { amount: -1 });
+  let sortBy = sortMap.get(sort || 'trxdate-desc');
 
   try {
-    // Get total count of filtered transactions
-    const totalTransactions = await Transactions.countDocuments(filters)
 
-    // Calculate the total sum of amount for all filtered transactions before applying pagination
-    const totalAmountResult = await Transactions.aggregate([
-      { $match: filters },
-      {
-        $group: {
-          _id: null,
-          totalAmount: { $sum: "$amount" }
-        }
-      }
-    ])
-
-    const totalAmount = totalAmountResult.length > 0 ? totalAmountResult[0].totalAmount : 0
-
-    // Fetch paginated transactions after skip and limit
     const paginatedTransactions = await Transactions.aggregate([
-      { $match: filters },
+      { $match: filterStage1 },
+      { $unwind: {path: '$transactionFractions', preserveNullAndEmptyArrays: true} },
+      {
+        $match: {
+          $or: [
+            {hasFractions: false, ...filterStage2}, 
+            {hasFractions: true, ...fractionFilters}
+          ]
+        }
+      },
       { $sort: sortBy },
       { $skip: skipItems },
       { $limit: items }
-    ])
+    ]);
+
+    const totalCountAndAmount = await Transactions.aggregate([
+      { $match: filterStage1 },
+      { $unwind: {path: '$transactionFractions', preserveNullAndEmptyArrays: true} },
+      {
+        $match: {
+          $or: [
+            {hasFractions: false, ...filterStage2}, 
+            {hasFractions: true, ...fractionFilters}
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalCount: { $sum: 1 },
+          totalAmount: { $sum : { 
+            $cond: [
+              {$eq: ['$hasFractions', false]}, 
+              '$amount', 
+              '$transactionFractions.fractionAmount'
+            ]
+          }}
+        }
+      }
+    ]);
+
+    const totalCount = totalCountAndAmount[0]?.totalCount || 0
+    const totalAmount = totalCountAndAmount[0]?.totalAmount || 0
 
     res.status(200).json({
       data: {
-        transactions: paginatedTransactions,
         page,
-        totalCount: totalTransactions,
-        totalAmount
+        totalCount,
+        totalAmount,
+        transactions: paginatedTransactions,
       },
       message: 'Transactions found'
-    })
+    });
   } catch (error) {
-    console.log("error getting filtered transactions: ", error.message)
-    res.status(500).json({ error: error.message })
+    console.log('error getting filtered transactions: ', error.message);
+    res.status(500).json({ error: error.message });
   }
-}
+};
 
 // update approval status 
 const updateApprovalStatus = async (req, res) => {
