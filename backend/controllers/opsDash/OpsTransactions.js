@@ -679,9 +679,35 @@ const filteredTransactions = async (req, res) => {
 
   // stage 2 filters 
   if (status) {
-    filterStage2.status = Array.isArray(status) ? { $in: status } : status;
-    fractionFilters['transactionFractions.status'] = Array.isArray(status) ? { $in: status } : status;
+    filterStage2.status = {}
+    fractionFilters['transactionFractions.status'] = {};
+
+    if (Array.isArray(status)) {
+      // Handle array of statuses
+      const includeStatuses = status.filter(s => !s.startsWith('NOT-'));
+      const excludeStatuses = status.filter(s => s.startsWith('NOT-')).map(s => s.slice(4)); // Remove 'NOT-' prefix
+  
+      if (excludeStatuses.length) {
+        filterStage2.status.$nin = excludeStatuses
+        fractionFilters['transactionFractions.status'].$nin = excludeStatuses
+      }
+      if (includeStatuses.length) {
+        filterStage2.status.$in = includeStatuses
+        fractionFilters['transactionFractions.status'].$in = includeStatuses
+      }
+    }
+    else {
+      if (status.startsWith('NOT-')) {
+        const excludedStatus = status.slice(4); // Remove 'NOT-' prefix
+        filterStage2.status = { $nin: [excludedStatus] };
+        fractionFilters['transactionFractions.status'] = { $nin: [excludedStatus] };
+      } else {
+        filterStage2.status = status;
+        fractionFilters['transactionFractions.status'] = status;
+      }
+    }
   }
+
   if (approvalStatus) {
     filterStage2.approvalStatus = approvalStatus;
     fractionFilters['transactionFractions.approvalStatus'] = approvalStatus;
