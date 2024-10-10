@@ -441,10 +441,15 @@ const addAllFractions = async (req, res) => {
 // generate link (by trx id)
 const generateLink = async (req, res) => {
   let { fractionId, platform, orderId, approvalStatus, paymentMode } = req.body;
-  approvalStatus = approvalStatus === '' ? 'Approved' : approvalStatus
+  
+  approvalStatus = ['Client Declined', 'RM Declined'].includes(approvalStatus) ? approvalStatus : 'Approved'
   let status = null
   if(approvalStatus === 'Approved') {
     status = 'APPROVED'
+  }
+
+  if (!orderId) {
+    return res.status(400).json({ error: 'Order ID is required!' })
   }
   
   try {
