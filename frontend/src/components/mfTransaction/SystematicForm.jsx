@@ -209,7 +209,7 @@ function SystematicForm({ index, updateCollapsed }) {
           label='Folio'
           options={systematicItem.systematicTraxFor === 'Registration' ?
             folioOptionsWithNew :
-            folioOptions}
+            [{folio: 'Folio Not Created'}, ...folioOptions]}
           selectedOption={systematicItem.systematicFolio}
           onSelect={handleSelectChange}
         />

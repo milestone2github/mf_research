@@ -86,14 +86,14 @@ const FolioSelectMenu = ({ label, id, index, selectedOption, options, onSelect }
             {options.map((option, index) => (
               <li
                 key={index}
-                className={`${(!option.folio || option.folio === 'Create New Folio') ? 'py-3' : 'py-1'} px-2 cursor-pointer select-none text-left hover:bg-gray-100 ${option.folio === selectedOption ? 'bg-gray-200' : ''} `}
+                className={`${(!option.folio || ['Create New Folio', 'Folio Not Created'].includes(option.folio)) ? 'py-3' : 'py-1'} px-2 cursor-pointer select-none text-left hover:bg-gray-100 ${option.folio === selectedOption ? 'bg-gray-200' : ''} `}
                 onClick={(e) => { handleOptionClick(option) }}
                 role="option"
                 aria-selected={option.folio === selectedOption}
               >
                 <span>{option.folio || 'Select'}</span>
 
-                {option.folio && option.folio != 'Create New Folio' &&
+                {option.folio && !['Create New Folio', 'Folio Not Created'].includes(option.folio) &&
                   <><div className="flex gap-4 justify-between">
                     <span className='text-xs w-20 text-dark-blue'>U : {option.units}</span>
                     <span className='text-xs text-green-600'>A : {option.amount}</span>
