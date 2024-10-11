@@ -629,6 +629,7 @@ const filteredTransactions = async (req, res) => {
     minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort,
     minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey
   } = req.query;
+  schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
 
   const items = Number(req.query.items) || 10;
   const page = Number(req.query.page) || 1;
@@ -651,6 +652,7 @@ const filteredTransactions = async (req, res) => {
   }
   if (maxDate) {
     maxDate = new Date(maxDate);
+    maxDate.setUTCHours(23, 59, 59)
     filterStage1.transactionPreference = { $lte: maxDate };
   }
   if (minDate && maxDate) {
@@ -661,7 +663,10 @@ const filteredTransactions = async (req, res) => {
     filterStage1.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName;
   }
   if (schemeName) {
-    filterStage1.schemeName = Array.isArray(schemeName) ? { $in: schemeName } : schemeName;
+    filterStage1.$or = [
+      { schemeName: schemeName },
+      { fromSchemeName: schemeName }
+    ];
   }
   if (rmName) {
     filterStage1.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName);

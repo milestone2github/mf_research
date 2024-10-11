@@ -7,6 +7,7 @@ exports.getRecoTransactions = async (req, res) => {
   const page = Number(req.query.page) || 1
   const skipItems = items * (page - 1)
   let filters = {}
+  schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
 
   const searchByLookup = {
     'family head': 'familyHead',
@@ -20,6 +21,7 @@ exports.getRecoTransactions = async (req, res) => {
   }
   if (maxDate) {
     maxDate = new Date(maxDate)
+    maxDate.setUTCHours(23, 59, 59)
     filters.transactionPreference = { $lte: maxDate }
   }
   if (minDate && maxDate) {
@@ -40,7 +42,10 @@ exports.getRecoTransactions = async (req, res) => {
     filters.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName
   }
   if (schemeName) {
-    filters.schemeName = Array.isArray(schemeName) ? { $in: schemeName } : schemeName
+    filters.$or = [
+      { schemeName: schemeName },
+      { fromSchemeName: schemeName }
+    ];
   }
   if (rmName) {
     filters.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName)
