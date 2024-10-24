@@ -711,7 +711,15 @@ const postNewFundOfferForm = async (req, res) => {
     sendToZohoSheet(sheetData, 'NFO data sent to zoho sheet')
 
     // send email to user 
-    let mailBody = generateHtmlOfNfo(nfo.investorName, schemeName, nfo.nfoUrl)
+    let mailBody = generateHtmlOfNfo({
+      investorName: nfo.investorName, 
+      schemeName, 
+      nfoUrl: nfo.nfoUrl, 
+      pan: nfo.panNumber,
+      folio: nfo.folioNumber,
+      amount: nfo.amount, 
+      ucc: nfo.ucc
+    })
     sendEmail("noreply@mnivesh.niveshonline.com", `NFO | ${schemeName} | ${nfo.investorName}`, mailBody, email, 'pramod@niveshonline.com,vilakshan@niveshonline.com');
     res.status(201).json({ message: "NFO saved", data: nfo })
   } catch (error) {
