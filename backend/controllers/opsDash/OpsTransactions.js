@@ -179,6 +179,7 @@ const getTransactionsGroupByFh = async (req, res) => {
     'PAN': 'panNumber',
   }
 
+  let sortBy = { createdAt: 1 }
   let matchStage = {}
   let uptoDate = new Date()
   if (uptoDate.getDay() == 6) {
@@ -191,6 +192,7 @@ const getTransactionsGroupByFh = async (req, res) => {
   matchStage.transactionPreference = { $lte: uptoDate }
   if (smFilter === 'my') {
     matchStage.serviceManager = toTitleCase(userName)
+    sortBy.createdAt = -1
   }
   else if (smFilter === 'ua') {
     matchStage.serviceManager = { $in: [null, ''] }
@@ -279,7 +281,7 @@ const getTransactionsGroupByFh = async (req, res) => {
         }
       },
 
-      { $sort: { createdAt: 1 } }
+      { $sort: sortBy }
     ];
 
     const transactions = await Transactions.aggregate(pipeline)

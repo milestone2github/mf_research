@@ -224,10 +224,19 @@ const postTransForm = async (req, res) => {
       sessionId
     };
 
-    // check if any transaction exist with same familyHead whose SM is set 
+    // check if any transaction exist with same familyHead whose SM is set AND has at least one pending
     const transactionWithSm = await Transactions.findOne({
       familyHead: formData.commonData.familyHead,
-      serviceManager: {$nin : [null, '']}
+      serviceManager: {$nin : [null, '']},
+      $or: [
+        { hasFractions: false, status: 'PENDING' },
+        {
+          hasFractions: true,
+          transactionFractions: {
+            $elemMatch: { status: 'PENDING' } // Ensure at least one fraction has status 'PENDING'
+          }
+        }
+      ]
     }).lean()
 
     if(transactionWithSm) {
