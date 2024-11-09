@@ -114,7 +114,6 @@ async function pendingTransactionsNotification() {
         // send the sheet through the mail
         sendEmail({
           toAddress: rm.Email,
-          toAddress: 'himanshu@niveshonline.com',
           subject: 'Pending MF Transactions Reminder',
           body: `Hello ${rmName},\n\nPlease find attached the pending MF transactions for the last month.\n`,
           attachments: [{
@@ -122,7 +121,7 @@ async function pendingTransactionsNotification() {
             content: excelBuffer,
             contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           }],
-          ccAddress: 'pramod@niveshonline.com,vilakshan@niveshonline.com'
+          ccAddress: 'pramod@niveshonline.com,vilakshan@niveshonline.com,ops@niveshonline.com'
         })
       }
     });
