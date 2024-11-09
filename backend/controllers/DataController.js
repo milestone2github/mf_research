@@ -368,7 +368,13 @@ const postTransForm = async (req, res) => {
       });
 
       // send email to user 
-      sendEmail("noreply@mnivesh.niveshonline.com", "MF Transactions", generateHtmlContent(mailData), email, "pramod@niveshonline.com");
+      sendEmail({
+        from: "noreply@mnivesh.niveshonline.com", 
+        subject: "MF Transactions", 
+        body: generateHtmlContent(mailData), 
+        toAddress: email, 
+        ccAddress: "pramod@niveshonline.com"
+      });
 
       res.status(200).json(results);
     } else {
@@ -729,7 +735,13 @@ const postNewFundOfferForm = async (req, res) => {
       amount: nfo.amount, 
       ucc: nfo.ucc
     })
-    sendEmail("noreply@mnivesh.niveshonline.com", `NFO | ${schemeName} | ${nfo.investorName}`, mailBody, email, 'pramod@niveshonline.com,vilakshan@niveshonline.com');
+    sendEmail({
+      from: "noreply@mnivesh.niveshonline.com",
+      subject: `NFO | ${schemeName} | ${nfo.investorName}`, 
+      body: mailBody, 
+      toAddress: email, 
+      ccAddress: 'pramod@niveshonline.com,vilakshan@niveshonline.com'
+    });
     res.status(201).json({ message: "NFO saved", data: nfo })
   } catch (error) {
     console.error("Error savig NFO :", error.message)

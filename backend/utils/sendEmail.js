@@ -14,7 +14,7 @@ const mailConfig = {
 
 
 // Function to send email
-async function sendEmail(from, subject, body, toAddress, ccAddress) {
+async function sendEmail({from, subject, body, toAddress, ccAddress, attachments}) {
   let transporter = nodemailer.createTransport(mailConfig);
 
   let mailOptions = {
@@ -23,6 +23,7 @@ async function sendEmail(from, subject, body, toAddress, ccAddress) {
     cc: ccAddress,
     subject: subject,
     html: body,
+    attachments: attachments
   };
 
   try {

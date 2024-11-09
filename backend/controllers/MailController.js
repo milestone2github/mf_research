@@ -7,7 +7,7 @@ const sendEmailController = async (req, res) => {
   if(!subject || !toAddress) {
     return res.status(400).json({error: 'Email subject and to address are required'})
   }
-  const messageId = await sendEmail(from, subject, body, toAddress, ccAddress)
+  const messageId = await sendEmail({from, subject, body, toAddress, ccAddress})
   if(!messageId) {
     return res.status(500).json({error: 'Unable to send Email'})
   }
