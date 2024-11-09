@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
+const cron = require('node-cron')
 const app = express();
 const port = process.env.PORT || 5000;
 const session = require("express-session");
@@ -12,6 +13,7 @@ const opsRoutes = require('./routes/opsDash/OpsRoutes');
 const mintRoutes = require('./routes/Mint');
 const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
+const { pendingTransactionsNotification } = require("./utils/scheduledTasks");
 
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
@@ -71,4 +73,6 @@ app.get("*", (req, res) => {
 // Start the server and connect to MongoDB
 app.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
+  // scheduling jobs
+  cron.schedule('0 9 5 * *', pendingTransactionsNotification);
 });
