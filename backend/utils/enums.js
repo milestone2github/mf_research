@@ -14,7 +14,14 @@ const statusEnum = [
   'RTA_PROCESSED',
   'RTA_REJECTED',
   'ALLOTTED',
-  'ALLOTMENT_PENDING'
+  'ALLOTMENT_PENDING',
+  'RECONCILED',
+  'RECONCILIATION_PENDING', // minor issues confirmed
+  'RECONCILIATION_PENDING_REQUEST', // minor issues requested
+  'RECONCILIATION_HOLD', // major issues confirmed
+  'RECONCILIATION_HOLD_REQUEST', // major issues requested
+  'RECONCILIATION_FAILED_REQUEST', // rejected request at reconciliation
+  'RECONCILIATION_FAILED', // approved rejected at reconciliation
 ]
 
 const approvalStatusEnum = [

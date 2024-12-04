@@ -48,8 +48,62 @@ const transactionSchema = new mongoose.Schema({
     note: {type: String, trim: true, maxLength: 1200},
     linkStatus: {type: String, enum: ['initialized', 'generated', 'deleted']},
     status: {type: String, enum: statusEnum},
-    approvalStatus: {type: String, enum: approvalStatusEnum, default: ''}
+    approvalStatus: {type: String, enum: approvalStatusEnum, default: ''},
+    validations: [{
+      validatedBy: {
+        ref: 'USERS',
+        type: mongoose.Schema.Types.ObjectId,
+      },
+      validatedAt: Date,
+      status: {type: String, enum: ['PENDING', 'APPROVED', 'REJECTED']}
+    }],
+    reconciliation: {
+      reconciledBy: {
+        ref: 'USERS',
+        type: mongoose.Schema.Types.ObjectId,
+      },
+      reconciledAt: Date,
+      folioNumber: String,
+      orderId: String,
+      sipSwpStpDate: Date,
+      firstTransactionAmount: Number,
+      transactionPreference: Date
+    },
+    managementApproval: {
+      approvedBy: {
+        ref: 'USERS',
+        type: mongoose.Schema.Types.ObjectId,
+      },
+      approvedAt: Date,
+    }
   }],
+  validations: [{
+    validatedBy: {
+      ref: 'USERS',
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    validatedAt: Date,
+    status: {type: String, enum: ['PENDING', 'APPROVED', 'REJECTED']}
+  }],
+  reconciliation: {
+    reconciledBy: {
+      ref: 'USERS',
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    reconciledAt: Date,
+    folioNumber: String,
+    orderId: String,
+    sipSwpStpDate: Date,
+    firstTransactionAmount: Number,
+    transactionPreference: Date
+  },
+  managementApproval: {
+    approvedBy: {
+      ref: 'USERS',
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    approvedAt: Date,
+  }
 }, {timestamps: true})
 
 module.exports = mongoose.model('Transactions', transactionSchema)
