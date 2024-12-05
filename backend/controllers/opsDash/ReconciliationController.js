@@ -74,7 +74,20 @@ exports.getRecoTransactions = async (req, res) => {
       $cond: {
         if: { $eq: ["$hasFractions", false] },
         then: {
-          $in: ["$status", ["APPROVED", "RECONCILIATION_PENDING_REQUEST", "RECONCILIATION_HOLD_REQUEST", "RECONCILIATION_FAILED_REQUEST"]]
+          $or: [
+            {
+              $and: [
+                { $eq: ["$status", "APPROVED"] },
+                { $not: ["$reconciliation.reconcileStatus"] } // reconcileStatus does not exist
+              ]
+            },
+            {
+              $in: ["$reconciliation.reconcileStatus", [
+                "RECONCILED_WITH_MAJOR_REQUESTED",
+                "RECONCILIATION_REJECTED_REQUEST"
+              ]]
+            }
+          ]
         },
         else: {
           $allElementsTrue: [
@@ -82,16 +95,24 @@ exports.getRecoTransactions = async (req, res) => {
               $map: {
                 input: "$transactionFractions",
                 in: {
-                  $in: ["$$this.status", [
-                    "APPROVED",
-                    "RECONCILED", 
-                    "RECONCILIATION_PENDING_REQUEST",
-                    "RECONCILIATION_PENDING", 
-                    "RECONCILIATION_HOLD_REQUEST",
-                    "RECONCILIATION_HOLD", 
-                    "RECONCILIATION_FAILED_REQUEST", 
-                    "RECONCILIATION_FAILED"
-                  ]]
+                  $or: [
+                    {
+                      $and: [
+                        { $eq: ["$$this.status", "APPROVED"] },
+                        { $not: ["$$this.reconciliation.reconcileStatus"] } // reconcileStatus does not exist
+                      ]
+                    },
+                    {
+                      $in: ["$$this.reconciliation.reconcileStatus", [
+                        "RECONCILED",
+                        "RECONCILED_WITH_MINOR",
+                        "RECONCILED_WITH_MAJOR",
+                        "RECONCILED_WITH_MAJOR_REQUESTED",
+                        "RECONCILIATION_REJECTED",
+                        "RECONCILIATION_REJECTED_REQUEST"
+                      ]]
+                    }
+                  ]
                 }
               }
             }
@@ -101,8 +122,7 @@ exports.getRecoTransactions = async (req, res) => {
     }
   };
 
-
-  filters.shouldReconcile = true
+  filters.shouldReconcile = true;
 
   try {
     const transactions = await Transactions.aggregate([
@@ -155,34 +175,33 @@ exports.updateRecoTransactions = async (req, res) => {
     // status map 
     const statusMap = {
       matched: 'RECONCILED',
-      minor_issues: 'RECONCILIATION_PENDING',
-      major_issues: 'RECONCILIATION_HOLD_REQUEST',
-      rejected: 'RECONCILIATION_FAILED_REQUEST',
+      minor_issues: 'RECONCILED_WITH_MINOR',
+      major_issues: 'RECONCILED_WITH_MAJOR_REQUESTED',
+      rejected: 'RECONCILIATION_REJECTED_REQUEST',
     };
 
-    const baseUpdate = {};
+    const update = {};
     const reconciliation = {
       reconciledBy: userId,
       reconciledAt: Date.now(),
+      reconcileStatus: statusMap[status],
       ...optionalFields,
     }
 
     if (fractionId) {
       // Update a specific fraction
-      baseUpdate['transactionFractions.$.status'] = statusMap[status];
-      baseUpdate['transactionFractions.$.reconciliation'] = reconciliation;
+      update['transactionFractions.$.reconciliation'] = reconciliation;
 
-      transaction = await updateTransactionFraction(trxId, fractionId, baseUpdate);
+      transaction = await updateTransactionFraction(trxId, fractionId, update);
     } else {
       // Update the main transaction
-      baseUpdate.status = statusMap[status];
-      baseUpdate.reconciliation = reconciliation;
+      update.reconciliation = reconciliation;
 
-      transaction = await updateMainTransaction(trxId, baseUpdate);
+      transaction = await updateMainTransaction(trxId, update);
     }
 
     if (!transaction) {
-      throw new Error('Transaction not found or update failed');
+      throw new Error('Transaction not found or reconcilliation failed');
     }
 
     // send mail if major issues | rejected 
@@ -198,7 +217,7 @@ exports.updateRecoTransactions = async (req, res) => {
         toAddress: userEmail,
         subject: 'Reconciliation Status Update',
         body: mailBody,
-        // ccAddress: 'pramod@niveshonline.com,mona@niveshonline.com,vilakshan@niveshonline.com' //debug
+        ccAddress: 'pramod@niveshonline.com,mona@niveshonline.com,vilakshan@niveshonline.com,ops@niveshonline.com,ved@niveshonline.com'
       })
     }
     res.status(200).json({
@@ -220,8 +239,8 @@ exports.approveReconciliation = async (req, res) => {
 
     // status map 
     const statusMap = {
-      RECONCILIATION_FAILED_REQUEST: 'RECONCILIATION_FAILED',
-      RECONCILIATION_HOLD_REQUEST: 'RECONCILIATION_HOLD',
+      RECONCILED_WITH_MAJOR_REQUESTED: 'RECONCILED_WITH_MAJOR',
+      RECONCILIATION_REJECTED_REQUEST: 'RECONCILIATION_REJECTED',
     };
 
     const baseUpdate = {};

@@ -169,7 +169,7 @@ const removeFraction = async (req, res) => {
 
 // get transactions group by family head
 const getTransactionsGroupByFh = async (req, res) => {
-  const {searchBy, searchKey} = req.query
+  const { searchBy, searchKey } = req.query
   const smFilter = req.query.smFilter || 'all'
   const userName = req.user?.name
 
@@ -198,8 +198,8 @@ const getTransactionsGroupByFh = async (req, res) => {
     matchStage.serviceManager = { $in: [null, ''] }
   }
 
-  if(searchBy && searchKey) {
-    matchStage[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i')}
+  if (searchBy && searchKey) {
+    matchStage[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') }
   }
 
   try {
@@ -263,7 +263,7 @@ const getTransactionsGroupByFh = async (req, res) => {
         }
       },
 
-      {$match : {"pendingCounts.total": {$gt: 0}}},
+      { $match: { "pendingCounts.total": { $gt: 0 } } },
 
       {
         $group: {
@@ -443,30 +443,30 @@ const addAllFractions = async (req, res) => {
 // generate link (by trx id)
 const generateLink = async (req, res) => {
   let { fractionId, platform, orderId, approvalStatus, paymentMode } = req.body;
-  
+
   approvalStatus = ['Client Declined', 'RM Declined'].includes(approvalStatus) ? approvalStatus : 'Approved'
   let status = null
-  if(approvalStatus === 'Approved') {
+  if (approvalStatus === 'Approved') {
     status = 'APPROVED'
   }
 
   if (!orderId) {
     return res.status(400).json({ error: 'Order ID is required!' })
   }
-  
+
   try {
     let transaction;
     if (!fractionId) {
       transaction = await Transactions.findByIdAndUpdate(
-        req.params.id, 
-        { 
-          linkStatus: 'generated', 
-          orderId, 
-          orderPlatform: platform, 
-          approvalStatus, 
-          ...(status ? {status} : {}), 
-          ...(paymentMode ? {paymentMode} : {})
-        }, 
+        req.params.id,
+        {
+          linkStatus: 'generated',
+          orderId,
+          orderPlatform: platform,
+          approvalStatus,
+          ...(status ? { status } : {}),
+          ...(paymentMode ? { paymentMode } : {})
+        },
         { new: true }
       )
     }
@@ -479,8 +479,8 @@ const generateLink = async (req, res) => {
             'transactionFractions.$.orderId': orderId,
             'transactionFractions.$.approvalStatus': approvalStatus,
             'transactionFractions.$.orderPlatform': platform,
-            ...(status ? {'transactionFractions.$.status': status }: {}),
-            ...(paymentMode ? {paymentMode: paymentMode }: {})
+            ...(status ? { 'transactionFractions.$.status': status } : {}),
+            ...(paymentMode ? { paymentMode: paymentMode } : {})
           }
         },
         { new: true }
@@ -629,7 +629,7 @@ const getSMNames = async (req, res) => {
 const filteredTransactions = async (req, res) => {
   let {
     minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort,
-    minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey
+    minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey, reconcileStatus
   } = req.query;
   schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
 
@@ -690,32 +690,50 @@ const filteredTransactions = async (req, res) => {
   }
 
   // stage 2 filters 
-  if (status) {
-    filterStage2.status = {}
-    fractionFilters['transactionFractions.status'] = {};
+  // Ensure status and reconcileStatus are arrays
+  if (status && !Array.isArray(status)) {
+    status = [status];
+  }
+  if (reconcileStatus && !Array.isArray(reconcileStatus)) {
+    reconcileStatus = [reconcileStatus];
+  }
 
-    if (Array.isArray(status)) {
-      // Handle array of statuses
-      const includeStatuses = status.filter(s => !s.startsWith('NOT-'));
-      const excludeStatuses = status.filter(s => s.startsWith('NOT-')).map(s => s.slice(4)); // Remove 'NOT-' prefix
-  
-      if (excludeStatuses.length) {
-        filterStage2.status.$nin = excludeStatuses
-        fractionFilters['transactionFractions.status'].$nin = excludeStatuses
-      }
+  // Stage 2 filters for status
+  if (status) {
+    const includeStatuses = status.filter(s => !s.startsWith('NOT-'));
+    const excludeStatuses = status.filter(s => s.startsWith('NOT-')).map(s => s.slice(4));
+
+    if (includeStatuses.length || excludeStatuses.length) {
+      filterStage2.status = {};
+      fractionFilters['transactionFractions.status'] = {};
+
       if (includeStatuses.length) {
-        filterStage2.status.$in = includeStatuses
-        fractionFilters['transactionFractions.status'].$in = includeStatuses
+        filterStage2.status.$in = includeStatuses;
+        fractionFilters['transactionFractions.status'].$in = includeStatuses;
+      }
+      if (excludeStatuses.length) {
+        filterStage2.status.$nin = excludeStatuses;
+        fractionFilters['transactionFractions.status'].$nin = excludeStatuses;
       }
     }
-    else {
-      if (status.startsWith('NOT-')) {
-        const excludedStatus = status.slice(4); // Remove 'NOT-' prefix
-        filterStage2.status = { $nin: [excludedStatus] };
-        fractionFilters['transactionFractions.status'] = { $nin: [excludedStatus] };
-      } else {
-        filterStage2.status = status;
-        fractionFilters['transactionFractions.status'] = status;
+  }
+
+  // Stage 2 filters for reconcileStatus
+  if (reconcileStatus) {
+    const includeReconcileStatuses = reconcileStatus.filter(rs => !rs.startsWith('NOT-'));
+    const excludeReconcileStatuses = reconcileStatus.filter(rs => rs.startsWith('NOT-')).map(rs => rs.slice(4));
+
+    if (includeReconcileStatuses.length || excludeReconcileStatuses.length) {
+      filterStage2['reconciliation.reconcileStatus'] = {};
+      fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = {};
+
+      if (includeReconcileStatuses.length) {
+        filterStage2['reconciliation.reconcileStatus'].$in = includeReconcileStatuses;
+        fractionFilters['transactionFractions.reconciliation.reconcileStatus'].$in = includeReconcileStatuses;
+      }
+      if (excludeReconcileStatuses.length) {
+        filterStage2['reconciliation.reconcileStatus'].$nin = excludeReconcileStatuses;
+        fractionFilters['transactionFractions.reconciliation.reconcileStatus'].$nin = excludeReconcileStatuses;
       }
     }
   }
@@ -754,12 +772,12 @@ const filteredTransactions = async (req, res) => {
 
     const paginatedTransactions = await Transactions.aggregate([
       { $match: filterStage1 },
-      { $unwind: {path: '$transactionFractions', preserveNullAndEmptyArrays: true} },
+      { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
       {
         $match: {
           $or: [
-            {hasFractions: false, ...filterStage2}, 
-            {hasFractions: true, ...fractionFilters}
+            { hasFractions: false, ...filterStage2 },
+            { hasFractions: true, ...fractionFilters }
           ]
         }
       },
@@ -770,12 +788,12 @@ const filteredTransactions = async (req, res) => {
 
     const totalCountAndAmount = await Transactions.aggregate([
       { $match: filterStage1 },
-      { $unwind: {path: '$transactionFractions', preserveNullAndEmptyArrays: true} },
+      { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
       {
         $match: {
           $or: [
-            {hasFractions: false, ...filterStage2}, 
-            {hasFractions: true, ...fractionFilters}
+            { hasFractions: false, ...filterStage2 },
+            { hasFractions: true, ...fractionFilters }
           ]
         }
       },
@@ -783,13 +801,15 @@ const filteredTransactions = async (req, res) => {
         $group: {
           _id: null,
           totalCount: { $sum: 1 },
-          totalAmount: { $sum : { 
-            $cond: [
-              {$eq: ['$hasFractions', false]}, 
-              '$amount', 
-              '$transactionFractions.fractionAmount'
-            ]
-          }}
+          totalAmount: {
+            $sum: {
+              $cond: [
+                { $eq: ['$hasFractions', false] },
+                '$amount',
+                '$transactionFractions.fractionAmount'
+              ]
+            }
+          }
         }
       }
     ]);
@@ -856,7 +876,7 @@ const updateApprovalStatus = async (req, res) => {
 // update preference date using id 
 const updateTransaction = async (req, res) => {
   const transactionId = req.params.id
-  const {transactionPreference, sipSwpStpDate} = req.body
+  const { transactionPreference, sipSwpStpDate } = req.body
 
   if (!transactionId) {
     return res.status(400).json({ error: 'Transaction Id is required' })

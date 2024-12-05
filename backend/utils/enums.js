@@ -16,12 +16,6 @@ const statusEnum = [
   'ALLOTTED',
   'ALLOTMENT_PENDING',
   'RECONCILED',
-  'RECONCILIATION_PENDING', // minor issues confirmed
-  'RECONCILIATION_PENDING_REQUEST', // minor issues requested
-  'RECONCILIATION_HOLD', // major issues confirmed
-  'RECONCILIATION_HOLD_REQUEST', // major issues requested
-  'RECONCILIATION_FAILED_REQUEST', // rejected request at reconciliation
-  'RECONCILIATION_FAILED', // approved rejected at reconciliation
 ]
 
 const approvalStatusEnum = [
@@ -39,5 +33,13 @@ const approvalStatusEnum = [
   "Onboarding Pending"
 ]
 
+const reconcileStatus = [
+  'RECONCILED',
+  'RECONCILED_WITH_MINOR',
+  'RECONCILED_WITH_MAJOR',
+  'RECONCILED_WITH_MAJOR_REQUESTED',
+  'RECONCILIATION_REJECTED',
+  'RECONCILIATION_REJECTED_REQUEST'
+]
 
-module.exports = { statusEnum, approvalStatusEnum }
+module.exports = { statusEnum, approvalStatusEnum, reconcileStatus }
