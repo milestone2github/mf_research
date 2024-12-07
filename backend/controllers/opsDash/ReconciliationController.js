@@ -189,15 +189,56 @@ exports.updateRecoTransactions = async (req, res) => {
     }
 
     if (fractionId) {
-      // Update a specific fraction
-      update['transactionFractions.$.reconciliation'] = reconciliation;
+      if (status === 'minor_issues') {
+        transaction = await Transactions.findOne({ _id: trxId, 'transactionFractions._id': fractionId });
+        if (!transaction) throw new Error('Transaction not found');
 
-      transaction = await updateTransactionFraction(trxId, fractionId, update);
+        // Find the fraction
+        const fraction = transaction.transactionFractions.find(
+          (fraction) => fraction._id.toString() === fractionId
+        );
+
+        fraction.reconciliation = reconciliation;
+
+        // swap old values with new 
+        swapValues(fraction, 'folioNumber', fraction);
+        swapValues(fraction, 'orderId', fraction);
+        swapValues(fraction, 'sipSwpStpDate', transaction);
+        swapValues(fraction, 'firstTransactionAmount', transaction);
+        swapValues(fraction, 'transactionPreference', fraction, 'transactionDate');
+
+        await transaction.save();
+      }
+
+      else {
+        // Update a specific fraction
+        update['transactionFractions.$.reconciliation'] = reconciliation;
+
+        transaction = await updateTransactionFraction(trxId, fractionId, update);
+      }
     } else {
-      // Update the main transaction
-      update.reconciliation = reconciliation;
+      if (status === 'minor_issues') {
+        transaction = await Transactions.findById( trxId );
+        if (!transaction) throw new Error('Transaction not found');
 
-      transaction = await updateMainTransaction(trxId, update);
+        transaction.reconciliation = reconciliation;
+
+        // swap old values with new 
+        swapValues(transaction, 'folioNumber', transaction);
+        swapValues(transaction, 'orderId', transaction);
+        swapValues(transaction, 'sipSwpStpDate', transaction);
+        swapValues(transaction, 'firstTransactionAmount', transaction);
+        swapValues(transaction, 'transactionPreference', transaction);
+
+        await transaction.save();
+      }
+
+      else {
+        // Update the main transaction
+        update.reconciliation = reconciliation;
+
+        transaction = await updateMainTransaction(trxId, update);
+      }
     }
 
     if (!transaction) {
@@ -213,7 +254,7 @@ exports.updateRecoTransactions = async (req, res) => {
 
       let flag = status === 'rejected' ? 'REJECTED' : 'CONTAINING MAJOR ISSUES';
       mailBody = generateTransactionTableHTML(transaction, flag, fractIdx);
-      await sendEmail({
+      await sendEmail({ 
         toAddress: userEmail,
         subject: 'Reconciliation Status Update',
         body: mailBody,
@@ -234,49 +275,71 @@ exports.approveReconciliation = async (req, res) => {
   const trxId = req.params.id;
   const userId = req.user?._id;
   const { status, fractionId, approve } = req.body;
-  try {
-    let transaction;
 
-    // status map 
+  try {
+    // Status map
     const statusMap = {
       RECONCILED_WITH_MAJOR_REQUESTED: 'RECONCILED_WITH_MAJOR',
       RECONCILIATION_REJECTED_REQUEST: 'RECONCILIATION_REJECTED',
     };
 
-    const baseUpdate = {};
     const managementApproval = {
       approvedBy: userId,
       approvedAt: Date.now(),
+    };
+
+    const transaction = await Transactions.findById(trxId);
+
+    if (!transaction) {
+      throw new Error('Transaction not found');
     }
 
     if (fractionId && Number(approve) === 1) {
-      // Update a specific fraction
-      baseUpdate['transactionFractions.$.status'] = statusMap[status];
-      baseUpdate['transactionFractions.$.managementApproval'] = managementApproval;
+      // Find the fraction
+      const fraction = transaction.transactionFractions.find(
+        (fraction) => fraction._id.toString() === fractionId
+      );
+      if (!fraction) throw new Error('Fraction not found');
 
-      transaction = await updateTransactionFraction(trxId, fractionId, baseUpdate);
+      // Update fraction details
+      fraction.reconciliation.reconcileStatus = statusMap[status];
+      fraction.managementApproval = managementApproval;
+
+      // Handle major issues for fraction
+      if (status === 'RECONCILED_WITH_MAJOR_REQUESTED') {
+        swapValues(fraction, 'amount', fraction, 'fractionAmount');
+        swapValues(fraction, 'panNumber', transaction);
+        swapValues(fraction, 'schemeName', transaction);
+      }
     } else {
       // Update the main transaction
-      baseUpdate.status = statusMap[status];
-      baseUpdate.managementApproval = managementApproval;
+      if (Number(approve) === 1) {
+        transaction.reconciliation.reconcileStatus = statusMap[status];
+        transaction.managementApproval = managementApproval;
 
-      transaction = await updateMainTransaction(trxId, baseUpdate);
+        // Handle major issues for main transaction
+        if (status === 'RECONCILED_WITH_MAJOR_REQUESTED') {
+          swapValues(transaction, 'amount', transaction);
+          swapValues(transaction, 'panNumber', transaction);
+          swapValues(transaction, 'schemeName', transaction);
+        }
+      }
     }
 
-    if (!transaction) {
-      throw new Error('Transaction not found or update failed');
-    }
+    await transaction.save();
 
     res.status(200).json({
-      message: 'Transaction updated while reconciliation',
+      message: 'Reconciliation approved successfully',
       data: transaction,
     });
   } catch (error) {
-    console.error('Error updating transaction while reconciliation:', error.message);
-    res.status(500).json({ error: `Error updating transaction: ${error.message}` });
+    console.error('Error approving reconciliation:', error.message);
+    res.status(500).json({ error: `Error approving reconciliation: ${error.message}` });
   }
 };
 
+
+// REUSABLE UTITLITY FUNCTIONS
 const updateTransactionFraction = async (trxId, fractionId, updates) => {
   return Transactions.findOneAndUpdate(
     { _id: trxId, 'transactionFractions._id': fractionId },
@@ -291,4 +354,13 @@ const updateMainTransaction = async (trxId, updates) => {
     { $set: updates },
     { new: true }
   );
+};
+
+const swapValues = (target, field, source, sourceField = field) => {
+  const newValue = target.reconciliation[field];
+  if (newValue) {
+    const oldValue = source[sourceField];
+    source[sourceField] = newValue;
+    target.reconciliation[field] = oldValue;
+  }
 };
