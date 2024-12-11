@@ -6,7 +6,7 @@ router.get('/', getGroupedTransactions);
 router.get('/group-by-fhrm', verifyUser, getTransactionsGroupByFh); //new
 router.get('/transactions-by-session', getTransactionsBySession);
 router.get('/transactions-of-fhrm', verifyUser, getTransactionsFilterByFamilyHead); //new
-router.patch('/generate-link/:id', generateLink); //new
+router.patch('/generate-link/:id', verifyUser, generateLink); //new
 router.patch('/order-id/:id', updateOrderId); //new
 router.patch('/fraction/add/:id', addNewFraction);
 router.patch('/fraction/add-all/:id', verifyUser, addAllFractions);

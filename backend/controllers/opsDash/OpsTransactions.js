@@ -443,18 +443,28 @@ const addAllFractions = async (req, res) => {
 // generate link (by trx id)
 const generateLink = async (req, res) => {
   let { fractionId, platform, orderId, approvalStatus, paymentMode } = req.body;
-
-  approvalStatus = ['Client Declined', 'RM Declined'].includes(approvalStatus) ? approvalStatus : 'Approved'
-  let status = null
-  if (approvalStatus === 'Approved') {
-    status = 'APPROVED'
-  }
-
-  if (!orderId) {
-    return res.status(400).json({ error: 'Order ID is required!' })
-  }
+  const userId = req.user?._id;
 
   try {
+    if (['Client Declined', 'RM Declined'].includes(approvalStatus)) {
+      throw new Error(`Change the approval status from ${approvalStatus} first`)
+    }
+
+    // update the approvalStatus and status 
+    approvalStatus = 'Approved'
+    let status = 'APPROVED'
+
+    if (!orderId) {
+      return res.status(400).json({ error: 'Order ID is required!' })
+    }
+
+    // validations
+    let validations = {
+      validatedBy: userId,
+      validatedAt: Date.now(),
+      status: status
+    }
+
     let transaction;
     if (!fractionId) {
       transaction = await Transactions.findByIdAndUpdate(
@@ -465,7 +475,8 @@ const generateLink = async (req, res) => {
           orderPlatform: platform,
           approvalStatus,
           ...(status ? { status } : {}),
-          ...(paymentMode ? { paymentMode } : {})
+          ...(paymentMode ? { paymentMode } : {}),
+          $push: { validations }
         },
         { new: true }
       )
@@ -474,15 +485,14 @@ const generateLink = async (req, res) => {
       transaction = await Transactions.findOneAndUpdate(
         { _id: req.params.id, 'transactionFractions._id': fractionId },
         {
-          $set: {
             'transactionFractions.$.linkStatus': 'generated',
             'transactionFractions.$.orderId': orderId,
             'transactionFractions.$.approvalStatus': approvalStatus,
             'transactionFractions.$.orderPlatform': platform,
             ...(status ? { 'transactionFractions.$.status': status } : {}),
-            ...(paymentMode ? { paymentMode: paymentMode } : {})
-          }
-        },
+            ...(paymentMode ? { paymentMode: paymentMode } : {}),
+            $push: { 'transactionFractions.$.validations': validations }
+          },
         { new: true }
       )
     }
@@ -837,6 +847,7 @@ const updateApprovalStatus = async (req, res) => {
   const transactionId = req.params.id
   const approvalStatus = req.body.approvalStatus
   const fractionId = req.body.fractionId
+  const userId = req.user?._id;
 
   if (!transactionId) {
     return res.status(400).json({ error: 'Transaction Id is required' })
@@ -848,15 +859,23 @@ const updateApprovalStatus = async (req, res) => {
   const status = approvalStatusMap.get(approvalStatus)
   try {
     let transaction;
+
+    let validations = {
+      validatedBy: userId,
+      validatedAt: Date.now(),
+      status: status
+    }
+
     if (!fractionId) {
-      const update = { approvalStatus, status }
+      const update = { approvalStatus, status, $push: {validations} }
       transaction = await Transactions.findByIdAndUpdate(transactionId, update, { new: true }).lean()
     }
 
     else {
       const update = {
         'transactionFractions.$.status': status,
-        'transactionFractions.$.approvalStatus': approvalStatus
+        'transactionFractions.$.approvalStatus': approvalStatus,
+        $push: {'transactionFractions.$.validations': validations}
       }
       transaction = await Transactions.findOneAndUpdate({
         _id: transactionId, 'transactionFractions._id': fractionId
