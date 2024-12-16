@@ -1,6 +1,6 @@
 const axios = require('axios')
 
-const whiteListedIPs = ["59.144.175.136", "59.144.175.138", "122.173.30.22"]
+const whiteListedIPs = ["59.144.175.136", "59.144.175.138", "122.173.30.22", "122.160.123.165"]
 
 const getIpAddress = (req, res) => {
   const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip;
@@ -11,7 +11,7 @@ const getIpAddress = (req, res) => {
   const clientIp = ip.split(',')[0].trim();
   console.log('client IP: ', clientIp)
   let existInWhite = whiteListedIPs.find((item) => item === clientIp)
-  res.status(200).json({ message: 'Ip found', data: { ip: clientIp, allowed: existInWhite? true: false } })
+  res.status(200).json({ message: 'Ip found', data: { ip: clientIp, allowed: existInWhite ? true : false } })
 }
 
 const getMintLoginUrl = async (req, res) => {
@@ -33,11 +33,11 @@ const getMintLoginUrl = async (req, res) => {
     }
   })
     .then(response => {
-      res.status(200).json({message: 'access retrieved', data: response.data})
+      res.status(200).json({ message: 'access retrieved', data: response.data })
     })
     .catch(error => {
       console.error('error status:', error.message);
-      res.status(error.response?.status || 500).json({error: error.response?.data || error.message})
+      res.status(error.response?.status || 500).json({ error: error.response?.data || error.message })
     });
 }
 
