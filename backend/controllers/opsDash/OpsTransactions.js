@@ -729,22 +729,20 @@ const filteredTransactions = async (req, res) => {
   }
 
   // Stage 2 filters for reconcileStatus
-  if (reconcileStatus) {
-    const includeReconcileStatuses = reconcileStatus.filter(rs => !rs.startsWith('NOT-'));
-    const excludeReconcileStatuses = reconcileStatus.filter(rs => rs.startsWith('NOT-')).map(rs => rs.slice(4));
-
-    if (includeReconcileStatuses.length || excludeReconcileStatuses.length) {
-      filterStage2['reconciliation.reconcileStatus'] = {};
-      fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = {};
-
-      if (includeReconcileStatuses.length) {
-        filterStage2['reconciliation.reconcileStatus'].$in = includeReconcileStatuses;
-        fractionFilters['transactionFractions.reconciliation.reconcileStatus'].$in = includeReconcileStatuses;
+  if (reconcileStatus && reconcileStatus.length) {
+    const hasNotExist = reconcileStatus.includes('NOT-EXIST');
+    reconcileStatus = reconcileStatus.filter(status => status !== 'NOT-EXIST');
+  
+    if (hasNotExist) {
+      const conditions = [{ $exists: false }];
+      if (reconcileStatus.length) {
+        conditions.unshift({ $in: reconcileStatus });
       }
-      if (excludeReconcileStatuses.length) {
-        filterStage2['reconciliation.reconcileStatus'].$nin = excludeReconcileStatuses;
-        fractionFilters['transactionFractions.reconciliation.reconcileStatus'].$nin = excludeReconcileStatuses;
-      }
+      filterStage2['$or'] = conditions.map(condition => ({ 'reconciliation.reconcileStatus': condition }));
+      fractionFilters['$or'] = conditions.map(condition => ({ 'transactionFractions.reconciliation.reconcileStatus': condition }));
+    } else {
+      filterStage2['reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+      fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = { $in: reconcileStatus };
     }
   }
 
