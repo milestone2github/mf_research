@@ -75,6 +75,7 @@ const transactionSchema = new mongoose.Schema({
       amount: Number, // in case of major issues
       schemeName: String, // in case of major issues
       panNumber: String, // in case of major issues
+      note: {type: String, trim: true, minLength: 5, maxLength: 1000 }
     },
     managementApproval: {
       approvedBy: {
@@ -110,6 +111,7 @@ const transactionSchema = new mongoose.Schema({
     amount: Number, // in case of major issues
     schemeName: String, // in case of major issues
     panNumber: String, // in case of major issues
+    note: {type: String, trim: true, minLength: 5, maxLength: 1000 }
   },
   managementApproval: {
     approvedBy: {
