@@ -9,6 +9,8 @@ exports.getRecoTransactions = async (req, res) => {
   const page = Number(req.query.page) || 1
   const skipItems = items * (page - 1)
   let filters = {}
+  const role = req.user?.role?.role;
+
   schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
 
   const searchByLookup = {
@@ -69,55 +71,81 @@ exports.getRecoTransactions = async (req, res) => {
   sortMap.set('amount-desc', { amount: -1 })
   let sortBy = sortMap.get(sort || 'trxdate-desc')
 
+  let shouldRecoThenCondition = {
+    $and: [
+      { $eq: ["$status", "APPROVED"] },
+      { $not: ["$reconciliation.reconcileStatus"] } // reconcileStatus does not exist
+    ]
+  }
+
+  
+  let shouldRecoElseCondition = {
+    $anyElementTrue: [
+      {
+        $map: {
+          input: "$transactionFractions",
+          in: {
+            $and: [
+              { $eq: ["$$this.status", "APPROVED"] },
+              { $not: ["$$this.reconciliation.reconcileStatus"] } // reconcileStatus does not exist
+            ]
+          }
+        }
+      }
+    ]
+  }
+
+  if (['administrator', 'management'].includes(role?.toLowerCase())) {
+    shouldRecoThenCondition = {
+      $or: [
+        {
+          $and: [
+            { $eq: ["$status", "APPROVED"] },
+            { $not: ["$reconciliation.reconcileStatus"] } // reconcileStatus does not exist
+          ]
+        },
+        {
+          $in: ["$reconciliation.reconcileStatus", [
+            "RECONCILED_WITH_MAJOR_REQUESTED",
+            "RECONCILIATION_REJECTED_REQUEST"
+          ]]
+        }
+      ]
+    }
+
+    shouldRecoElseCondition = {
+      $anyElementTrue: [
+        {
+          $map: {
+            input: "$transactionFractions",
+            in: {
+              $or: [
+                {
+                  $and: [
+                    { $eq: ["$$this.status", "APPROVED"] },
+                    { $not: ["$$this.reconciliation.reconcileStatus"] } // reconcileStatus does not exist
+                  ]
+                },
+                {
+                  $in: ["$$this.reconciliation.reconcileStatus", [
+                    "RECONCILED_WITH_MAJOR_REQUESTED",
+                    "RECONCILIATION_REJECTED_REQUEST"
+                  ]]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+
   let addStage = {
     shouldReconcile: {
       $cond: {
         if: { $eq: ["$hasFractions", false] },
-        then: {
-          $or: [
-            {
-              $and: [
-                { $eq: ["$status", "APPROVED"] },
-                { $not: ["$reconciliation.reconcileStatus"] } // reconcileStatus does not exist
-              ]
-            },
-            {
-              $in: ["$reconciliation.reconcileStatus", [
-                "RECONCILED_WITH_MAJOR_REQUESTED",
-                "RECONCILIATION_REJECTED_REQUEST"
-              ]]
-            }
-          ]
-        },
-        else: {
-          $allElementsTrue: [
-            {
-              $map: {
-                input: "$transactionFractions",
-                in: {
-                  $or: [
-                    {
-                      $and: [
-                        { $eq: ["$$this.status", "APPROVED"] },
-                        { $not: ["$$this.reconciliation.reconcileStatus"] } // reconcileStatus does not exist
-                      ]
-                    },
-                    {
-                      $in: ["$$this.reconciliation.reconcileStatus", [
-                        "RECONCILED",
-                        "RECONCILED_WITH_MINOR",
-                        "RECONCILED_WITH_MAJOR",
-                        "RECONCILED_WITH_MAJOR_REQUESTED",
-                        "RECONCILIATION_REJECTED",
-                        "RECONCILIATION_REJECTED_REQUEST"
-                      ]]
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        }
+        then: shouldRecoThenCondition,
+        else: shouldRecoElseCondition
       }
     }
   };
