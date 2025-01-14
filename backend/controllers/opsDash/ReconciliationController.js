@@ -95,7 +95,7 @@ exports.getRecoTransactions = async (req, res) => {
     ]
   }
 
-  if (['administrator', 'management'].includes(role?.toLowerCase())) {
+  if (['administrator', 'management', 'operations senior'].includes(role?.toLowerCase())) {
     shouldRecoThenCondition = {
       $or: [
         {
