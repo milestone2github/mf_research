@@ -1,6 +1,6 @@
 const axios = require('axios')
 
-const whiteListedIPs = ["59.144.175.136", "59.144.175.138", "122.173.30.22", "122.160.123.165"]
+const whiteListedIPs = ["59.144.175.136", "59.144.175.138", "122.173.24.80", "122.160.123.165"]
 
 const getIpAddress = (req, res) => {
   const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip;
