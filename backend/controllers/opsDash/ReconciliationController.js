@@ -4,11 +4,13 @@ const { generateTransactionTableHTML } = require("../../utils/generateTransactio
 const sendEmail = require("../../utils/sendEmail")
 
 exports.getRecoTransactions = async (req, res) => {
-  let { minDate, maxDate, amcName, schemeName, rmName, type, sort, minAmount, maxAmount, searchBy, searchKey } = req.query
+  let { minDate, maxDate, amcName, schemeName, rmName, type, sort, minAmount, maxAmount, searchBy, searchKey, reconcileStatus } = req.query
   const items = Number(req.query.items) || 20
   const page = Number(req.query.page) || 1
   const skipItems = items * (page - 1)
   let filters = {}
+  let filterStage2 = {};
+  let fractionFilters = {};
   const role = req.user?.role?.role;
 
   schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
@@ -152,10 +154,42 @@ exports.getRecoTransactions = async (req, res) => {
 
   filters.shouldReconcile = true;
 
+  // Ensure reconcileStatus is an array
+  if (reconcileStatus && !Array.isArray(reconcileStatus)) {
+    reconcileStatus = [reconcileStatus];
+  }
+
+  // Stage 2 filters for reconcileStatus
+  if (reconcileStatus && reconcileStatus.length) {
+    const hasNotExist = reconcileStatus.includes('NOT-EXIST');
+    reconcileStatus = reconcileStatus.filter(status => status !== 'NOT-EXIST');
+  
+    if (hasNotExist) {
+      const conditions = [{ $exists: false }];
+      if (reconcileStatus.length) {
+        conditions.unshift({ $in: reconcileStatus });
+      }
+      filterStage2['$or'] = conditions.map(condition => ({ 'reconciliation.reconcileStatus': condition }));
+      fractionFilters['$or'] = conditions.map(condition => ({ 'transactionFractions.reconciliation.reconcileStatus': condition }));
+    } else {
+      filterStage2['reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+      fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+    }
+  }
+
   try {
     const transactions = await Transactions.aggregate([
       { $addFields: addStage },
       { $match: filters },
+      { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+      {
+        $match: {
+          $or: [
+            { hasFractions: false, ...filterStage2 },
+            { hasFractions: true, ...fractionFilters }
+          ]
+        }
+      },
       { $sort: sortBy },
       { $skip: skipItems },
       { $limit: items }
@@ -164,6 +198,15 @@ exports.getRecoTransactions = async (req, res) => {
     const totalCountAndTotalAmount = await Transactions.aggregate([
       { $addFields: addStage },
       { $match: filters },
+      { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+      {
+        $match: {
+          $or: [
+            { hasFractions: false, ...filterStage2 },
+            { hasFractions: true, ...fractionFilters }
+          ]
+        }
+      },
       { $group: { _id: null, totalCount: { $sum: 1 }, totalAmount: { $sum: "$amount" } } }
     ])
 
