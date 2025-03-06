@@ -25,14 +25,16 @@ app.use(
     resave: false,
     saveUninitialized: true,
     cookie: {
-      secure: false, // Set to true if using https
+      secure: process.env.NODE_ENV === "production", // Use HTTPS in production
+      httpOnly: true,
+      sameSite: "none", // Required for cross-origin
       maxAge: 24 * 3600000,
     },
   })
 );
 
 // Get allowed origins from environment variable
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
 // CORS configuration
 const corsOptions = {
@@ -47,7 +49,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(cors({ credentials: true, origin: process.env.ORIGIN }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../frontend/build")));
 
