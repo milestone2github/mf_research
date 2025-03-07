@@ -14,6 +14,7 @@ const mintRoutes = require('./routes/Mint');
 const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
 const { pendingTransactionsNotification } = require("./utils/scheduledTasks");
+const MongoStore = require("connect-mongo");
 
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
@@ -24,6 +25,11 @@ app.use(
     secret: process.env.EXPRESS_SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      dbName: "mftransactiondb", // database name
+      ttl: 24 * 60 * 60, // 1-day session expiration
+    }),
     cookie: {
       secure: process.env.NODE_ENV === "production", // Use HTTPS in production
       httpOnly: true,

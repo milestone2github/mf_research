@@ -46,6 +46,7 @@ const zohoCallback = async (req, res) => {
         insuranceDashboardId: userExist.insuranceDashboardId,
         role: userExist.role
       };
+      console.log("Session Set:", req.session);//debug
       res.redirect(redirectUrl ?? '/');
     }
     else {
@@ -76,6 +77,7 @@ const logout = (req, res) => {
   };
 
 const verifySession = (req, res) => {
+  console.log("Session Data:", req.session);//debug
   if (req.session && req.session.user) {
     // refresh the session expiration time by the time set during configuration  
     req.session.touch();
