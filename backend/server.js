@@ -31,9 +31,7 @@ app.use(
       ttl: 24 * 60 * 60, // 1-day session expiration
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production", // Use HTTPS in production
-      // httpOnly: true,
-      // sameSite: "none", // Required for cross-origin
+      secure: false, // Set to true if using https
       maxAge: 24 * 3600000,
     },
   })
