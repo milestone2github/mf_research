@@ -31,10 +31,7 @@ app.use(
       ttl: 24 * 60 * 60, // 1-day session expiration
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production",  // Set to true in production
-      httpOnly: true,  //  Allow frontend JS access if necessary
-      sameSite: "None", // Required for cross-origin authentication
-      domain: ".azurewebsites.net",
+      secure: false,
       maxAge: 24 * 60 * 60 * 1000, 
     },
   })
