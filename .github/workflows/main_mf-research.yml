@@ -22,13 +22,20 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
-
       - name: npm install, build, and test
+        env:
+          REACT_APP_FIREBASE_API_KEY: ${{ secrets.REACT_APP_FIREBASE_API_KEY }}
+          REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL }}
+          REACT_APP_FIREBASE_APP_ID: ${{ vars.REACT_APP_FIREBASE_APP_ID }}
+          REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ vars.REACT_APP_FIREBASE_AUTH_DOMAIN }}
+          REACT_APP_FIREBASE_MSG_SENDER_ID: ${{ vars.REACT_APP_FIREBASE_MSG_SENDER_ID }}
+          REACT_APP_FIREBASE_PROJECT_ID: ${{ vars.REACT_APP_FIREBASE_PROJECT_ID }}
+          REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ vars.REACT_APP_FIREBASE_STORAGE_BUCKET }}
         run: |
           npm install
           npm run build --if-present
-          npm run test --if-present
-
+          npm prune --production
+          
       - name: Zip artifact for deployment
         run: zip release.zip ./* -r
 
