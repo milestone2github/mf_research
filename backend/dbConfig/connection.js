@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 require('dotenv').config()
 
 let milestoneDbConnection = null;
+let mniveshDbConnection = null;
 
 const connetToTransactionsDb = async () => {
   try {
@@ -35,5 +36,19 @@ const connectToMilestoneDB = () => {
   }
 };
 
+const connectToMniveshDB = () => {
+  try {
+    if (!mniveshDbConnection) {
+      mniveshDbConnection = mongoose.createConnection(`${process.env.MONGO_URI}/mnivesh`);
+      mniveshDbConnection.on('connected', async () => {
+        console.log('Connected to mNivesh DB')
+      })
+    }
+    return mniveshDbConnection;
+  } catch (error) {
+    console.error('mNivesh DB connection failed: ', error.message)
+    process.exit(1)
+  }
+};
 
-module.exports = { connetToTransactionsDb, connectToMilestoneDB };
+module.exports = { connetToTransactionsDb, connectToMilestoneDB , connectToMniveshDB};

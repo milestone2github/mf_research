@@ -6,7 +6,7 @@ const cron = require('node-cron')
 const app = express();
 const port = process.env.PORT || 5000;
 const session = require("express-session");
-const { connectToMilestoneDB, connetToTransactionsDb } = require("./dbConfig/connection");
+const { connectToMilestoneDB, connetToTransactionsDb, connectToMniveshDB } = require("./dbConfig/connection");
 const authRoutes = require('./routes/Auth');
 const dataRoutes = require('./routes/Data');
 const opsRoutes = require('./routes/opsDash/OpsRoutes');
@@ -15,7 +15,7 @@ const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
 const { pendingTransactionsNotification } = require("./utils/scheduledTasks");
 const MongoStore = require("connect-mongo");
-
+const AdminRoute = require("./routes/mniveshAdminRoutes/mniveshAdminRoutes");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
 
@@ -68,8 +68,8 @@ app.use('/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/ops-dash', opsRoutes);
 app.use('/api/mint', mintRoutes);
+app.use('/api/admin',AdminRoute);
 app.post('/api/send-mail', verifyUser, sendEmailController)
-
 // wildcard route to serve react using express
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
@@ -79,5 +79,5 @@ app.get("*", (req, res) => {
 app.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
-  cron.schedule('0 9 5 * *', pendingTransactionsNotification);
+  // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
 });
