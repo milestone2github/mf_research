@@ -12,12 +12,10 @@ const blogSchema = new mongoose.Schema({
   deleted_at: { type: Date, default: null },
   created_at: { type: Date, default: Date.now, required: true },
   updated_at: { type: Date, default: Date.now },
-  metaTitle: { type: String, required: true },
-  metaKeyword: { type: String, required: true },
-  metaUrl: { type: String, required: true },
-  metaDescription: { type: String, required: true },
-  description: { type: String, default: null },
-  descriptions: { type: String, default: null },
+  metaTitle: { type: String },
+  metaKeyword: { type: String },
+  metaUrl: { type: String },
+  metaDescription: { type: String },
 });
 
 // Import your mnivesh DB connection

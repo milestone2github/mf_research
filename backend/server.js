@@ -68,7 +68,7 @@ app.use('/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/ops-dash', opsRoutes);
 app.use('/api/mint', mintRoutes);
-app.use('/api/admin',AdminRoute);
+app.use('/api/mnivesh/admin',AdminRoute);
 app.post('/api/send-mail', verifyUser, sendEmailController)
 // wildcard route to serve react using express
 app.get("*", (req, res) => {

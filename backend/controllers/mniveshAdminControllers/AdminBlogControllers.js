@@ -1,6 +1,6 @@
 const Blog = require("../../models/Blogs");
 
-async function NewBlogCreate(req, res) {
+async function createNewBlog(req, res) {
   try {
     const {
       title,
@@ -19,7 +19,7 @@ async function NewBlogCreate(req, res) {
     const slug = title.toLowerCase().replace(/\s+/g, '-');
     const status = 1;
     const newBlog = new Blog({
-      id:newId,
+      id: newId,
       title,
       content,
       image,
@@ -50,7 +50,7 @@ async function NewBlogCreate(req, res) {
   }
 }
 
-async function UpdateBlog(req, res) {
+async function updateBlog(req, res) {
   try {
     const {
       title,
@@ -65,7 +65,7 @@ async function UpdateBlog(req, res) {
     } = req.body;
 
     const slug = title.toLowerCase().replace(/\s+/g, '-');
-    
+
     const updatedData = {
       title,
       content,
@@ -108,12 +108,10 @@ async function UpdateBlog(req, res) {
   }
 }
 
-async function DeleteBlog(req, res) {
+async function deleteBlog(req, res) {
   try {
-    const { title } = req.body;
+    const { slug } = req.params; // changed from req.body to req.params
 
-    const slug = title.toLowerCase().replace(/\s+/g, '-');
-    
     const updatedData = {
       deleted_at: new Date()
     };
@@ -147,17 +145,17 @@ async function DeleteBlog(req, res) {
 }
 
 
-async function GetBlogsSearch(req, res) {
+async function getBlogsSearch(req, res) {
   try {
     const searchQuery = req.query.q || "";
-    
+
     const regex = new RegExp(searchQuery, "i");
-    
+
     const blogs = await Blog.find({
       title: regex,
-      deleted_at: "NULL"
+      deleted_at: null,
     });
-    
+
     res.status(200).send({
       success: true,
       message: 'Blogs retrieved successfully',
@@ -165,7 +163,7 @@ async function GetBlogsSearch(req, res) {
     });
   } catch (error) {
     console.error('Error:', error.message);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve blogs',
@@ -174,4 +172,37 @@ async function GetBlogsSearch(req, res) {
   }
 }
 
-module.exports = {NewBlogCreate, GetBlogsSearch, UpdateBlog, DeleteBlog}
+async function getBlog(req, res) {
+  try {
+    const { slug } = req.params;
+
+    const blog = await Blog.findOne({
+      slug,
+      deleted_at: null // ensures the blog is not soft-deleted
+    });
+
+    if (!blog) {
+      return res.status(404).json({
+        success: false,
+        message: 'Blog not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Blog fetched successfully',
+      data: blog,
+    });
+
+  } catch (error) {
+    console.error('Error fetching blog:', error.message);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch blog',
+      error: error.message,
+    });
+  }
+}
+
+module.exports = { createNewBlog, getBlogsSearch, updateBlog, deleteBlog, getBlog }
