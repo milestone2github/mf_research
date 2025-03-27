@@ -1,15 +1,16 @@
-import React, { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setLoading, setLoggedIn, setUser } from '../../reducers/UserSlice';
+import AccessDenied from '../pages/AccessDenied';
 
-function Protected({children}) {
-  const {isLoggedIn, isLoading} = useSelector(state => state.user);
+function Protected({ children, requiredPermission }) {
+  const { isLoggedIn, isLoading, userData } = useSelector(state => state.user);
+  const permissions = userData?.role?.permissions || [];
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Function to check if the user is already logged in
     const checkLoggedIn = async () => {
       dispatch(setLoading(true));
       try {
@@ -21,31 +22,36 @@ function Protected({children}) {
         dispatch(setLoggedIn(data.loggedIn));
         dispatch(setUser(data.user));
         if (!data.loggedIn) {
-          navigate('/login', { replace: true }); // navigate if not logged in
+          navigate('/login', { replace: true });
         }
       } catch (error) {
         console.error("Error Checking session", error.message);
-        navigate('/login?error=internalServerError', {replace: true})
+        navigate('/login?error=internalServerError', { replace: true });
       } finally {
         dispatch(setLoading(false));
       }
     };
 
-    if (!isLoggedIn) { // Check on initial render and dependency changes
+    if (!isLoggedIn) {
       checkLoggedIn();
     }
   }, [dispatch, navigate, isLoggedIn]);
 
   if (isLoading) {
     return (
-      <div className='h-full w-full flex items-center justify-center'>
-        <div className='loader'>
-        </div>
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="loader"></div>
       </div>
     );
   }
 
-  return isLoggedIn ? children : null;
+  if (!isLoggedIn) return null;
+
+  if (requiredPermission && !permissions.includes(requiredPermission)) {
+    return <AccessDenied />;
+  }
+
+  return children;
 }
 
 export default Protected;
