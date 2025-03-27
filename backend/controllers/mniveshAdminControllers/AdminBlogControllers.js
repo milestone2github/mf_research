@@ -52,6 +52,8 @@ async function createNewBlog(req, res) {
 
 async function updateBlog(req, res) {
   try {
+    const { slug } = req.params;
+
     const {
       title,
       content,
@@ -64,26 +66,27 @@ async function updateBlog(req, res) {
       metaDescription
     } = req.body;
 
-    const slug = title.toLowerCase().replace(/\s+/g, '-');
+    const newSlug = title.toLowerCase().replace(/\s+/g, '-');
 
     const updatedData = {
       title,
       content,
       image,
-      slug,
+      slug: newSlug,
       author,
       status: 1,
       post_date,
       metaTitle,
       metaKeyword,
       metaUrl,
-      metaDescription
+      metaDescription,
+      updated_at: new Date() 
     };
 
     const updatedBlog = await Blog.findOneAndUpdate(
-      { slug },           // Filter: find blog with the matching slug
-      updatedData,        // Update: new data for the blog
-      { new: true }       // Options: return the updated document
+      { slug },
+      updatedData,
+      { new: true }
     );
 
     if (!updatedBlog) {
@@ -98,6 +101,7 @@ async function updateBlog(req, res) {
       message: 'Blog updated successfully',
       data: updatedBlog,
     });
+
   } catch (error) {
     console.error('Error updating blog:', error.message);
     res.status(500).json({
@@ -144,29 +148,51 @@ async function deleteBlog(req, res) {
   }
 }
 
-
 async function getBlogsSearch(req, res) {
   try {
     const searchQuery = req.query.q || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
     const regex = new RegExp(searchQuery, "i");
 
-    const blogs = await Blog.find({
+    const query = {
       title: regex,
       deleted_at: null,
-    });
+    };
 
-    res.status(200).send({
+    let blogs = await Blog.find(query).skip(skip).limit(limit);
+    let totalCount = await Blog.countDocuments(query);
+
+    if (totalCount === 0 && searchQuery) {
+      // if no match found, return page 1 blogs
+      const defaultQuery = { deleted_at: null };
+      blogs = await Blog.find(defaultQuery).skip(0).limit(limit);
+      totalCount = await Blog.countDocuments(defaultQuery);
+
+      return res.status(200).json({
+        success: true,
+        message: "No blogs matched your search.",
+        currentPage: 1,
+        totalCount,
+        data: blogs,
+      });
+    }
+
+    res.status(200).json({
       success: true,
-      message: 'Blogs retrieved successfully',
+      message: "Blogs retrieved successfully",
+      currentPage: page,
+      totalCount,
       data: blogs,
     });
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error("Error:", error.message);
 
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve blogs',
+      message: "Failed to retrieve blogs",
       error: error.message,
     });
   }

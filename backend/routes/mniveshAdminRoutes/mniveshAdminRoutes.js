@@ -4,9 +4,9 @@ const BlogRoute = require('../../controllers/mniveshAdminControllers/AdminBlogCo
 const FdsRoute = require('../../controllers/mniveshAdminControllers/AdminFdController');
 
 // Blogs Routes
-router.post("/blogs/create", BlogRoute.createNewBlog);
-router.post("/blogs/update", BlogRoute.updateBlog);
-router.delete("/blogs/delete/:slug", BlogRoute.deleteBlog);
+router.post("/blogs", BlogRoute.createNewBlog);
+router.put("/blogs/:slug", BlogRoute.updateBlog);
+router.delete("/blogs/:slug", BlogRoute.deleteBlog);
 router.get("/blogs", BlogRoute.getBlogsSearch);
 router.get("/blogs/:slug", BlogRoute.getBlog);
 
