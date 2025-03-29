@@ -1,13 +1,18 @@
 // const verifyUser = require('../middlewares/VerifyUser');
 const router = require('express').Router();
 const BlogRoute = require('../../controllers/mniveshAdminControllers/AdminBlogControllers');
+<<<<<<< HEAD
 const FixedDipositsRoute = require('../../controllers/mniveshAdminControllers/AdminFixedDipositsController');
 const IposRoute = require('../../controllers/mniveshAdminControllers/AdminIposControllers');
+=======
+const FdsRoute = require('../../controllers/mniveshAdminControllers/AdminFdController');
+const uploadImageMiddleware  = require('../../middlewares/uploadImage')
+>>>>>>> f4b1cabff01acc64c21f4ef4c7ff877c0ac1d766
 
 // Blogs Routes
-router.post("/blogs/create", BlogRoute.createNewBlog);
-router.post("/blogs/update", BlogRoute.updateBlog);
-router.delete("/blogs/delete/:slug", BlogRoute.deleteBlog);
+router.post("/blogs", uploadImageMiddleware, BlogRoute.createNewBlog);
+router.put("/blogs/:slug", BlogRoute.updateBlog);
+router.delete("/blogs/:slug", BlogRoute.deleteBlog);
 router.get("/blogs", BlogRoute.getBlogsSearch);
 router.get("/blogs/:slug", BlogRoute.getBlog);
 
