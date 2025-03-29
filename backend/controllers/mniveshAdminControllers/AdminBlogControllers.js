@@ -5,28 +5,28 @@ async function createNewBlog(req, res) {
     const {
       title,
       content,
-      image,
       author,
-      post_date,
       metaTitle,
       metaKeyword,
       metaUrl,
       metaDescription
     } = req.body;
+
     const lastBlog = await Blog.findOne({}).sort({ id: -1 }).exec();
     const newId = lastBlog ? lastBlog.id + 1 : 1;
 
     const slug = title.toLowerCase().replace(/\s+/g, '-');
     const status = 1;
+
     const newBlog = new Blog({
       id: newId,
       title,
       content,
-      image,
+      image: req.imageName,
       slug,
       author,
       status,
-      post_date,
+      post_date: new Date(), 
       metaTitle,
       metaKeyword,
       metaUrl,
@@ -38,7 +38,9 @@ async function createNewBlog(req, res) {
     res.status(201).json({
       success: true,
       message: 'Blog created successfully',
-      data: newBlog,
+      imageUploadMessage: req.imageUploadMessage || 'Image upload successful',
+      uploadedImageName: req.imageName,
+      data: newBlog
     });
   } catch (error) {
     console.error('Error creating blog:', error.message);
