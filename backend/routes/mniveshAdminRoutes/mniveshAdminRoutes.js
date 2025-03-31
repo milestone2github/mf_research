@@ -1,12 +1,14 @@
 // const verifyUser = require('../middlewares/VerifyUser');
 const router = require('express').Router();
+const multer = require('multer');
+const upload = multer();
 const BlogRoute = require('../../controllers/mniveshAdminControllers/AdminBlogControllers');
 const FdsRoute = require('../../controllers/mniveshAdminControllers/AdminFdController');
 const uploadImageMiddleware  = require('../../middlewares/uploadImage')
 
 // Blogs Routes
 router.post("/blogs", uploadImageMiddleware, BlogRoute.createNewBlog);
-router.put("/blogs/:slug", BlogRoute.updateBlog);
+router.put("/blogs/:slug", upload.none(), BlogRoute.updateBlog);
 router.delete("/blogs/:slug", BlogRoute.deleteBlog);
 router.get("/blogs", BlogRoute.getBlogsSearch);
 router.get("/blogs/:slug", BlogRoute.getBlog);

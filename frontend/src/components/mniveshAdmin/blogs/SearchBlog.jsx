@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 
-// function SearchBlog({ searchQuery, setSearchQuery }) {
 function SearchBlog({ onSearch }) {
   const [query, setQuery] = useState('');
 

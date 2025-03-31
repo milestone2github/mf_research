@@ -5,5 +5,6 @@ import AdminIndex from "../components/mniveshAdmin/AdminIndex";
 export const mniveshAdminRoutes = [
     { to: "", element: <AdminIndex /> },
     { to: "blogs", element: <BlogIndex /> },
-    { to: "blogs/add", element: <AddBlog /> }
+    { to: "blogs/add", element: <AddBlog /> },
+    { to: "blogs/edit/:slug", element: <AddBlog /> }
 ]

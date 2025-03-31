@@ -1,4 +1,8 @@
 import React from 'react';
+// import {} from 'dotenv/config';
+import { MdDelete } from "react-icons/md";
+import { CiEdit } from "react-icons/ci";
+import { Link } from 'react-router-dom';
 
 function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
   return (
@@ -21,9 +25,10 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
                 {/* Blog Image */}
                 <td className="p-3">
                   <img
-                    src={`${process.env.REACT_APP_IMAGE_URL}/${blog.image}`} // Ensure this is the correct image path
+                    src={`${process.env.REACT_APP_MNIVESH_URL}/images/blog/${blog.image}`} // Ensure this is the correct image path
+                    // src={`https://niveshonline.com/images/blog/1648019256.jpg`} // Ensure this is the correct image path
                     alt={blog.title}
-                    className="h-16 w-20 rounded-md object-cover"
+                    className="h-16 w-40 rounded-md object-cover"
                   />
                 </td>
 
@@ -51,29 +56,22 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
                         setModalData({
                           show: true,
                           blogName: blog.title,
-                          deleteUrl: `/api/blogs/${blog._id}`,
+                          deleteUrl: `api/mnivesh/admin/blogs/${blog.slug}`,
                         })
                       }
-                      className="p-2 border rounded-md hover:bg-red-600 transition w-9 h-9"
+                      className="p-2 border rounded-md hover:bg-red-600 transition w-9 h-9 text-red-500 hover:text-white"
                     >
-                      <img
-                        src={`${process.env.REACT_APP_TEMP_URL}/images/icons/delete-red.svg`}
-                        alt="Del"
-                        width="26"
-                      />
+                      <MdDelete />
                     </button>
 
                     {/* Edit Button */}
-                    <a
-                      href={`/blogs/edit/${blog._id}`}
-                      className="border p-2 hover:bg-yellow-600 rounded-md transition w-9 h-9"
+                    <Link
+                      // href={`/blogs/edit/${blog._id}`}
+                      to={`edit/${blog.slug}`}
+                      className="border p-2 hover:bg-yellow-600 rounded-md transition w-9 h-9 text-yellow-500 hover:text-white"
                     >
-                      <img
-                        src={`${process.env.REACT_APP_TEMP_URL}/icons/edit.svg`}
-                        alt="Edit"
-                        width="24"
-                      />
-                    </a>
+                      <CiEdit />
+                    </Link>
                   </div>
                 </td>
               </tr>
