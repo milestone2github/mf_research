@@ -1,8 +1,11 @@
 const Fds = require("../../models/FixedDiposits");
 
-async function updateFixedDiposits(req, res) {
+async function createNewFixedDiposits(req, res) {
     try {
       const {
+        company,
+        logo,
+        rating,
         roi,
         month_12,
         month_24,
@@ -12,10 +15,13 @@ async function updateFixedDiposits(req, res) {
         senior
       } = req.body;
   
-      const {slug} = req.params;
+      const slug = company.toLowerCase().replace(/(\w)\(/g, '$1-(').replace(/\s+/g, '-').replace(/[()]/g, '').replace(/-+/g, '-');
   
-      const updatedData = {
+      const FixedDipositsData = {
+        name: company,
         roi,
+        logo,
+        rating,
         month_12,
         month_24,
         month_36,
@@ -26,13 +32,13 @@ async function updateFixedDiposits(req, res) {
         updated_at: new Date() // Update the timestamp
       };
   
-      const updatedFds = await Fds.findOneAndUpdate(
+      const createdFds = await Fds.findOneAndUpdate(
         { slug },      
-        updatedData,   
+        FixedDipositsData,   
         { new: true }   
       );
   
-      if (!updatedFds) {
+      if (!createdFds) {
         return res.status(404).json({
           success: false,
           message: 'Fds not found',
@@ -41,19 +47,78 @@ async function updateFixedDiposits(req, res) {
   
       res.status(200).json({
         success: true,
-        message: 'Fds updated successfully',
-        data: updatedFds,
+        message: 'Fds created successfully',
+        data: createdFds,
       });
     } catch (error) {
-      console.error('Error updating fds:', error.message);
+      console.error('Error creaing fds:', error.message);
       res.status(500).json({
         success: false,
-        message: 'Failed to update fds',
+        message: 'Failed to creating fds',
         error: error.message,
       });
     }
   }
   
+  async function updateFixedDiposits(req, res) {
+      try {
+        const {
+          logo,
+          rating,
+          roi,
+          month_12,
+          month_24,
+          month_36,
+          month_48,
+          month_60,
+          senior
+        } = req.body;
+    
+        const {slug} = req.params;
+    
+        const updatedData = {
+          name: company,
+          logo,
+          rating,
+          roi,
+          month_12,
+          month_24,
+          month_36,
+          month_48,
+          month_60,
+          senior,
+          slug,
+          updated_at: new Date() // Update the timestamp
+        };
+    
+        const updatedFds = await Fds.findOneAndUpdate(
+          { slug },      
+          updatedData,   
+          { new: true }   
+        );
+    
+        if (!updatedFds) {
+          return res.status(404).json({
+            success: false,
+            message: 'Fds not found',
+          });
+        }
+    
+        res.status(200).json({
+          success: true,
+          message: 'Fds updated successfully',
+          data: updatedFds,
+        });
+      } catch (error) {
+        console.error('Error updating fds:', error.message);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to update fds',
+          error: error.message,
+        });
+      }
+    }
+
 async function getAllFixedDiposits(req, res) {
   try {
     const fds = await Fds.find();
@@ -90,10 +155,38 @@ async function getFixedDepositsBySlug(req, res) {
     
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve fds',
+      message: 'Failed to retrieve fds By Slug',
       error: error.message,
     });
   }
 }
 
-module.exports = {getAllFixedDiposits, getFixedDepositsBySlug, updateFixedDiposits};
+async function deleteFixedDiposits(req, res){
+    try {
+        const { slug } = req.params;
+        const deletedIpos = await Fds.findOneAndDelete({ slug });
+
+      
+      if (!deletedIpos) {
+        return res.status(404).json({
+          success: false,
+          message: 'Fixed Diposits not found',
+        });
+      }
+
+      res.status(200).send({
+        success: true,
+        message: 'Fixed Diposits Deleted'
+      });
+    } catch (error) {
+      console.error('Error:', error.message);
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to Delete Fixed Diposits',
+        error: error.message,
+      });
+    }
+}
+
+module.exports = {getAllFixedDiposits, getFixedDepositsBySlug, updateFixedDiposits, createNewFixedDiposits, deleteFixedDiposits};
