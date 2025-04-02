@@ -85,7 +85,7 @@ function FixedDepositTable({ fds, pagination, onPageChange, setModalData }) {
       </table>
 
       {/* Pagination */}
-      {pagination && (
+      {pagination && pagination.totalCount > 0 && (
         <div className="mt-6 flex flex-col items-center">
           <div className="flex space-x-1 bg-white p-3 rounded-lg shadow-md">
             <button
