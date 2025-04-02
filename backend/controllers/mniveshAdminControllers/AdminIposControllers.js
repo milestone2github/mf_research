@@ -63,24 +63,15 @@ async function createIpos(req, res) {
   
       const createdIpos = await IposModel.create(ipoData);
   
-      if (!createdIpos) {
-        return res.status(404).json({
-          success: false,
-          message: 'Ipos not found',
-        });
-      }
-  
       res.status(200).json({
         success: true,
         message: 'Ipos created successfully',
         data: createdIpos,
       });
     } catch (error) {
-      console.error('Error creating Ipos:', error.message);
       res.status(500).json({
         success: false,
-        message: 'Failed to create Ipos',
-        error: error.message,
+        error: `Failed to create Ipos: ${error.message}`
       });
     }
   }
@@ -145,7 +136,7 @@ async function createIpos(req, res) {
         if (!update_Ipos) {
           return res.status(404).json({
             success: false,
-            message: 'Ipos not found',
+            error: 'Ipos not found',
           });
         }
     
@@ -155,11 +146,9 @@ async function createIpos(req, res) {
           data: update_Ipos,
         });
       } catch (error) {
-        console.error('Error updating Ipos:', error.message);
         res.status(500).json({
           success: false,
-          message: 'Failed to update Ipos',
-          error: error.message,
+          error: `Failed to update Ipos ${error.message}`,
         });
       }
     }
@@ -174,12 +163,9 @@ async function getIpos(req, res) {
       data: Ipos,
     });
   } catch (error) {
-    console.error('Error:', error.message);
-    
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve Ipos By Slug',
-      error: error.message,
+      error: `Failed to retrieve Ipos By Slug ${error.message}`, 
     });
   }
 }
@@ -188,7 +174,14 @@ async function getIposBySlug(req, res) {
   try {
     const { slug } = req.params;
     
-    const Ipos = await IposModel.find({slug:slug});
+    const Ipos = await IposModel.findOne({slug:slug});
+    
+    if (!Ipos) {
+        return res.status(404).json({
+          success: false,
+          error: 'IPO not found',
+        });
+      }
     
     res.status(200).send({
       success: true,
@@ -196,12 +189,9 @@ async function getIposBySlug(req, res) {
       data: Ipos,
     });
   } catch (error) {
-    console.error('Error:', error.message);
-    
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve Ipos',
-      error: error.message,
+      error: `Failed to retrieve Ipos ${error.message}`
     });
   }
 }
@@ -215,7 +205,7 @@ async function deleteIpos(req, res){
       if (!deletedIpos) {
         return res.status(404).json({
           success: false,
-          message: 'IPO not found',
+          error: 'IPO not found',
         });
       }
 
@@ -224,12 +214,9 @@ async function deleteIpos(req, res){
         message: 'Ipos Deleted'
       });
     } catch (error) {
-      console.error('Error:', error.message);
-      
       res.status(500).json({
         success: false,
-        message: 'Failed to Delete Ipos',
-        error: error.message,
+        error: `Failed to Delete Ipos ${error.message}`
       });
     }
 }

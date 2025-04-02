@@ -32,18 +32,7 @@ async function createNewFixedDiposits(req, res) {
         updated_at: new Date() // Update the timestamp
       };
   
-      const createdFds = await Fds.findOneAndUpdate(
-        { slug },      
-        FixedDipositsData,   
-        { new: true }   
-      );
-  
-      if (!createdFds) {
-        return res.status(404).json({
-          success: false,
-          message: 'Fds not found',
-        });
-      }
+      const createdFds = await Fds.create(FixedDipositsData);
   
       res.status(200).json({
         success: true,
@@ -51,11 +40,9 @@ async function createNewFixedDiposits(req, res) {
         data: createdFds,
       });
     } catch (error) {
-      console.error('Error creaing fds:', error.message);
       res.status(500).json({
         success: false,
-        message: 'Failed to creating fds',
-        error: error.message,
+        error: `Failed to creating fds ${error.message}`
       });
     }
   }
@@ -100,7 +87,7 @@ async function createNewFixedDiposits(req, res) {
         if (!updatedFds) {
           return res.status(404).json({
             success: false,
-            message: 'Fds not found',
+            error: 'Fds not found',
           });
         }
     
@@ -129,12 +116,9 @@ async function getAllFixedDiposits(req, res) {
       data: fds,
     });
   } catch (error) {
-    console.error('Error:', error.message);
-    
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve fds',
-      error: error.message,
+      error: `Failed to retrieve fds ${error.message}`
     });
   }
 }
@@ -143,7 +127,7 @@ async function getFixedDepositsBySlug(req, res) {
   try {
     const { slug } = req.params;
     
-    const fds = await Fds.find({ slug:slug });
+    const fds = await Fds.findOne({ slug:slug });
     
     res.status(200).send({
       success: true,
@@ -151,12 +135,9 @@ async function getFixedDepositsBySlug(req, res) {
       data: fds,
     });
   } catch (error) {
-    console.error('Error:', error.message);
-    
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve fds By Slug',
-      error: error.message,
+      error: `Failed to retrieve fds By Slug ${error.message}`
     });
   }
 }
@@ -165,12 +146,10 @@ async function deleteFixedDiposits(req, res){
     try {
         const { slug } = req.params;
         const deletedIpos = await Fds.findOneAndDelete({ slug });
-
-      
       if (!deletedIpos) {
         return res.status(404).json({
           success: false,
-          message: 'Fixed Diposits not found',
+          error: 'Fixed Diposits not found',
         });
       }
 
@@ -183,8 +162,7 @@ async function deleteFixedDiposits(req, res){
       
       res.status(500).json({
         success: false,
-        message: 'Failed to Delete Fixed Diposits',
-        error: error.message,
+        error: `Failed to Delete Fixed Diposits ${error.message}`
       });
     }
 }
