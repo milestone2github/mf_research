@@ -3,49 +3,48 @@ import React from 'react';
 import { MdDelete } from "react-icons/md";
 import { CiEdit } from "react-icons/ci";
 import { Link } from 'react-router-dom';
-import { BLOG_IMAGE, BLOG_URL } from '../../../utils/urlConstants';
+import { COMPANY_LOGO, FD_URL } from '../../../utils/urlConstants';
 
-function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
+function FixedDepositTable({ fds, pagination, onPageChange, setModalData }) {
   return (
     <div className="overflow-x-auto">
-      {/* Blog Table */}
+      {/* FD Table */}
       <table className="min-w-full bg-white border border-gray-200 shadow-md rounded-md">
         <thead className="bg-gray-800 text-white">
           <tr>
-            <th className="p-3 text-left">Image</th>
-            <th className="p-3 text-left">Title</th>
-            <th className="p-3 text-left">Author</th>
-            <th className="p-3 text-left">Post Date</th>
+            <th className="p-3 text-left">Logo</th>
+            <th className="p-3 text-left">Company Name</th>
+            <th className="p-3 text-left">Ratings</th>
             <th className="p-3 text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {blogs.length ? (
-            blogs.map((blog) => (
-              <tr key={blog._id} className="border-b border-gray-200">
-                {/* Blog Image */}
+          {fds.length ? (
+            fds.map((fd) => (
+              <tr key={fd._id} className="border-b border-gray-200">
+                {/* Company Logo */}
                 <td className="p-3">
                   <img
-                    src={ new URL(BLOG_IMAGE(blog.image), process.env.REACT_APP_MNIVESH_URL).href }
-                    alt={blog.title}
+                    src={ new URL(COMPANY_LOGO(fd.image), process.env.REACT_APP_MNIVESH_URL).href }
+                    alt={fd.title}
                     className="h-16 w-40 rounded-md object-cover"
                   />
                 </td>
 
-                {/* Blog Title */}
-                <td className="p-3">{blog.title}</td>
+                {/* Company Name */}
+                <td className="p-3">{fd.title}</td>
 
-                {/* Blog Author */}
-                <td className="p-3">{blog.author}</td>
+                {/* Ratings */}
+                <td className="p-3">{fd.rating}</td>
 
-                {/* Blog Post Date */}
+                {/* Blog Post Date
                 <td className="p-3 whitespace-nowrap">
                   {new Date(blog.post_date).toLocaleDateString('en-GB', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric',
                   })}
-                </td>
+                </td> */}
 
                 {/* Actions */}
                 <td className="px-3">
@@ -55,8 +54,8 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
                       onClick={() =>
                         setModalData({
                           show: true,
-                          blogName: blog.title,
-                          deleteUrl: BLOG_URL(blog.slug),
+                          fixedDepositName: fd.title,
+                          deleteUrl: FD_URL(fd.slug),
                         })
                       }
                       className="p-2 border rounded-md hover:bg-red-600 transition w-9 h-9 text-red-500 hover:text-white"
@@ -66,7 +65,7 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
 
                     {/* Edit Button */}
                     <Link
-                      to={`edit/${blog.slug}`}
+                      to={`edit/${fd.slug}`}
                       className="border p-2 hover:bg-yellow-600 rounded-md transition w-9 h-9 text-yellow-500 hover:text-white"
                     >
                       <CiEdit />
@@ -78,7 +77,7 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
           ) : (
             <tr>
               <td colSpan="5" className="text-center p-4 text-gray-600">
-                No blogs found.
+                No Fixed Deposits found.
               </td>
             </tr>
           )}
@@ -129,4 +128,4 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
   );
 }
 
-export default BlogTable;
+export default FixedDepositTable

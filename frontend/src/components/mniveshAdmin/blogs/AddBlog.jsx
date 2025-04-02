@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import BackButton from "../../common/BackButton";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
+import { BLOG_URL } from "../../../utils/urlConstants";
+import { BLOG_CREATE_SUCCESSFUL, BLOG_CREATION_FAIL_ERROR, BLOG_SUBMIT_FAIL_ERROR, BLOG_UPDATE_SUCCESSFUL } from "../../../utils/stringConstants";
 
 function AddBlog() {
   const { slug } = useParams();
@@ -20,6 +21,7 @@ function AddBlog() {
     metaUrl: "",
     metaDescription: "",
   });
+  const [loading, setLoading] = useState(false);
 
   // Fetch the blog details
   useEffect(() => {
@@ -92,6 +94,7 @@ function AddBlog() {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
@@ -106,24 +109,27 @@ function AddBlog() {
 
       if (slug) {
         // Update existing blog with new data
-        await axios.put(`${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs/${slug}`, formDataToSend);
-        alert('Blog updated successfully!');
+        const updateBlogUrl = new URL(BLOG_URL(slug), process.env.REACT_APP_API_BASE_URL);
+        await axios.put(updateBlogUrl, formDataToSend);
+        alert(BLOG_UPDATE_SUCCESSFUL);
       } else {
         // Create new Blog
-        await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs`, formDataToSend);
-        alert('Blog created successfully!');
+        const createBlogUrl = new URL(BLOG_URL(''), process.env.REACT_APP_API_BASE_URL);
+        await axios.post(createBlogUrl, formDataToSend);
+        alert(BLOG_CREATE_SUCCESSFUL);
       }
 
       navigate('../blogs'); // Navigate back to all blogs
     } catch (err) {
-      console.error('Error submitting blog:', err);
-      alert('Failed to save blog.');
+      console.error(BLOG_SUBMIT_FAIL_ERROR, err);
+      alert(BLOG_CREATION_FAIL_ERROR);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
-      <BackButton />
       <h2 className="text-2xl font-bold mb-6">
         {slug ? 'Edit Blog' : 'Create New Blog'}
       </h2>
@@ -230,12 +236,23 @@ function AddBlog() {
         </div>
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-md text-lg font-semibold hover:bg-blue-700 transition"
-        >
-          {slug ? 'Update Blog' : 'Create Blog'}
-        </button>
+        <div className="flex justify-between mt-6">
+          <button
+            type="button"
+            className="px-4 py-2 bg-gray-500 text-white rounded-md"
+            onClick={() => window.history.back()}
+          >
+            Close
+          </button>
+          <button
+            type="submit"
+            className={`px-4 py-2 ${loading ? "bg-gray-400" : "bg-blue-500"} text-white rounded-md hover:bg-blue-700 transition`}
+            disabled={loading}
+          >
+            {slug ? 'Update Blog' : 'Create Blog'}
+            {loading ? "Saving..." : ""}
+          </button>
+        </div>
       </form>
     </div>
   );

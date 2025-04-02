@@ -3,44 +3,50 @@ import React from 'react';
 import { MdDelete } from "react-icons/md";
 import { CiEdit } from "react-icons/ci";
 import { Link } from 'react-router-dom';
-import { BLOG_IMAGE, BLOG_URL } from '../../../utils/urlConstants';
+import { IPO_URL } from '../../../utils/urlConstants';
 
-function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
+function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
   return (
     <div className="overflow-x-auto">
-      {/* Blog Table */}
+      {/* IPO Table */}
       <table className="min-w-full bg-white border border-gray-200 shadow-md rounded-md">
         <thead className="bg-gray-800 text-white">
           <tr>
-            <th className="p-3 text-left">Image</th>
-            <th className="p-3 text-left">Title</th>
-            <th className="p-3 text-left">Author</th>
-            <th className="p-3 text-left">Post Date</th>
+            <th className="p-3 text-left">S.No.</th>
+            <th className="p-3 text-left">Company Name</th>
+            <th className="p-3 text-left">Open Date</th>
+            <th className="p-3 text-left">Close Date</th>
             <th className="p-3 text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {blogs.length ? (
-            blogs.map((blog) => (
-              <tr key={blog._id} className="border-b border-gray-200">
-                {/* Blog Image */}
+          {ipos.length ? (
+            ipos.map((ipo) => (
+              <tr key={ipo._id} className="border-b border-gray-200">
+                {/* Serial Number */}       {/* <<<<<<-----------------EDIT THIS LOGIC FOR S.No. */}
                 <td className="p-3">
-                  <img
-                    src={ new URL(BLOG_IMAGE(blog.image), process.env.REACT_APP_MNIVESH_URL).href }
-                    alt={blog.title}
+                  {/* <img
+                    src={ new URL(COMPANY_LOGO(fd.image), process.env.REACT_APP_MNIVESH_URL).href }
+                    alt={fd.title}
                     className="h-16 w-40 rounded-md object-cover"
-                  />
+                  /> */}
                 </td>
 
-                {/* Blog Title */}
-                <td className="p-3">{blog.title}</td>
+                {/* Company Name */}
+                <td className="p-3">{ipo.title}</td>
 
-                {/* Blog Author */}
-                <td className="p-3">{blog.author}</td>
-
-                {/* Blog Post Date */}
+                {/* IPO Open Date */}
                 <td className="p-3 whitespace-nowrap">
-                  {new Date(blog.post_date).toLocaleDateString('en-GB', {
+                  {new Date(ipo.open_date).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </td>
+                
+                {/* IPO Close Date */}
+                <td className="p-3 whitespace-nowrap">
+                  {new Date(ipo.close_date).toLocaleDateString('en-GB', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric',
@@ -55,8 +61,8 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
                       onClick={() =>
                         setModalData({
                           show: true,
-                          blogName: blog.title,
-                          deleteUrl: BLOG_URL(blog.slug),
+                          ipoName: ipo.title,
+                          deleteUrl: IPO_URL(ipo.slug),
                         })
                       }
                       className="p-2 border rounded-md hover:bg-red-600 transition w-9 h-9 text-red-500 hover:text-white"
@@ -66,7 +72,7 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
 
                     {/* Edit Button */}
                     <Link
-                      to={`edit/${blog.slug}`}
+                      to={`edit/${ipo.slug}`}
                       className="border p-2 hover:bg-yellow-600 rounded-md transition w-9 h-9 text-yellow-500 hover:text-white"
                     >
                       <CiEdit />
@@ -78,7 +84,7 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
           ) : (
             <tr>
               <td colSpan="5" className="text-center p-4 text-gray-600">
-                No blogs found.
+                No IPOs found.
               </td>
             </tr>
           )}
@@ -129,4 +135,4 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
   );
 }
 
-export default BlogTable;
+export default IpoTable

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import BackButton from '../../common/BackButton'
 import BlogTable from './BlogTable'
-import SearchBlog from './SearchBlog'
+// import SearchBlog from './SearchBlog'
 import axios from 'axios';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import Search from '../common/Search';
+import { BLOG_URL } from '../../../utils/urlConstants';
+import { BLOG_DELETE_ERROR, BLOG_DELETE_ERROR_ALERT, BLOG_DELETE_SUCCESSFUL, BLOG_FETCH_ERROR } from '../../../utils/stringConstants';
 
 function BlogIndex() {
   const [blogs, setBlogs] = useState([]);
@@ -19,8 +22,8 @@ function BlogIndex() {
     const fetchBlogs = async () => {
       try {
         const url = searchQuery
-          ? `${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs?q=${searchQuery}&page=${page}`
-          : `${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs?page=${page}`;
+          ? new URL(BLOG_URL(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href
+          : new URL(BLOG_URL(`?page=${page}`), process.env.REACT_APP_API_BASE_URL).href;
         const { data } = await axios.get(url);
 
         setBlogs(data.data || []);
@@ -29,7 +32,7 @@ function BlogIndex() {
           totalCount: data.totalCount,
         });
       } catch (err) {
-        console.error("Error fetching blogs from the backend.", err);
+        console.error(BLOG_FETCH_ERROR, err);
       }
     };
 
@@ -50,14 +53,14 @@ function BlogIndex() {
     try {
       const delUrl = `${process.env.REACT_APP_API_BASE_URL}/${deleteUrl}`;
       await axios.delete(delUrl);
-      alert('Blog deleted successfully!');
-      setBlogs((prev) => prev.filter((b) => `api/mnivesh/admin/blogs/${b.slug}` !== deleteUrl));
+      alert(BLOG_DELETE_SUCCESSFUL);
+      setBlogs((prev) => prev.filter((b) => BLOG_URL(b.slug) !== deleteUrl));
       setModalData({ ...modalData, show: false });
       
       navigate('../blogs');
     } catch (error) {
-      console.error('Error deleting blog:', error);
-      alert('Failed to delete blog.');
+      console.error(BLOG_DELETE_ERROR, error);
+      alert(BLOG_DELETE_ERROR_ALERT);
     }
   }
   return (
@@ -67,7 +70,8 @@ function BlogIndex() {
 
       {/* Search and Add Button */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-2">
-        <SearchBlog onSearch={setSearchQuery} />
+        {/* <SearchBlog onSearch={setSearchQuery} /> */}
+        <Search onSearch={setSearchQuery} />
         <Link 
           to="add" 
           className="bg-green-600 text-white px-4 py-2 rounded-md whitespace-nowrap w-full md:w-auto text-center"
