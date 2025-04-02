@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios"; // For handling form submission
+import { FD_URL, FD_URL2 } from "../../../utils/urlConstants";
+import { ERROR_WHILE_SAVING, FD_CREATE_SUCCESSFUL, FD_FETCH_ERROR, FD_UPDATE_SUCCESSFUL } from "../../../utils/stringConstants";
+import { useNavigate, useParams } from "react-router-dom";
 
 const AddFixedDeposit = () => {
+  const { slug } = useParams();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     companyName: "",
     image: null,
@@ -17,6 +22,31 @@ const AddFixedDeposit = () => {
 
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Fetch FD details
+  useEffect(() => {
+    if (slug) {
+      const getFdUrl = new URL(FD_URL2(slug), process.env.REACT_APP_API_BASE_URL).href;
+      axios
+        .get(getFdUrl)
+        .then((res) => {
+          const fd = res.data.data;
+          setFormData({
+            companyName: fd.companyName || "",
+            image: null,
+            rating: fd.rating || "",
+            roi: fd.roi || "",
+            senior: fd.senior || "",
+            month_12: fd.month_12 || Array(5).fill(""),
+            month_24: fd.month_24 || Array(5).fill(""),
+            month_36: fd.month_36 || Array(5).fill(""),
+            month_48: fd.month_48 || Array(5).fill(""),
+            month_60: fd.month_60 || Array(5).fill(""),
+          });
+        })
+        .catch((err) => console.error(FD_FETCH_ERROR, err));
+    }
+  }, [slug]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -38,20 +68,33 @@ const AddFixedDeposit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const form = new FormData();
-    Object.keys(formData).forEach((key) => {
-      if (key === "image" && formData.image) {
-        form.append(key, formData.image);
-      } else {
-        form.append(key, formData[key]);
-      }
-    });
-
+    
     try {
-      const response = await axios.post("/admin/fixed_deposit/store", form);
-      // Handle successful response here, such as redirecting or displaying a success message
+      // Append all the fields to formData
+      const formDataToSend = new FormData();
+      Object.keys(formData).forEach((key) => {
+        if (key === "image" && formData.image) {
+          formDataToSend.append(key, formData.image);
+        } else if (["month_12", "month_24", "month_36", "month_48", "month_60"].includes(key)) {
+          formDataToSend.append(key, formData[key].join(","));
+        } else {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+      // const response = await axios.post("/admin/fixed_deposit/store", form);
+      if (slug) {
+        const updateFdUrl = new URL(FD_URL(slug), process.env.REACT_APP_API_BASE_URL).href;
+        await axios.put(updateFdUrl, formDataToSend);
+        alert(FD_UPDATE_SUCCESSFUL);
+      } else {
+        const createFdUrl = new URL(FD_URL(''), process.env.REACT_APP_API_BASE_URL).href;
+        await axios.post(createFdUrl, formDataToSend);
+        alert(FD_CREATE_SUCCESSFUL);
+      }
+
+      navigate('../fixed-deposits');
     } catch (error) {
-      setErrors([error.response?.data?.message || "An error occurred while saving changes."]);
+      setErrors([error.response?.data?.message || ERROR_WHILE_SAVING]);
     } finally {
       setLoading(false);
     }

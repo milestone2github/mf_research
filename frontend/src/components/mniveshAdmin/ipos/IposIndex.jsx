@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import BackButton from '../../common/BackButton';
 import Search from '../common/Search';
-import { FD_URL } from '../../../utils/urlConstants';
+import { IPO_URL } from '../../../utils/urlConstants';
 import { IPO_DELETE_ERROR, IPO_DELETE_ERROR_ALERT, IPO_DELETE_SUCCESSFUL, IPO_FETCH_ERROR } from '../../../utils/stringConstants';
 import IpoTable from './IpoTable';
 
@@ -21,15 +21,15 @@ function IposIndex() {
     const fetchIpo = async () => {
       try {
         const url = searchQuery
-          // ? `${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs?q=${searchQuery}&page=${page}`
-          // : `${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs?page=${page}`;
-        // const { data } = await axios.get(url);
+          ? new URL(IPO_URL(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href
+          : new URL(IPO_URL(`?page=${page}`), process.env.REACT_APP_API_BASE_URL).href;
+        const { data } = await axios.get(url);
 
-        // setIpos(data.data || []);
-        // setPagination({
-        //   currentPage: data.currentPage,
-        //   totalCount: data.totalCount,
-        // });
+        setIpos(data.data || []);
+        setPagination({
+          currentPage: data.currentPage,
+          totalCount: data.totalCount,
+        });
       } catch (err) {
         console.error(IPO_FETCH_ERROR, err);
       }
@@ -54,7 +54,7 @@ function IposIndex() {
       const delUrl = new URL(`/${deleteUrl}`, process.env.REACT_APP_API_BASE_URL).href;
       await axios.delete(delUrl);
       alert(IPO_DELETE_SUCCESSFUL);
-      setIpos((prev) => prev.filter((b) => FD_URL(b.slug) !== deleteUrl));
+      setIpos((prev) => prev.filter((b) => IPO_URL(b.slug) !== deleteUrl));
       setModalData({ ...modalData, show: false });
       
       navigate('../ipos');
@@ -87,14 +87,6 @@ function IposIndex() {
           setModalData={setModalData}
           onPageChange={handlePageChange}
         />
-
-        {/* Pagination */}
-        {pagination && (
-          <div className="mt-6 flex justify-center">
-            <div className="pagination flex space-x-2 bg-white p-3 rounded-lg shadow-md">
-            </div>
-          </div>
-        )}
 
         {/* Delete Modal */}
         {modalData.show && (

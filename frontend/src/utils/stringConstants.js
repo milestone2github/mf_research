@@ -15,10 +15,16 @@ export const BLOG_UPDATE_SUCCESSFUL = "Blog updated successfully.";
 export const FD_FETCH_ERROR = "Error fetching FDs from the backend.\n";
 export const FD_DELETE_ERROR = "Error deleting FD.\n";
 export const FD_DELETE_ERROR_ALERT = "Failed to delete FD.";
-export const FD_DELETE_SUCCESSFUL = "FD deleted successfully."
+export const FD_DELETE_SUCCESSFUL = "FD deleted successfully.";
+export const FD_CREATE_SUCCESSFUL = "FD created successfully.";
+export const FD_UPDATE_SUCCESSFUL = "FD updated successfully.";
 
 // IPOs
 export const IPO_FETCH_ERROR = "Error fetching IPOs from the backend.\n";
 export const IPO_DELETE_ERROR = "Error deleting the IPO.\n";
 export const IPO_DELETE_ERROR_ALERT = "Failed to delete the IPO.";
 export const IPO_DELETE_SUCCESSFUL = "IPO deleted successfully.";
+export const IPO_CREATE_SUCCESSFUL = "IPO created successfully.";
+export const IPO_UPDATE_SUCCESSFUL = "IPO updated successfully.";
+
+export const ERROR_WHILE_SAVING = "An error occurred while saving changes.";

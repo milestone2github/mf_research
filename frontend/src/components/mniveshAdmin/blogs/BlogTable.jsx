@@ -91,7 +91,7 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
           <div className="flex space-x-1 bg-white p-3 rounded-lg shadow-md">
             <button
               className="px-3 py-1 rounded-md border"
-              disabled={pagination.currentPage === 1}
+              disabled={pagination.currentPage <= 1}
               onClick={() => onPageChange(pagination.currentPage - 1)}
             >
               «
@@ -118,10 +118,20 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
             </button>
           </div>
 
-          <div className="text-sm text-gray-600 mt-2">
+          {/* <div className="text-sm text-gray-600 mt-2">
             {`${(pagination.currentPage - 1) * 10 + 1} - ${
               pagination.currentPage * 10
             } of ${pagination.totalCount}`}
+          </div> */}
+          
+          {/* Disappear the page blocks altogether if no logic found */}
+          <div className="text-sm text-gray-600 mt-2">
+            {pagination && pagination.currentPage && pagination.totalCount ? (
+              `${(pagination.currentPage - 1) * 10 + 1} - ${Math.min(
+                pagination.currentPage * 10,
+                pagination.totalCount
+              )} of ${pagination.totalCount}`
+            ) : null}
           </div>
         </div>
       )}

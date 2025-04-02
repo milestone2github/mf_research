@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { IPO_URL } from "../../../utils/urlConstants";
+import { ERROR_WHILE_SAVING, IPO_CREATE_SUCCESSFUL, IPO_FETCH_ERROR, IPO_UPDATE_SUCCESSFUL } from "../../../utils/stringConstants";
+import { useNavigate, useParams } from "react-router-dom";
 
 const AddNewIpo = () => {
+  const { slug } = useParams();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     company: "",
     open_date: "",
@@ -29,6 +34,43 @@ const AddNewIpo = () => {
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
 
+
+   // Fetch IPO details
+    useEffect(() => {
+      if (slug) {
+        const getIpoUrl = new URL(IPO_URL(slug), process.env.REACT_APP_API_BASE_URL).href;
+        axios
+          .get(getIpoUrl)
+          .then((res) => {
+            const ipo = res.data.data;
+            setFormData({
+              company: ipo.company || "",
+              open_date: ipo.open_date || "",
+              close_date: ipo.close_date || "",
+              lot_size: ipo.lot_size || "",
+              price: ipo.price || "",
+              type: ipo.type || "",
+              face_value: ipo.face_value || "",
+              market_lot: ipo.market_lot || "",
+              minimum_order_quantity: ipo.minimum_order_quantity || "",
+              listing_at: ipo.listing_at || "",
+              issue_size: ipo.issue_size || "",
+              allotment_date: ipo.allotment_date || "",
+              initiation_refund: ipo.initiation_refund || "",
+              demat_account: ipo.demat_account || "",
+              listing_date: ipo.listing_date || "",
+              min_lot: ipo.min_lot || "",
+              max_lot: ipo.max_lot || "",
+              min_share: ipo.min_share || "",
+              max_share: ipo.max_share || "",
+              min_amount: ipo.min_amount || "",
+              max_amount: ipo.max_amount || ""              
+            });
+          })
+          .catch((err) => console.error(IPO_FETCH_ERROR, err));
+      }
+    }, [slug]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -37,11 +79,27 @@ const AddNewIpo = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    // const response = await axios.post("/admin/ipos/store", formData);
+    const formDataToSend = new FormData();
     try {
-      const response = await axios.post("/admin/ipos/store", formData);
-      // Handle successful response here, such as redirecting or displaying a success message
+      // Append each field to formData
+      Object.keys(formData).forEach((key) => {
+        formDataToSend.append(key, formData[key]);
+      });
+      // Send the formData based on update or create mode
+      if (slug) {
+        const updateIpoUrl = new URL(IPO_URL(slug), process.env.REACT_APP_API_BASE_URL).href;
+        await axios.put(updateIpoUrl, formDataToSend);
+        alert(IPO_UPDATE_SUCCESSFUL);
+      } else {
+        const createIpoUrl = new URL(IPO_URL(''), process.env.REACT_APP_API_BASE_URL).href;
+        await axios.post(createIpoUrl, formDataToSend);
+        alert(IPO_CREATE_SUCCESSFUL);
+      }
+
+      navigate('../ipos');
     } catch (error) {
-      setErrors([error.response?.data?.message || "An error occurred while saving changes."]);
+      setErrors([error.response?.data?.message || ERROR_WHILE_SAVING]);
     } finally {
       setLoading(false);
     }

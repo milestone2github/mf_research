@@ -4,7 +4,7 @@ import axios from "axios";
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import { BLOG_URL } from "../../../utils/urlConstants";
-import { BLOG_CREATE_SUCCESSFUL, BLOG_CREATION_FAIL_ERROR, BLOG_SUBMIT_FAIL_ERROR, BLOG_UPDATE_SUCCESSFUL } from "../../../utils/stringConstants";
+import { BLOG_CREATE_SUCCESSFUL, BLOG_CREATION_FAIL_ERROR, BLOG_FETCH_ERROR, BLOG_SUBMIT_FAIL_ERROR, BLOG_UPDATE_SUCCESSFUL } from "../../../utils/stringConstants";
 
 function AddBlog() {
   const { slug } = useParams();
@@ -26,8 +26,9 @@ function AddBlog() {
   // Fetch the blog details
   useEffect(() => {
     if (slug) {
+      const getBlogUrl = new URL(BLOG_URL(slug), process.env.REACT_APP_API_BASE_URL);
       axios
-        .get(`${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs/${slug}`)
+        .get(getBlogUrl)
         .then((res) => {
           const blog = res.data.data;
           setFormData({
@@ -42,9 +43,9 @@ function AddBlog() {
             metaDescription: blog.metaDescription || ''
           });
         })
-        .catch((err) => console.error('Error fetching blog by slug:', err));
+        .catch((err) => console.error(BLOG_FETCH_ERROR, err));
     }
-  }, [slug])
+  }, [slug]);
 
   // Initiating quill text editor
   useEffect(() => {

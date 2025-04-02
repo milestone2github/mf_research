@@ -88,14 +88,6 @@ function BlogIndex() {
         onPageChange={handlePageChange}
       />
 
-      {/* Pagination */}
-      {pagination && (
-        <div className="mt-6 flex justify-center">
-          <div className="pagination flex space-x-2 bg-white p-3 rounded-lg shadow-md">
-          </div>
-        </div>
-      )}
-
       {/* Delete Modal */}
       {modalData.show && (
         <div id="deleteModal" className="fixed inset-0 flex items-center justify-center z-50">

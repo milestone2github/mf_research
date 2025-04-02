@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import BackButton from '../../common/BackButton';
 import Search from '../common/Search';
-import { FD_URL } from '../../../utils/urlConstants';
+import { FD_URL, FD_URL2 } from '../../../utils/urlConstants';
 import { FD_DELETE_ERROR, FD_DELETE_ERROR_ALERT, FD_DELETE_SUCCESSFUL, FD_FETCH_ERROR } from '../../../utils/stringConstants';
 import FixedDepositTable from './FixedDepositTable';
 
@@ -21,15 +21,15 @@ function FixedDepositIndex() {
     const fetchFD = async () => {
       try {
         const url = searchQuery
-          // ? `${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs?q=${searchQuery}&page=${page}`
-          // : `${process.env.REACT_APP_API_BASE_URL}/api/mnivesh/admin/blogs?page=${page}`;
-        // const { data } = await axios.get(url);
+          ? new URL(FD_URL2(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href
+          : new URL(FD_URL2(`?page=${page}`), process.env.REACT_APP_API_BASE_URL).href;
+        const { data } = await axios.get(url);
 
-        // setFixedDeposits(data.data || []);
-        // setPagination({
-        //   currentPage: data.currentPage,
-        //   totalCount: data.totalCount,
-        // });
+        setFixedDeposits(data.data || []);
+        setPagination({
+          currentPage: data.currentPage,
+          totalCount: data.totalCount,
+        });
       } catch (err) {
         console.error(FD_FETCH_ERROR, err);
       }
@@ -87,14 +87,6 @@ function FixedDepositIndex() {
           setModalData={setModalData}
           onPageChange={handlePageChange}
         />
-
-        {/* Pagination */}
-        {pagination && (
-          <div className="mt-6 flex justify-center">
-            <div className="pagination flex space-x-2 bg-white p-3 rounded-lg shadow-md">
-            </div>
-          </div>
-        )}
 
         {/* Delete Modal */}
         {modalData.show && (

@@ -21,35 +21,29 @@ function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
         </thead>
         <tbody>
           {ipos.length ? (
-            ipos.map((ipo) => (
+            ipos.map((ipo, index) => (
               <tr key={ipo._id} className="border-b border-gray-200">
-                {/* Serial Number */}       {/* <<<<<<-----------------EDIT THIS LOGIC FOR S.No. */}
-                <td className="p-3">
-                  {/* <img
-                    src={ new URL(COMPANY_LOGO(fd.image), process.env.REACT_APP_MNIVESH_URL).href }
-                    alt={fd.title}
-                    className="h-16 w-40 rounded-md object-cover"
-                  /> */}
-                </td>
+                {/* Serial Number */} {/*** CHECK IF S.No. is coming from BE ***/}
+                <td className="p-3">{index + 1}</td>
 
                 {/* Company Name */}
                 <td className="p-3">{ipo.title}</td>
 
                 {/* IPO Open Date */}
                 <td className="p-3 whitespace-nowrap">
-                  {new Date(ipo.open_date).toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
+                  {new Date(ipo.open_date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
                   })}
                 </td>
-                
+
                 {/* IPO Close Date */}
                 <td className="p-3 whitespace-nowrap">
-                  {new Date(ipo.close_date).toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
+                  {new Date(ipo.close_date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
                   })}
                 </td>
 
@@ -97,7 +91,7 @@ function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
           <div className="flex space-x-1 bg-white p-3 rounded-lg shadow-md">
             <button
               className="px-3 py-1 rounded-md border"
-              disabled={pagination.currentPage === 1}
+              disabled={pagination.currentPage <= 1}
               onClick={() => onPageChange(pagination.currentPage - 1)}
             >
               «
@@ -124,10 +118,20 @@ function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
             </button>
           </div>
 
-          <div className="text-sm text-gray-600 mt-2">
+          {/* <div className="text-sm text-gray-600 mt-2">
             {`${(pagination.currentPage - 1) * 10 + 1} - ${
               pagination.currentPage * 10
             } of ${pagination.totalCount}`}
+          </div> */}
+
+          {/* Disappear the page blocks altogether if no logic found */}
+          <div className="text-sm text-gray-600 mt-2">
+            {pagination && pagination.currentPage && pagination.totalCount ? (
+              `${(pagination.currentPage - 1) * 10 + 1} - ${Math.min(
+                pagination.currentPage * 10,
+                pagination.totalCount
+              )} of ${pagination.totalCount}`
+            ) : null}
           </div>
         </div>
       )}
