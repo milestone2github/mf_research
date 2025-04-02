@@ -11,7 +11,26 @@ import { resetSystematicData } from '../../reducers/SystematicDataSlice'
 import { resetPurchRedempData } from '../../reducers/PurchRedempDataSlice'
 import { resetSwitchData } from '../../reducers/SwitchDataSlice'
 
-function FormHeader() {
+function FormHeader({ onPanChange, onNameChange }) {
+
+  const handleNameChange = (option) => {
+    dispatch(handleChange({ name: 'investorName', value: option.name }));
+    dispatch(handleChange({ name: 'panNumber', value: option.pan || '' }));
+    dispatch(handleChange({ name: 'familyHead', value: option.familyHead || '' }));
+    dispatch(handleChange({ name: 'iWellCode', value: option.iWellCode || '' }));
+    dispatch(handleChange({ name: 'relationshipManager', value: option.relationshipManager || '' }));
+
+    // Notify parent of PAN/Name change
+    if (onPanChange) onPanChange(option.pan || '');
+    if (onNameChange) onNameChange(option.name || '');
+
+    dispatch(resetAllOptionLists());
+    dispatch(setInvestorNameOptions([option]));
+    dispatch(resetSystematicData());
+    dispatch(resetPurchRedempData());
+    dispatch(resetSwitchData());
+  }
+  
   // get common data state from store
   const commonData = useSelector(state => state.commonData.value);
   const {userData} = useSelector(state => state.user);
@@ -47,24 +66,24 @@ function FormHeader() {
     [dispatch, searchAllInvestor]
   );
 
-  const handleNameChange = (option) => {
-    dispatch(handleChange({ name: 'investorName', value: option.name }))
-    dispatch(handleChange({ name: 'panNumber', value: option.pan || '' }))
-    dispatch(handleChange({ name: 'familyHead', value: option.familyHead || '' }))
-    dispatch(handleChange({ name: 'iWellCode', value: option.iWellCode || '' }))
-    dispatch(handleChange({ name: 'relationshipManager', value: option.relationshipManager || '' }))
+  // const handleNameChange = (option) => {
+  //   dispatch(handleChange({ name: 'investorName', value: option.name }))
+  //   dispatch(handleChange({ name: 'panNumber', value: option.pan || '' }))
+  //   dispatch(handleChange({ name: 'familyHead', value: option.familyHead || '' }))
+  //   dispatch(handleChange({ name: 'iWellCode', value: option.iWellCode || '' }))
+  //   dispatch(handleChange({ name: 'relationshipManager', value: option.relationshipManager || '' }))
 
-    // reset other option lists 
-    dispatch(resetAllOptionLists())
+  //   // reset other option lists 
+  //   dispatch(resetAllOptionLists())
 
-    // add selected option to investor list 
-    dispatch(setInvestorNameOptions([option]))
+  //   // add selected option to investor list 
+  //   dispatch(setInvestorNameOptions([option]))
 
-    // reset all filled data
-    dispatch(resetSystematicData())
-    dispatch(resetPurchRedempData())
-    dispatch(resetSwitchData())
-  }
+  //   // reset all filled data
+  //   dispatch(resetSystematicData())
+  //   dispatch(resetPurchRedempData())
+  //   dispatch(resetSwitchData())
+  // }
 
   // method to handle change in inputs 
   const handleInputChange = (event) => {

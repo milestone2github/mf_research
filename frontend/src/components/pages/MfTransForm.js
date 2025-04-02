@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PrimaryButton from '../mfTransaction/common/PrimaryButton';
 import Toast from '../common/Toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -17,12 +17,34 @@ import { FaCheck } from "react-icons/fa";
 import AccessDenied from './AccessDenied';
 import { updateToast } from '../../reducers/ToastSlice';
 
+//today updates
+import UccTable from "../nfoComponents/UccTable";
+import KycStatusTable from '../nfoComponents/KycStatusTable';
+const backendUrl = process.env.REACT_APP_API_BASE_URL;
+
+
+
 function MfTransForm() {
 
   const [hasReviewed, setHasReviewed] = useState(false);
 
   const [didReset, setDidReset] = useState(false);
   const [isLoadingSubmission, setIsLoadingSubmission] = useState(false);
+
+  //today updates
+  const [name, setName] = useState("");
+  const [uccList, setUccList] = useState([]);
+  const [foliosFromIwell, setFoliosFromIwell] = useState([]);
+  const [ucc, setUcc] = useState({});
+  const [bseStatus, setBseStatus] = useState(1);
+  const [overallKycStatus, setOverallKycStatus] = useState("KYC Rejected"); // Added state for overall KYC status
+  const [amcList, setAmcList] = useState([]);
+  const [folio, setFolio] = useState("");
+  const [folioList, setFolioList] = useState([]);
+  const [amount, setAmount] = useState('');
+  const [pan, setPan] = useState("");
+  const [amc, setAmc] = useState("");
+  const [kycStatusData, setKycStatusData] = useState([]);
 
   // get all data states from store 
   const transactions = useSelector(state => state.transactions);
@@ -35,6 +57,94 @@ function MfTransForm() {
   const permissions = userData?.role?.permissions;
 
   const dispatch = useDispatch();
+
+  //today updates 
+  const fetchKycStatus = async (pan) => {
+    try {
+      const response = await fetch(`${backendUrl}/api/data/kyc-status/?pan=${pan}`, {
+        method: "GET",
+        credentials: "include"
+      });
+      const jsonRes = await response.json();
+
+      if (!response.ok) {
+        console.log("Error fetching KYC status");
+        return;
+      }
+
+      setKycStatusData(jsonRes.data || []);
+    } catch (error) {
+      console.log("Internal error fetching KYC:", error.message);
+    }
+  };
+  const handlePanChange = (newPan) => {
+    setPan(newPan);
+    if (newPan?.length === 10) {
+      fetchUccData(newPan);
+      fetchFolios(newPan);
+      fetchKycStatus(newPan);
+    }
+  };
+
+  const handleNameChange = (newName) => {
+    setName(newName);
+  };
+
+  const fetchUccData = async () => {
+    try {
+      const response = await fetch(`${backendUrl}/api/data/ucc/?pan=${pan}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const jsonData = await response.json();
+
+      if (!response.ok) {
+        console.log("Error fetching UCC");
+        return;
+      }
+
+      setUccList(jsonData.data);
+    } catch (error) {
+      console.log("Internal server error while getting UCC data");
+    }
+  };
+
+  const fetchFolios = async () => {
+    try {
+      const response = await fetch(
+        `${backendUrl}/api/data/iwell-folios/?pan=${pan}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+      const jsonRes = await response.json();
+      console.log(jsonRes.data)
+      if (!response.ok) {
+        console.log("Error fetching folios");
+        return;
+      }
+
+      setFoliosFromIwell(jsonRes.data);
+    } catch (error) {
+      console.log("Internal server error while getting folios:", error.message);
+    }
+  };
+
+  useEffect(() => {
+    if (pan?.length < 10) {
+      setUccList([]);
+      setFoliosFromIwell([]);
+      setAmc("");
+      setFolio("");
+      setFolioList([])
+      setUcc({});
+      setAmount('')
+      return;
+    }
+    fetchUccData();
+    fetchFolios();
+  }, [pan]);
 
   // method to update hasReviewed 
   const updateHasReviewed = (value) => {
@@ -55,12 +165,12 @@ function MfTransForm() {
       dispatch(updateToast(alert));
       return;
     }
-    else if (['STP' , 'Capital Appreciation STP', 'SWP', 'Capital Appreciation SWP'].includes(data.systematicTraxType) && !data.systematicSourceScheme) {
+    else if (['STP', 'Capital Appreciation STP', 'SWP', 'Capital Appreciation SWP'].includes(data.systematicTraxType) && !data.systematicSourceScheme) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>Source Scheme</strong></span>
       dispatch(updateToast(alert))
       return false;
     }
-    else if (['SIP', 'STP' , 'Capital Appreciation STP'].includes(data.systematicTraxType) && !data.systematicSchemeName) {
+    else if (['SIP', 'STP', 'Capital Appreciation STP'].includes(data.systematicTraxType) && !data.systematicSchemeName) {
       alert.message = <span>Select one of the option in <strong className='text-xs'>Scheme Name (Target Scheme)</strong></span>
       dispatch(updateToast(alert))
       return false;
@@ -176,7 +286,7 @@ function MfTransForm() {
 
     return true;
   }
-  
+
   // method to submit form 
   const submitForm = async (e) => {
     e.preventDefault();
@@ -290,21 +400,38 @@ function MfTransForm() {
       setIsLoadingSubmission(false)
     }
   }
-
-  if(!permissions.find(perm => perm === 'MF Transaction')) 
+  
+  if (!permissions.find(perm => perm === 'MF Transaction'))
     return (<AccessDenied />)
-
+  
   return (
     <div>
       <Toast />
-
+      
       {/* <Header /> */}
 
       <form onSubmit={submitForm} className='flex flex-col gap-y-8 m-1 md:mx-8'>
-        <FormHeader />
+        <FormHeader
+          onPanChange={handlePanChange}
+          onNameChange={handleNameChange}
+        />
+        <fieldset className=' rounded-md p-[22px] border border-slate-200 w-full min-w-[50vw] overflow-x-auto'>
 
+          <UccTable data={uccList} selectedOption={ucc} updateSelected={(selectedUcc) => {
+            setUcc(selectedUcc);
+            var hasValidNominee = selectedUcc["Nomination_Flag"] === "Y";
+            var isPanValid = selectedUcc["Primary_Holder_PAN_Aadhaar_Status"] === "VALID";
+            var isAadhaarValid = selectedUcc["Aadhaar_Updated"] === "Y";
+            var isBankValid = ["Bank1_Status", "Bank2_Status", "Bank3_Status", "Bank4_Status", "Bank5_Status"].some(status => selectedUcc[status] === "VALID");
+            // var isKycValid = kycStatus==="KYC Resistered";
+            setBseStatus(hasValidNominee && isPanValid && isBankValid ? 1 : 0)
+          }} />
+        </fieldset>
+        <fieldset className="flex flex-wrap gap-8 rounded-md p-6 sm:border border-indigo-200">
+          <KycStatusTable pan={pan} name={name} ucc={ucc} setOverallKycStatus={setOverallKycStatus} />
+        </fieldset>
         <div className="flex flex-col gap-16">{
-          transactions.map((transaction, idx) => (<TabularTransaction key={idx} idx={idx} transaction={transaction} isAddVisible={transactions.length - 1 === idx} didReset={didReset} hasReviewed={hasReviewed} updateHasReviewed={updateHasReviewed}/>))
+          transactions.map((transaction, idx) => (<TabularTransaction key={idx} idx={idx} transaction={transaction} isAddVisible={transactions.length - 1 === idx} didReset={didReset} hasReviewed={hasReviewed} updateHasReviewed={updateHasReviewed} />))
         }
         </div>
 
