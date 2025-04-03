@@ -50,6 +50,7 @@ async function createNewFixedDiposits(req, res) {
   async function updateFixedDiposits(req, res) {
       try {
         const {
+          company,
           logo,
           rating,
           roi,
@@ -127,9 +128,9 @@ async function getFixedDepositsBySlug(req, res) {
   try {
     const { slug } = req.params;
     
-    const fds = await Fds.findOne({ slug:slug });
+    const fds = await Fds.findOne({ slug });
     
-    res.status(200).send({
+    res.status(200).json({
       success: true,
       message: 'fds retrieved successfully',
       data: fds,

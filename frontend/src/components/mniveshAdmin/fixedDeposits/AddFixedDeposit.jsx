@@ -3,12 +3,13 @@ import axios from "axios"; // For handling form submission
 import { FD_URL, FD_URL2 } from "../../../utils/urlConstants";
 import { ERROR_WHILE_SAVING, FD_CREATE_SUCCESSFUL, FD_FETCH_ERROR, FD_UPDATE_SUCCESSFUL } from "../../../utils/stringConstants";
 import { useNavigate, useParams } from "react-router-dom";
+import BackButton from "../../common/BackButton";
 
 const AddFixedDeposit = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    companyName: "",
+    company: "",
     image: null,
     rating: "",
     roi: "",
@@ -32,8 +33,8 @@ const AddFixedDeposit = () => {
         .then((res) => {
           const fd = res.data.data;
           setFormData({
-            companyName: fd.companyName || "",
-            image: null,
+            company: fd.name || "",
+            image: fd.image,                      // No logo is being shown in edit-form
             rating: fd.rating || "",
             roi: fd.roi || "",
             senior: fd.senior || "",
@@ -57,12 +58,26 @@ const AddFixedDeposit = () => {
     setFormData({ ...formData, image: e.target.files[0] });
   };
 
+  // const handleArrayChange = (e, monthKey) => {
+  //   const { value, dataset } = e.target;
+  //   const index = dataset.index;
+  //   const newMonthArray = [...formData[monthKey]];
+  //   newMonthArray[index] = value;
+  //   setFormData({ ...formData, [monthKey]: newMonthArray });
+  // };
+
   const handleArrayChange = (e, monthKey) => {
     const { value, dataset } = e.target;
-    const index = dataset.index;
-    const newMonthArray = [...formData[monthKey]];
-    newMonthArray[index] = value;
-    setFormData({ ...formData, [monthKey]: newMonthArray });
+    const index = parseInt(dataset.index, 10);
+    let currentValues = formData[monthKey];
+    if (!Array.isArray(currentValues)) {
+      currentValues = typeof currentValues === "string"
+        ? currentValues.split(";")
+        : ["", "", "", "", ""];
+    }
+    const updatedArray = [...currentValues];
+    updatedArray[index] = value;
+    setFormData({ ...formData, [monthKey]: updatedArray });
   };
 
   const handleSubmit = async (e) => {
@@ -76,12 +91,11 @@ const AddFixedDeposit = () => {
         if (key === "image" && formData.image) {
           formDataToSend.append(key, formData.image);
         } else if (["month_12", "month_24", "month_36", "month_48", "month_60"].includes(key)) {
-          formDataToSend.append(key, formData[key].join(","));
+          formDataToSend.append(key, formData[key].join(";"));
         } else {
           formDataToSend.append(key, formData[key]);
         }
       });
-      // const response = await axios.post("/admin/fixed_deposit/store", form);
       if (slug) {
         const updateFdUrl = new URL(FD_URL(slug), process.env.REACT_APP_API_BASE_URL).href;
         await axios.put(updateFdUrl, formDataToSend);
@@ -102,6 +116,11 @@ const AddFixedDeposit = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-4 bg-white shadow-md rounded-md">
+      <BackButton />
+      <h2 className="text-2xl font-bold mb-6">
+        {slug ? 'Edit Fixed Deposit' : 'Create New Fixed Deposit'}
+      </h2>
+
       {errors.length > 0 && (
         <div className="alert alert-danger mb-4 p-4 bg-red-200 text-red-600">
           {errors.map((error, index) => (
@@ -118,8 +137,8 @@ const AddFixedDeposit = () => {
           <label className="block text-sm font-medium text-gray-700">Company Name</label>
           <input
             type="text"
-            name="companyName"
-            value={formData.companyName}
+            name="company"
+            value={formData.company}
             onChange={handleInputChange}
             className="mt-1 block w-full p-3 border border-gray-300 rounded-md"
             required
@@ -197,43 +216,51 @@ const AddFixedDeposit = () => {
               </tr>
             </thead>
             <tbody>
-              {["month_12", "month_24", "month_36", "month_48", "month_60"].map((monthKey, index) => (
-                <tr key={monthKey}>
-                  <th>{(index + 1) * 12} Months</th>
-                  {formData[monthKey].map((value, idx) => (
-                    <td key={idx}>
-                      <input
-                        type="number"
-                        className="w-full p-2 border border-gray-300 rounded-md"
-                        value={value}
-                        onChange={(e) => handleArrayChange(e, monthKey)}
-                        data-index={idx}
-                        min="0"
-                        step=".01"
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {["month_12", "month_24", "month_36", "month_48", "month_60"].map((monthKey, index) => {
+                const values = Array.isArray(formData[monthKey])
+                  ? formData[monthKey]
+                  : (typeof formData[monthKey] === "string"
+                      ? formData[monthKey].split(";")
+                      : ["", "", "", "", ""]);
+                return (
+                  <tr key={monthKey}>
+                    <th>{(index + 1) * 12} Months</th>
+                    {values.map((value, idx) => (
+                      <td key={idx}>
+                        <input
+                          type="number"
+                          className="w-full p-2 border border-gray-300 rounded-md"
+                          value={value}
+                          required
+                          onChange={(e) => handleArrayChange(e, monthKey)}
+                          data-index={idx}
+                          min="0"
+                          step=".01"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
         {/* Submit Button */}
         <div className="flex justify-between mt-6">
-          <button
+          {/* <button
             type="button"
             className="px-4 py-2 bg-gray-500 text-white rounded-md"
             onClick={() => window.history.back()}
           >
             Close
-          </button>
+          </button> */}
           <button
             type="submit"
-            className={`px-4 py-2 ${loading ? "bg-gray-400" : "bg-blue-500"} text-white rounded-md`}
+            className={`px-4 py-2 w-full ${loading ? "bg-gray-400" : "bg-blue-500"} text-white rounded-md`}
             disabled={loading}
           >
-            {loading ? "Saving..." : "Save Changes"}
+            {loading ? "Saving..." : slug ? "Update FD" : "Create FD"}
           </button>
         </div>
       </form>

@@ -27,7 +27,7 @@ function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
                 <td className="p-3">{index + 1}</td>
 
                 {/* Company Name */}
-                <td className="p-3">{ipo.title}</td>
+                <td className="p-3">{ipo.company}</td>
 
                 {/* IPO Open Date */}
                 <td className="p-3 whitespace-nowrap">

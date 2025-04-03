@@ -21,7 +21,8 @@ function IposIndex() {
     const fetchIpo = async () => {
       try {
         const url = searchQuery
-          ? new URL(IPO_URL(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href
+          // ? new URL(IPO_URL(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href
+          ? new URL(IPO_URL(searchQuery), process.env.REACT_APP_API_BASE_URL).href
           : new URL(IPO_URL(`?page=${page}`), process.env.REACT_APP_API_BASE_URL).href;
         const { data } = await axios.get(url);
 
@@ -50,8 +51,7 @@ function IposIndex() {
   // Deleting IPO function
   async function handleDelete(deleteUrl) {
     try {
-      // const delUrl = `${process.env.REACT_APP_API_BASE_URL}/${deleteUrl}`;
-      const delUrl = new URL(`/${deleteUrl}`, process.env.REACT_APP_API_BASE_URL).href;
+      const delUrl = new URL(deleteUrl, process.env.REACT_APP_API_BASE_URL).href;
       await axios.delete(delUrl);
       alert(IPO_DELETE_SUCCESSFUL);
       setIpos((prev) => prev.filter((b) => IPO_URL(b.slug) !== deleteUrl));

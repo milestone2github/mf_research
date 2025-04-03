@@ -238,20 +238,19 @@ function AddBlog() {
 
         {/* Submit Button */}
         <div className="flex justify-between mt-6">
-          <button
+          {/* <button
             type="button"
             className="px-4 py-2 bg-gray-500 text-white rounded-md"
             onClick={() => window.history.back()}
           >
             Close
-          </button>
+          </button> */}
           <button
             type="submit"
-            className={`px-4 py-2 ${loading ? "bg-gray-400" : "bg-blue-500"} text-white rounded-md hover:bg-blue-700 transition`}
+            className={`px-4 py-2 w-full ${loading ? "bg-gray-400" : "bg-blue-500"} text-white rounded-md hover:bg-blue-700 transition`}
             disabled={loading}
           >
-            {slug ? 'Update Blog' : 'Create Blog'}
-            {loading ? "Saving..." : ""}
+            {loading ? "Saving..." : slug ? "Update Blog" : "Create Blog"}
           </button>
         </div>
       </form>

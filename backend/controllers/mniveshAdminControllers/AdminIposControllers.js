@@ -130,7 +130,7 @@ async function createIpos(req, res) {
         };
         const update_Ipos = await IposModel.findOneAndUpdate(
           { slug },      
-          ipoData,   
+          ipoData,
           { new: true }   
         ); 
         if (!update_Ipos) {
@@ -174,7 +174,7 @@ async function getIposBySlug(req, res) {
   try {
     const { slug } = req.params;
     
-    const Ipos = await IposModel.findOne({slug:slug});
+    const Ipos = await IposModel.findOne({ slug });
     
     if (!Ipos) {
         return res.status(404).json({
@@ -183,7 +183,7 @@ async function getIposBySlug(req, res) {
         });
       }
     
-    res.status(200).send({
+    res.status(200).json({
       success: true,
       message: 'Ipos retrieved successfully',
       data: Ipos,

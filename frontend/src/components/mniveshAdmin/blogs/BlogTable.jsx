@@ -28,7 +28,7 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
                   <img
                     src={ new URL(BLOG_IMAGE(blog.image), process.env.REACT_APP_MNIVESH_URL).href }
                     alt={blog.title}
-                    className="h-16 w-40 rounded-md object-cover"
+                    className="h-16 w-40 rounded-md object-contain"
                   />
                 </td>
 

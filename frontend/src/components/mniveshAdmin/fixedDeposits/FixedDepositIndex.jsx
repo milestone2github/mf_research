@@ -21,7 +21,8 @@ function FixedDepositIndex() {
     const fetchFD = async () => {
       try {
         const url = searchQuery
-          ? new URL(FD_URL2(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href
+          // ? new URL(FD_URL2(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href
+          ? new URL(FD_URL2(searchQuery), process.env.REACT_APP_API_BASE_URL).href
           : new URL(FD_URL2(`?page=${page}`), process.env.REACT_APP_API_BASE_URL).href;
         const { data } = await axios.get(url);
 
@@ -50,8 +51,7 @@ function FixedDepositIndex() {
   // Deleting FD function
   async function handleDelete(deleteUrl) {
     try {
-      // const delUrl = `${process.env.REACT_APP_API_BASE_URL}/${deleteUrl}`;
-      const delUrl = new URL(`/${deleteUrl}`, process.env.REACT_APP_API_BASE_URL).href;
+      const delUrl = new URL(deleteUrl, process.env.REACT_APP_API_BASE_URL).href;
       await axios.delete(delUrl);
       alert(FD_DELETE_SUCCESSFUL);
       setFixedDeposits((prev) => prev.filter((b) => FD_URL(b.slug) !== deleteUrl));

@@ -6,7 +6,7 @@ export const BLOG_URL = (ext) => `/api/mnivesh/admin/blogs/${ext}`;
 export const BLOG_IMAGE = (image) => `/images/blog/${image}`;
 
 // Fixed Deposits
-export const COMPANY_LOGO =  (image) => `/images/fixed-deposit/${image}`;  // CHECK
+export const COMPANY_LOGO =  (image) => `/storage/deposit/${image}`;  // CHECK
 export const FD_URL = (ext) => `/api/mnivesh/admin/fixed-deposits/${ext}`;
 export const FD_URL2 = (ext) => `/api/mnivesh/admin/fixed-diposits/${ext}`; // URL with 'diposits' mentioned
 

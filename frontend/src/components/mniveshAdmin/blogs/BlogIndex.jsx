@@ -51,7 +51,8 @@ function BlogIndex() {
   // Deleting blog handler
   async function handleDelete(deleteUrl) {
     try {
-      const delUrl = `${process.env.REACT_APP_API_BASE_URL}/${deleteUrl}`;
+      // const delUrl = `${process.env.REACT_APP_API_BASE_URL}/${deleteUrl}`;
+      const delUrl = new URL(deleteUrl, process.env.REACT_APP_API_BASE_URL).href;
       await axios.delete(delUrl);
       alert(BLOG_DELETE_SUCCESSFUL);
       setBlogs((prev) => prev.filter((b) => BLOG_URL(b.slug) !== deleteUrl));

@@ -25,26 +25,17 @@ function FixedDepositTable({ fds, pagination, onPageChange, setModalData }) {
                 {/* Company Logo */}
                 <td className="p-3">
                   <img
-                    src={ new URL(COMPANY_LOGO(fd.image), process.env.REACT_APP_MNIVESH_URL).href }
+                    src={ new URL(COMPANY_LOGO(fd.logo), process.env.REACT_APP_MNIVESH_URL).href }
                     alt={fd.title}
-                    className="h-16 w-40 rounded-md object-cover"
+                    className="h-16 w-40 rounded-md object-contain"
                   />
                 </td>
 
                 {/* Company Name */}
-                <td className="p-3">{fd.title}</td>
+                <td className="p-3">{fd.name}</td>
 
                 {/* Ratings */}
                 <td className="p-3">{fd.rating}</td>
-
-                {/* Blog Post Date
-                <td className="p-3 whitespace-nowrap">
-                  {new Date(blog.post_date).toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </td> */}
 
                 {/* Actions */}
                 <td className="px-3">
