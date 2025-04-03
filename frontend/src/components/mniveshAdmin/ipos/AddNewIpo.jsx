@@ -36,7 +36,7 @@ const AddNewIpo = () => {
   const [loading, setLoading] = useState(false);
 
 
-  // Data parser for price range and face value
+  // Data parser for price range and face value (Conversion of STRING to RAW Number format)
   const parsePrice = (priceString) => {
     const match = priceString.match(/₹(\d+)\s*to\s*₹(\d+)/);
     return match ? [match[1], match[2]] : ["", ""];
@@ -67,12 +67,10 @@ const AddNewIpo = () => {
               min_price: minPrice,
               max_price: maxPrice,
               type: ipo.type || "",
-              // face_value: ipo.face_value || "",
               face_value: rawFaceValue,
               market_lot: ipo.market_lot || "",
               minimum_order_quantity: ipo.minimum_order_quantity || "",
               listing_at: ipo.listing_at || "",
-              // issue_size: ipo.issue_size || "",
               issue_size: rawIssueSize || "",
               allotment_date: ipo.allotment_date || "",
               initiation_refund: ipo.initiation_refund || "",
@@ -95,30 +93,7 @@ const AddNewIpo = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // const handlePriceChange = (e, type) => {
-  //   const value = e.target.value;
-  //   setFormData((prev) => {
-  //     const [min, max] = prev.price_range ? prev.price_range.split(" to ") : ["", ""];
-  //     return {
-  //       ...prev,
-  //       price_range: type === "min" ? `${value} to ${max}` : `${min} to ${value}`,
-  //     };
-  //   });
-  // };
-
-  // Price Range handler
-  // const handlePriceChange = (e, type) => {
-  //   const value = e.target.value;
-  //   setFormData((prev) => {
-  //     const [min, max] = parsePrice(prev.price || "₹0 to ₹0");
-  //     return {
-  //       ...prev,
-  //       price: type === "min" ? `₹${value} to ₹${max} per equity share` : `₹${min} to ₹${value} per equity share`,
-  //     };
-  //   });
-  // };
-
-  
+  // Price range handler (conversion from RAW number to STRING format)  
   const handlePriceChange = (e, type) => {
     const value = e.target.value;
     if (type === "min") {
@@ -136,20 +111,6 @@ const AddNewIpo = () => {
     }
   };
 
-  // const parsePrice = (priceString) => {
-  //   const match = priceString.match(/₹(\d+)\s*to\s*₹(\d+)/);
-  //   return match ? [match[1], match[2]] : ["", ""];
-  // };
-
-  // Face Value Price handler
-  // const handleFaceValueChange = (e) => {
-  //   const value = e.target.value;
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     face_value: `₹${value} per share`,
-  //   }));
-  // };
-
   const handleFaceValueChange = (e) => {
     const value = e.target.value;
     setFormData((prev) => ({
@@ -157,11 +118,6 @@ const AddNewIpo = () => {
       face_value: value,
     }));
   };
-
-  // const parseFaceValue = (faceValueString) => {
-  //   const match = faceValueString.match(/₹(\d+)/);
-  //   return match ? match[1] : "";
-  // };
 
   // Submit formData
   const handleSubmit = async (e) => {
@@ -180,14 +136,6 @@ const AddNewIpo = () => {
       }
     });
   
-    // // Format price
-    // if (formData.min_price && formData.max_price) {
-    //   formDataToSend.append("price", `₹${formData.min_price} to ₹${formData.max_price} per equity share`);
-    // }
-  
-    // // Format face_value
-    // formDataToSend.append("face_value", `₹${formData.face_value} per equity share`);
-    
     // Format price and face_value
     formDataToSend.append("price", `₹${formData.min_price} to ₹${formData.max_price} per equity share`);
     formDataToSend.append("face_value", `₹${formData.face_value} per equity share`);
@@ -305,17 +253,6 @@ const AddNewIpo = () => {
               required
             />
           </div>
-          {/* <div>
-            <label className="block text-sm font-medium text-gray-700">Issue Price</label>
-            <input
-              type="text"
-              name="price"
-              value={formData.price}
-              onChange={handleInputChange}
-              className="mt-1 block w-full p-3 border border-gray-300 rounded-md"
-              required
-            />
-          </div> */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Issue Price Range</label>
             <div className="flex gap-2">
@@ -324,7 +261,6 @@ const AddNewIpo = () => {
                 <input
                   type="number"
                   name="min_price"
-                  // value={formData.price ? parsePrice(formData.price)[0] : ""}
                   value={formData.min_price || ""}
                   onChange={(e) => handlePriceChange(e, "min")}
                   className="w-full p-3 pl-6 border border-gray-300 rounded-md"
@@ -337,7 +273,6 @@ const AddNewIpo = () => {
                 <input
                   type="number"
                   name="max_price"
-                  // value={formData.price ? parsePrice(formData.price)[1] : ""}
                   value={formData.max_price || ""}
                   onChange={(e) => handlePriceChange(e, "max")}
                   className="w-full p-3 pl-6 border border-gray-300 rounded-md"
@@ -372,7 +307,6 @@ const AddNewIpo = () => {
                 <input
                   type="number"
                   name="face_value"
-                  // value={formData.face_value ? parseFaceValue(formData.face_value) : ""}
                   value={formData.face_value || ""}
                   onChange={handleFaceValueChange}
                   className="w-full pl-7 p-3 border border-gray-300 rounded-md"
@@ -404,14 +338,6 @@ const AddNewIpo = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Minimum Order Quantity</label>
-            {/* <input
-              type="number"
-              name="minimum_order_quantity"
-              value={formData.minimum_order_quantity ? parseInt(formData.minimum_order_quantity) || "" : ""}
-              onChange={handleInputChange}
-              className="mt-1 block w-full p-3 border border-gray-300 rounded-md"
-              required
-            /> */}
             <div className="flex items-center gap-2">
               <div className="relative w-80">
                 <input
@@ -447,8 +373,6 @@ const AddNewIpo = () => {
             <input
               type="number"
               name="issue_size"
-              // value={formData.issue_size ? parseInt(formData.issue_size) || "" : ""}
-              // value={formData.issue_size ? formData.issue_size.replace(/[^0-9]/g, "") : ""}
               value={formData.issue_size ? formData.issue_size.toString().split(" Eq Shares")[0].replace(/[^0-9]/g, "") : ""}
               onChange={handleInputChange}
               className="mt-1 block w-full p-3 border border-gray-300 rounded-md"
@@ -456,9 +380,6 @@ const AddNewIpo = () => {
             />
           </div>
         </div>
-
-        
-        {/* Remaining fields continue here... */}
 
         {/* Allotment/Refund Dates */}
         <div className="mb-4 grid grid-cols-2 gap-4">

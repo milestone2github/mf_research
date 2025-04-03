@@ -60,17 +60,55 @@ const uploadImageBlogs = [
 ];
 
 const uploadImageFixedDiposits = [
-    upload.single('image'),
+    upload.single('logo'),
     async (req, res, next) => {
         if (!req.file) {
-            return res.status(400).json({ success: false, message: 'Image file is required' });
+            return res.status(400).json({ success: false, message: 'Logo file is required' });
         }
 
         try {
             const formData = new FormData();
             formData.append('image', fs.createReadStream(req.file.path));
 
-            const uploadRes = await axios.post('https://niveshonline.com/api/fds/upload-image', formData, {
+            const uploadRes = await axios.post('https://niveshonline.com/api/fixed-deposits/upload-image', formData, {
+                headers: formData.getHeaders(),
+            });
+
+            if (uploadRes.data?.path) {
+                const fileName = path.basename(uploadRes.data.path);
+
+                req.logo = fileName;
+                req.imageUploadMessage = uploadRes.data.success; // storing message for controller
+                
+            } else {
+                return res.status(500).json({ success: false, message: 'Failed to upload image' });
+            }
+
+            fs.unlinkSync(req.file.path); // Cleaning temp file
+            next();
+
+        } catch (error) {
+            console.error('Image Upload Error:', error?.response?.data || error.message);
+            return res.status(500).json({
+              success: false,
+              message: 'Image upload failed',
+              error: error?.response?.data || error.message
+            });
+          }          
+    }
+];
+const uploadImageBlogsUpdate = [
+    upload.single('image'),
+    async (req, res, next) => {
+        if (!req.file) {
+            next();
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('image', fs.createReadStream(req.file.path));
+
+            const uploadRes = await axios.post('https://niveshonline.com/api/blogs/upload-image', formData, {
                 headers: formData.getHeaders(),
             });
 
@@ -97,4 +135,43 @@ const uploadImageFixedDiposits = [
           }          
     }
 ];
-module.exports = {uploadImageBlogs, uploadImageFixedDiposits};
+
+const uploadImageFixedDipositsUpdate = [
+    upload.single('logo'),
+    async (req, res, next) => {
+        if (!req.file) {
+            next();
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('image', fs.createReadStream(req.file.path));
+
+            const uploadRes = await axios.post('https://niveshonline.com/api/fixed-deposits/upload-image', formData, {
+                headers: formData.getHeaders(),
+            });
+
+            if (uploadRes.data?.path) {
+                const fileName = path.basename(uploadRes.data.path);
+
+                req.logo = fileName;
+                req.imageUploadMessage = uploadRes.data.success; // storing message for controller
+                
+            } else {
+                return res.status(500).json({ success: false, message: 'Failed to upload image' });
+            }
+
+            fs.unlinkSync(req.file.path); // Cleaning temp file
+            next();
+
+        } catch (error) {
+            console.error('Image Upload Error:', error?.response?.data || error.message);
+            return res.status(500).json({
+              success: false,
+              message: 'Image upload failed',
+              error: error?.response?.data || error.message
+            });
+          }          
+    }
+];
+module.exports = {uploadImageBlogs, uploadImageFixedDiposits, uploadImageBlogsUpdate, uploadImageFixedDipositsUpdate};

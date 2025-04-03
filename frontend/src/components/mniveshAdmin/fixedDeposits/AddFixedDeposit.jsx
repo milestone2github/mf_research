@@ -34,7 +34,7 @@ const AddFixedDeposit = () => {
           const fd = res.data.data;
           setFormData({
             company: fd.name || "",
-            image: fd.image,                      // No logo is being shown in edit-form
+            image: fd.image || "",    /*** Handle the integrated image with update fd payload in BE ***/
             rating: fd.rating || "",
             roi: fd.roi || "",
             senior: fd.senior || "",
@@ -57,14 +57,6 @@ const AddFixedDeposit = () => {
   const handleFileChange = (e) => {
     setFormData({ ...formData, image: e.target.files[0] });
   };
-
-  // const handleArrayChange = (e, monthKey) => {
-  //   const { value, dataset } = e.target;
-  //   const index = dataset.index;
-  //   const newMonthArray = [...formData[monthKey]];
-  //   newMonthArray[index] = value;
-  //   setFormData({ ...formData, [monthKey]: newMonthArray });
-  // };
 
   const handleArrayChange = (e, monthKey) => {
     const { value, dataset } = e.target;

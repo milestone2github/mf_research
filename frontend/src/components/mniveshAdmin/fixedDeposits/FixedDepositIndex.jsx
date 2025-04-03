@@ -21,7 +21,7 @@ function FixedDepositIndex() {
     const fetchFD = async () => {
       try {
         const url = searchQuery
-          // ? new URL(FD_URL2(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href
+          // ? new URL(FD_URL2(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href  /** Useful when Pagination enabled in BE **/
           ? new URL(FD_URL2(searchQuery), process.env.REACT_APP_API_BASE_URL).href
           : new URL(FD_URL2(`?page=${page}`), process.env.REACT_APP_API_BASE_URL).href;
         const { data } = await axios.get(url);
