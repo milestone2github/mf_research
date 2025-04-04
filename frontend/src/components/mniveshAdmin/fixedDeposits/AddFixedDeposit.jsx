@@ -10,7 +10,7 @@ const AddFixedDeposit = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     company: "",
-    image: null,
+    logo: null,
     rating: "",
     roi: "",
     senior: "",
@@ -34,7 +34,7 @@ const AddFixedDeposit = () => {
           const fd = res.data.data;
           setFormData({
             company: fd.name || "",
-            image: fd.image || "",    /*** Handle the integrated image with update fd payload in BE ***/
+            logo: fd.logo || "",    /*** Handle the integrated logo with update fd payload in BE ***/
             rating: fd.rating || "",
             roi: fd.roi || "",
             senior: fd.senior || "",
@@ -55,7 +55,7 @@ const AddFixedDeposit = () => {
   };
 
   const handleFileChange = (e) => {
-    setFormData({ ...formData, image: e.target.files[0] });
+    setFormData({ ...formData, logo: e.target.files[0] });
   };
 
   const handleArrayChange = (e, monthKey) => {
@@ -80,8 +80,8 @@ const AddFixedDeposit = () => {
       // Append all the fields to formData
       const formDataToSend = new FormData();
       Object.keys(formData).forEach((key) => {
-        if (key === "image" && formData.image) {
-          formDataToSend.append(key, formData.image);
+        if (key === "logo" && formData.logo) {
+          formDataToSend.append(key, formData.logo);
         } else if (["month_12", "month_24", "month_36", "month_48", "month_60"].includes(key)) {
           formDataToSend.append(key, formData[key].join(";"));
         } else {
@@ -142,7 +142,7 @@ const AddFixedDeposit = () => {
           <label className="block text-sm font-medium text-gray-700">Company Logo</label>
           <input
             type="file"
-            name="image"
+            name="logo"
             onChange={handleFileChange}
             className="mt-1 block w-full p-3 border border-gray-300 rounded-md"
           />
