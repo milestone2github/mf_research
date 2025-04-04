@@ -47,7 +47,9 @@ export const appRoutes = [
   { requiredPermission: 'Mint', to: '/mint', label: 'Mint', element: <Mint />, protected: true, showInSidebar: true },
   { requiredPermission: 'Workdrive', to: '/workdrive', label: 'Workdrive Files', element: <Workdrive />, protected: true, showInSidebar: true },
   { requiredPermission: 'Login', to: '/login', element: <Loginpage />, protected: false, showInSidebar: false },
-  { requiredPermission: 'mnivesh admin', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: false, showInSidebar: true,
+
+  // { requiredPermission: 'mnivesh admin', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: false, showInSidebar: true,
+  { to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
   },
 ]

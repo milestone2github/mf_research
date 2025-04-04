@@ -101,7 +101,7 @@ const uploadImageBlogsUpdate = [
     upload.single('image'),
     async (req, res, next) => {
         if (!req.file) {
-            next();
+            return next();
         }
 
         try {
@@ -140,7 +140,7 @@ const uploadImageFixedDipositsUpdate = [
     upload.single('logo'),
     async (req, res, next) => {
         if (!req.file) {
-            next();
+            return next();
         }
 
         try {

@@ -1,4 +1,5 @@
 const Fds = require("../../models/FixedDiposits");
+const retryOperation = require("../../utils/retryOpration");
 
 async function createNewFixedDiposits(req, res) {
   try {
@@ -76,6 +77,7 @@ async function updateFixedDiposits(req, res) {
     };
     if (company) {
       updatedData.name = company;
+      updatedData.slug = company.toLowerCase().replace(/(\w)\(/g, '$1-(').replace(/\s+/g, '-').replace(/[()]/g, '').replace(/-+/g, '-');
     }
 
     if (req.logo) {
@@ -110,8 +112,15 @@ async function updateFixedDiposits(req, res) {
 }
 
 async function getAllFixedDiposits(req, res) {
+  const searchQuery = req.query.q || "";
+  const regex = new RegExp(searchQuery, "i");
+
+  const query = {
+    name: regex
+  };
+
   try {
-    const fds = await Fds.find();
+    const fds = await Fds.find(query);
 
     res.status(200).send({
       success: true,
@@ -159,20 +168,23 @@ async function deleteFixedDiposits(req, res) {
 
     if (logo) {
       try {
-        const response = await fetch('https://niveshonline.com/api/fixed-deposits/delete-image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ imageName: logo })
-        });
+        await retryOperation(async () => {
+          const response = await fetch('https://niveshonline.com/api/fixed-deposits/delete-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ imageName: logo })
+          });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error deleting image:', errorText);
-        }
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error deleting image: ${errorText}`);
+          }
+          return response;
+        }, 3, 1000); // 3 retries, 1000ms delay
       } catch (imageDeleteError) {
-        console.error('Error deleting image:', imageDeleteError.message);
+        console.error('Image deletion failed after retries:', imageDeleteError.message);
       }
     }
 
