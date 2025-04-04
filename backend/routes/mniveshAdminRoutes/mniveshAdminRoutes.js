@@ -17,7 +17,6 @@ router.get("/blogs/:slug", BlogRoute.getBlog);
 
 // Fixed-Diposits Routes
 router.post("/fixed-deposits", uploadImageMiddleware.uploadImageFixedDiposits, FixedDipositsRoute.createNewFixedDiposits);
-// router.put("/fixed-deposits/:slug", uploadImageMiddleware.uploadImageFixedDipositsUpdate, upload.none(), FixedDipositsRoute.updateFixedDiposits);
 router.put("/fixed-deposits/:slug", uploadImageMiddleware.uploadImageFixedDipositsUpdate, FixedDipositsRoute.updateFixedDiposits);
 router.delete("/fixed-deposits/:slug", FixedDipositsRoute.deleteFixedDiposits);
 router.get("/fixed-diposits", FixedDipositsRoute.getAllFixedDiposits);
