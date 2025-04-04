@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios"; // For handling form submission
-import { FD_URL, FD_URL2 } from "../../../utils/urlConstants";
+import { COMPANY_LOGO, FD_URL, FD_URL2 } from "../../../utils/urlConstants";
 import { ERROR_WHILE_SAVING, FD_CREATE_SUCCESSFUL, FD_FETCH_ERROR, FD_UPDATE_SUCCESSFUL } from "../../../utils/stringConstants";
 import { useNavigate, useParams } from "react-router-dom";
 import BackButton from "../../common/BackButton";
@@ -20,7 +20,7 @@ const AddFixedDeposit = () => {
     month_48: Array(5).fill(""),
     month_60: Array(5).fill(""),
   });
-
+  const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +34,7 @@ const AddFixedDeposit = () => {
           const fd = res.data.data;
           setFormData({
             company: fd.name || "",
-            logo: fd.logo || "",    /*** Handle the integrated logo with update fd payload in BE ***/
+            logo: fd.logo || "",
             rating: fd.rating || "",
             roi: fd.roi || "",
             senior: fd.senior || "",
@@ -44,6 +44,11 @@ const AddFixedDeposit = () => {
             month_48: fd.month_48 || Array(5).fill(""),
             month_60: fd.month_60 || Array(5).fill(""),
           });
+          // Prepend the base image URL if logo exists
+          if (fd.logo) {
+            const logoUrl = new URL(COMPANY_LOGO(fd.logo), process.env.REACT_APP_MNIVESH_URL).href;
+            setImagePreview(logoUrl);
+          }
         })
         .catch((err) => console.error(FD_FETCH_ERROR, err));
     }
@@ -55,7 +60,12 @@ const AddFixedDeposit = () => {
   };
 
   const handleFileChange = (e) => {
-    setFormData({ ...formData, logo: e.target.files[0] });
+    const file = e.target.files[0];
+    if (file) {
+      // Generate a URL for the file to display as preview
+      setImagePreview(URL.createObjectURL(file));
+    }
+    setFormData({ ...formData, logo: file });
   };
 
   const handleArrayChange = (e, monthKey) => {
@@ -75,15 +85,21 @@ const AddFixedDeposit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       // Append all the fields to formData
       const formDataToSend = new FormData();
       Object.keys(formData).forEach((key) => {
-        if (key === "logo" && formData.logo) {
-          formDataToSend.append(key, formData.logo);
+        if (key === "logo") {
+          console.log("Logo value:", formData.logo, "Is File?", formData.logo instanceof File);
+          if (formData.logo instanceof File) {
+            formDataToSend.append(key, formData.logo);
+          }
+          // Skip appending if logo is a string (existing filename)
         } else if (["month_12", "month_24", "month_36", "month_48", "month_60"].includes(key)) {
-          formDataToSend.append(key, formData[key].join(";"));
+          // Check if the value is an array; if not, assume it's already a string
+          const value = Array.isArray(formData[key]) ? formData[key].join(";") : formData[key];
+          formDataToSend.append(key, value);
         } else {
           formDataToSend.append(key, formData[key]);
         }
@@ -146,6 +162,12 @@ const AddFixedDeposit = () => {
             onChange={handleFileChange}
             className="mt-1 block w-full p-3 border border-gray-300 rounded-md"
           />
+          {/* Display logo preview if available */}
+          {imagePreview && (
+            <div className="mt-2">
+              <img src={imagePreview} alt="Logo Preview" style={{ width: "150px" }} />
+            </div>
+          )}
         </div>
 
         {/* Rating */}
@@ -212,8 +234,8 @@ const AddFixedDeposit = () => {
                 const values = Array.isArray(formData[monthKey])
                   ? formData[monthKey]
                   : (typeof formData[monthKey] === "string"
-                      ? formData[monthKey].split(";")
-                      : ["", "", "", "", ""]);
+                    ? formData[monthKey].split(";")
+                    : ["", "", "", "", ""]);
                 return (
                   <tr key={monthKey}>
                     <th>{(index + 1) * 12} Months</th>
@@ -240,13 +262,6 @@ const AddFixedDeposit = () => {
 
         {/* Submit Button */}
         <div className="flex justify-between mt-6">
-          {/* <button
-            type="button"
-            className="px-4 py-2 bg-gray-500 text-white rounded-md"
-            onClick={() => window.history.back()}
-          >
-            Close
-          </button> */}
           <button
             type="submit"
             className={`px-4 py-2 w-full ${loading ? "bg-gray-400" : "bg-blue-500"} text-white rounded-md`}
