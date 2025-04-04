@@ -162,8 +162,6 @@ const AddNewIpo = () => {
       }
     });
 
-    console.log("UPDATED FORMDATA FIELDS SENDING TO BE: --> ", formDataToSend);
-  
     try {
       if (slug) {
         const updateIpoUrl = new URL(IPO_URL(slug), process.env.REACT_APP_API_BASE_URL).href;

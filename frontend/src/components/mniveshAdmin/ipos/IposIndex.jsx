@@ -21,8 +21,8 @@ function IposIndex() {
     const fetchIpo = async () => {
       try {
         const url = searchQuery
-          // ? new URL(IPO_URL(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href  /** Useful when Pagination enabled in BE **/
-          ? new URL(IPO_URL(searchQuery), process.env.REACT_APP_API_BASE_URL).href
+          ? new URL(IPO_URL(`?q=${searchQuery}&page=${page}`), process.env.REACT_APP_API_BASE_URL).href  /** Useful when Pagination enabled in BE **/
+          // ? new URL(IPO_URL(searchQuery), process.env.REACT_APP_API_BASE_URL).href
           : new URL(IPO_URL(`?page=${page}`), process.env.REACT_APP_API_BASE_URL).href;
         const { data } = await axios.get(url);
 
@@ -30,6 +30,7 @@ function IposIndex() {
         setPagination({
           currentPage: data.currentPage,
           totalCount: data.totalCount,
+          items: data.items
         });
       } catch (err) {
         console.error(IPO_FETCH_ERROR, err);

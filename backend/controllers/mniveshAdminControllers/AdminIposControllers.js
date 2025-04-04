@@ -79,6 +79,7 @@ async function createIpos(req, res) {
   async function updateIpos(req, res) {
       try {
         const {
+          company,
           open_date,
           close_date,
           lot_size,
@@ -104,7 +105,6 @@ async function createIpos(req, res) {
         const { slug } = req.params; 
     
         const ipoData = {
-          slug: slug,
           open_date,
           close_date,
           lot_size,
@@ -128,6 +128,17 @@ async function createIpos(req, res) {
           status: 1,
           updated_at: new Date() // Update the timestamp
         };
+
+        if(company) {
+          ipoData.company = company;
+          ipoData.slug = company
+            .toLowerCase()
+            .replace(/(\w)\(/g, '$1-(')
+            .replace(/\s+/g, '-')
+            .replace(/[()]/g, '')
+            .replace(/-+/g, '-');
+        }
+        
         const update_Ipos = await IposModel.findOneAndUpdate(
           { slug },      
           ipoData,
@@ -157,7 +168,7 @@ async function getIposSearch(req, res) {
   try {
     const searchQuery = req.query.q || "";
     const page = parseInt(req.query.page) || 1;
-    const limit = 10;
+    const limit = 15;
     const skip = (page - 1) * limit;
 
     const regex = new RegExp(searchQuery, "i");
@@ -166,25 +177,14 @@ async function getIposSearch(req, res) {
       company: regex
     };
 
-    let Ipos = await IposModel.find(query).skip(skip).limit(limit);
+    let Ipos = await IposModel.find(query).sort({'open_date': -1}).skip(skip).limit(limit);
     let totalCount = await IposModel.countDocuments(query);
-
-    if (totalCount === 0 && searchQuery) {
-      totalCount = await IposModel.countDocuments();
-
-      return res.status(200).json({
-        success: true,
-        message: "No Ipos matched your search.",
-        currentPage: 1,
-        totalCount,
-        data: Ipos,
-      });
-    }
 
     res.status(200).json({
       success: true,
       message: "Ipos retrieved successfully",
       currentPage: page,
+      items: limit,
       totalCount,
       data: Ipos,
     });

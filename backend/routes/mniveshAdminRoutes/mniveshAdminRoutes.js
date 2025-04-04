@@ -23,10 +23,10 @@ router.get("/fixed-diposits", FixedDipositsRoute.getAllFixedDiposits);
 router.get("/fixed-diposits/:slug", FixedDipositsRoute.getFixedDepositsBySlug);
 
 // Ipos Route
-router.post("/ipos", IposRoute.createIpos);
+router.post("/ipos", upload.none(), IposRoute.createIpos);
 router.get("/ipos", IposRoute.getIposSearch);
 router.get("/ipos/:slug", IposRoute.getIposBySlug);
-router.put("/ipos/:slug", IposRoute.updateIpos);
+router.put("/ipos/:slug", upload.none(), IposRoute.updateIpos);
 router.delete("/ipos/:slug", IposRoute.deleteIpos);
 
 module.exports = router;
