@@ -21,7 +21,7 @@ router.get("/fixed-diposits/:slug", FixedDipositsRoute.getFixedDepositsBySlug);
 
 // Ipos Route
 router.put("/ipos/:slug", IposRoute.updateIpos);
-router.get("/ipos", IposRoute.getIpos);
+router.get("/ipos", IposRoute.getIposSearch);
 router.get("/ipos/:slug", IposRoute.getIposBySlug);
 router.post("/ipos", IposRoute.createIpos);
 router.delete("/ipos/:slug", IposRoute.deleteIpos);
