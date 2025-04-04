@@ -112,8 +112,15 @@ async function updateFixedDiposits(req, res) {
 }
 
 async function getAllFixedDiposits(req, res) {
+  const searchQuery = req.query.q || "";
+  const regex = new RegExp(searchQuery, "i");
+
+  const query = {
+    name: regex
+  };
+
   try {
-    const fds = await Fds.find();
+    const fds = await Fds.find(query);
 
     res.status(200).send({
       success: true,
@@ -169,7 +176,7 @@ async function deleteFixedDiposits(req, res) {
             },
             body: JSON.stringify({ imageName: logo })
           });
-          
+
           if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Error deleting image: ${errorText}`);
