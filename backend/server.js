@@ -11,6 +11,7 @@ const authRoutes = require('./routes/Auth');
 const dataRoutes = require('./routes/Data');
 const opsRoutes = require('./routes/opsDash/OpsRoutes');
 const mintRoutes = require('./routes/Mint');
+const OnboardingRoutes = require('./routes/OnboardingRoutes');
 const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
 const { pendingTransactionsNotification } = require("./utils/scheduledTasks");
@@ -69,7 +70,9 @@ app.use('/api/data', dataRoutes);
 app.use('/api/ops-dash', opsRoutes);
 app.use('/api/mint', mintRoutes);
 app.use('/api/mnivesh/admin',AdminRoute);
-app.post('/api/send-mail', verifyUser, sendEmailController)
+app.use('/api/onboarding', OnboardingRoutes);
+app.post('/api/send-mail', verifyUser, sendEmailController);
+
 // wildcard route to serve react using express
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
