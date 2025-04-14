@@ -1,0 +1,203 @@
+const User = require("../../models/User");
+const PDFDocument = require('pdfkit');
+const nodemailer = require('nodemailer');
+
+//pdf genration
+function generateOfferLetterPDF({ name, role, department, baseSalary, annualCtc }) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument();
+      const buffers = [];
+
+      // Listen for data events and accumulate the PDF chunks
+      doc.on('data', (chunk) => buffers.push(chunk));
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        resolve(pdfBuffer);
+      });
+
+      // Build the PDF content
+      doc.fontSize(20).text('Offer Letter', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`Date: ${new Date().toLocaleDateString()}`, { align: 'right' });
+      doc.moveDown(2);
+      doc.text(`Dear ${name},`);
+      doc.moveDown();
+      doc.text(`We are delighted to offer you the position of ${role} in our ${department} department.`);
+      doc.moveDown();
+      doc.text(`Your base salary will be ${baseSalary} and your annual CTC is ${annualCtc}.`);
+      doc.moveDown();
+      doc.text(`Please review the terms and conditions outlined in this offer letter. We are excited about the prospect of you joining our team.`);
+      doc.moveDown(2);
+      doc.text('Best regards,');
+      doc.text('The HR Team');
+
+      // Finalize the PDF and trigger the 'end' event
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// email
+async function sendEmail(subject, body, toAddress, ccAddress, attachmentFiles = {}) {
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.zeptomail.com',
+    port: 587,
+    secure: false, 
+    auth: {
+      user: 'emailapikey',
+      pass: 'wSsVR60gq0X2W6d8yjb/Lutpmg8BAFOlHEt0iwPw4if/S/uXosc5n02bVgX1T/NORDVgFDRHpuounRtV0TsJj955mQwHCiiF9mqRe1U4J3x17qnvhDzCX29UlRuJL4wBxg9ikmhoEcgr+g=='
+    }
+  });
+
+  const attachments = [];
+  for (const filename in attachmentFiles) {
+    if (attachmentFiles.hasOwnProperty(filename)) {
+      attachments.push({
+        filename: filename,
+        content: attachmentFiles[filename],
+        contentType: 'application/pdf'
+      });
+    }
+  }
+
+  // Setup the email options
+  const mailOptions = {
+    from: 'hr@mnivesh.niveshonline.com',
+    to: toAddress,
+    cc: ccAddress,
+    subject: subject,
+    html: body,
+    attachments: attachments
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully:", info);
+    return info;
+  } catch (error) {
+    console.error("Failed to send email:", error);
+    throw error;
+  }
+}
+
+async function saveJoineeDetails(req, res) {
+  try {
+    const { name, email, phone, baseSalary, annualCtc, department, role } = req.body;
+    const newUser = new User({
+      onboarding: {
+        hrFilledInfo: {
+          name,
+          personalEmail: email,
+          phone,
+          baseSalary,
+          annualCtc,
+          department,
+          role,
+          initiatedBy: req.user ? req.user._id : null,
+          initiatedAt: new Date()
+        }
+      }
+    });
+
+    const savedUser = await newUser.save();
+    const pdfBuffer = await generateOfferLetterPDF({ name, role, department, baseSalary, annualCtc });
+    const subject = "Offer Letter from 'Milestone Global Moneymart Private Limited'";
+    const body = `
+      <h1>Dear ${name},</h1>
+      <p>We are pleased to extend to you an offer of employment. Please find your official offer letter attached to this email.</p>
+      <p>We look forward to welcoming you to the team and are excited about the contributions you will bring to our organization.</p>
+      <p>Should you have any questions, feel free to reach out.</p>
+      <p>Sincerely,<br/>[Your Company Name] Recruitment Team</p>
+    `;
+
+    const toAddress = email; 
+    const ccAddress = "abhishek@niveshonline.com";
+
+    await sendEmail(subject, body, toAddress, ccAddress, { "offerLetter.pdf": pdfBuffer });
+
+    const userId = savedUser._id;
+    const updateData = {
+      status: 'onboarding',
+      'onboarding.offerLetter.generated': true,
+      'onboarding.offerLetter.generatedAt': new Date(),
+      'onboarding.offerLetter.sentToJoinee': true
+    };
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData);
+    const user = await User. findById(userId);
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+        user: user
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'New Joinee details taken successfully',
+      user: savedUser
+    });
+  } catch (error) {
+    console.error('Error creating joinee data:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create joinee data',
+      error: error.message,
+    });
+  }
+}
+
+// async function statusDetailsAllJoinee(req, res) {
+//     try {
+//       // Fetch new joiners (users with status "onboarding")
+//       const newJoiners = await User.find({ status: 'onboarding' });
+  
+//       // Fetch employees with pending verification
+//       const pendingVerification = await OnboardingStatus.find({ verification: 'PENDING' });
+  
+//       // Fetch employees whose asset allocation is not initiated
+//       const assetToAllocate = await OnboardingStatus.find({ assets: 'NOT_INITIATED' });
+  
+//       res.status(201).json({
+//         success: true,
+//         message: 'Status details fetched successfully',
+//         data: {
+//           newJoiners,
+//           pendingVerification,
+//           assetToAllocate
+//         }
+//       });
+//     } catch (error) {
+//       console.error('Error fetching data:', error.message);
+//       res.status(500).json({
+//         success: false,
+//         message: 'Failed to fetch status data',
+//         error: error.message,
+//       });
+//     }
+//   }
+
+// async function statusDetails(req, res) {
+//   try {
+//     const status = OnboardingStatus.find();
+//     res.status(201).json({
+//       success: true,
+//       message: 'Status details fetch successfully',
+//       data : status
+//     });
+//   } catch (error) {
+//     console.error('Error fetching data:', error.message);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Failed to failed status data',
+//       error: error.message,
+//     });
+//   }
+// }
+
+module.exports = { saveJoineeDetails};
+// module.exports = { saveJoineeDetails, statusDetailsAllJoinee, statusDetails };
