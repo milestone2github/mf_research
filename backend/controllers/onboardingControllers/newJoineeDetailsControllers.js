@@ -126,7 +126,7 @@ async function saveJoineeDetails(req, res) {
     `;
 
     const toAddress = personalEmail; 
-    const ccAddress = "abhishek@niveshonline.com";
+    const ccAddress = "";
 
     await sendEmail(subject, body, toAddress, ccAddress, { "offerLetter.pdf": pdfBuffer });
 
