@@ -85,19 +85,21 @@ async function sendEmail(subject, body, toAddress, ccAddress, attachmentFiles = 
 
 async function saveJoineeDetails(req, res) {
   try {
-    const { name, email, phone, baseSalary, annualCtc, department, role } = req.body;
+    const { name,  personalEmail, phone, baseSalary, annualCtc, department, role, isPfApplicable, doj } = req.body;
     const filter = { email: "abhishek@niveshonline.com" };
 
     const update = {
       onboarding: {
         hrFilledInfo: {
           name,
-          personalEmail: email,
+          personalEmail:  personalEmail,
           phone,
           baseSalary,
           annualCtc,
           department,
           role,
+          isPfApplicable,
+          doj,
           initiatedBy: req.user ? req.user._id : null,
           initiatedAt: new Date()
         }
