@@ -89,6 +89,7 @@ async function saveJoineeDetails(req, res) {
     const filter = { email: personalEmail };
 
     const update = {
+      role: "664ecd97efdcf936376851d2",
       onboarding: {
         hrFilledInfo: {
           name,
