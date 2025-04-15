@@ -2,12 +2,15 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
     email: {
-        type: String
+        type: String,
+        require: true,
+        unique:true
     },
-    nameAsRM: { type: String, trim: true },
+    nameAsRM: {type: String, trim: true},
     role: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "ROLES"
+        require: true,
+        ref:"ROLES"
     },
     mintUsername: { type: String, trim: true },
     insuranceDashboardId: { type: String, trim: true },

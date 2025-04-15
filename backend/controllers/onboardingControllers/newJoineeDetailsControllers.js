@@ -86,7 +86,9 @@ async function sendEmail(subject, body, toAddress, ccAddress, attachmentFiles = 
 async function saveJoineeDetails(req, res) {
   try {
     const { name, email, phone, baseSalary, annualCtc, department, role } = req.body;
-    const newUser = new User({
+    const filter = { email: "abhishek@niveshonline.com" };
+
+    const update = {
       onboarding: {
         hrFilledInfo: {
           name,
@@ -100,9 +102,16 @@ async function saveJoineeDetails(req, res) {
           initiatedAt: new Date()
         }
       }
-    });
+    };
 
-    const savedUser = await newUser.save();
+    const options = {
+      new: true,               // Return the modified document rather than the original
+      upsert: true,            // Create a new document if none matches the filter
+      setDefaultsOnInsert: true // Apply default values if a new document is created
+    };
+
+    const savedUser = await User.findOneAndUpdate(filter, update, options);
+
     const pdfBuffer = await generateOfferLetterPDF({ name, role, department, baseSalary, annualCtc });
     const subject = "Offer Letter from 'Milestone Global Moneymart Private Limited'";
     const body = `
@@ -151,53 +160,52 @@ async function saveJoineeDetails(req, res) {
   }
 }
 
-// async function statusDetailsAllJoinee(req, res) {
-//     try {
-//       // Fetch new joiners (users with status "onboarding")
-//       const newJoiners = await User.find({ status: 'onboarding' });
+async function statusDetailsAllJoinee(req, res) {
+    try {
+      // Fetch new joiners (users with status "onboarding")
+      const newJoiners = await User.find({ status: 'onboarding' });
   
-//       // Fetch employees with pending verification
-//       const pendingVerification = await OnboardingStatus.find({ verification: 'PENDING' });
+      // Fetch employees with pending verification
+      const pendingVerification = await User.find({ status: 'pending' });
   
-//       // Fetch employees whose asset allocation is not initiated
-//       const assetToAllocate = await OnboardingStatus.find({ assets: 'NOT_INITIATED' });
+      // Fetch employees whose asset allocation is not initiated
+      const assetToAllocate = await User.find({ status: 'pending' });
   
-//       res.status(201).json({
-//         success: true,
-//         message: 'Status details fetched successfully',
-//         data: {
-//           newJoiners,
-//           pendingVerification,
-//           assetToAllocate
-//         }
-//       });
-//     } catch (error) {
-//       console.error('Error fetching data:', error.message);
-//       res.status(500).json({
-//         success: false,
-//         message: 'Failed to fetch status data',
-//         error: error.message,
-//       });
-//     }
-//   }
+      res.status(201).json({
+        success: true,
+        message: 'Status details fetched successfully',
+        data: {
+          newJoinersCount: newJoiners.length,
+          pendingVerificationCount: pendingVerification.length,
+          assetToAllocateCount: assetToAllocate.length,
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error.message);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch status data',
+        error: error.message,
+      });
+    }
+  }
 
-// async function statusDetails(req, res) {
-//   try {
-//     const status = OnboardingStatus.find();
-//     res.status(201).json({
-//       success: true,
-//       message: 'Status details fetch successfully',
-//       data : status
-//     });
-//   } catch (error) {
-//     console.error('Error fetching data:', error.message);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Failed to failed status data',
-//       error: error.message,
-//     });
-//   }
-// }
+async function statusDetails(req, res) {
+  try {
+    const status = User.find();
+    res.status(201).json({
+      success: true,
+      message: 'Status details fetch successfully',
+      data : status
+    });
+  } catch (error) {
+    console.error('Error fetching data:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to failed status data',
+      error: error.message,
+    });
+  }
+}
 
-module.exports = { saveJoineeDetails};
-// module.exports = { saveJoineeDetails, statusDetailsAllJoinee, statusDetails };
+module.exports = { saveJoineeDetails, statusDetailsAllJoinee, statusDetails};
