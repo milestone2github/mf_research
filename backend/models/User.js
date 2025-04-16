@@ -112,7 +112,22 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'onboarding', 'active', 'inactive', 'terminated'],
         default: 'onboarding'
-    }
+    },
+    assets: [
+        {
+          asset: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Asset'
+          },
+          allocatedAt: { type: Date, default: Date.now },
+          returnedAt: { type: Date },
+          status: {
+            type: String,
+            enum: ['allocated', 'returned', 'lost', 'replaced'],
+            default: 'allocated'
+          }
+        }
+      ] 
 });
 
 const User = mongoose.model("USERS", userSchema);
