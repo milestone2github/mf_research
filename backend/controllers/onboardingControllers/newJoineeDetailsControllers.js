@@ -192,69 +192,11 @@ async function statusDetailsAllJoinee(req, res) {
 
   async function statusDetails(req, res) {
     try {
-      const users = await User.find().lean();
-  
-      const result = users.map((user) => {
-        const hr = user.onboarding?.hrFilledInfo || {};
-        const offerLetter = user.onboarding?.offerLetter || {};
-        const backgroundCheck = user.onboarding?.backgroundCheck || {};
-        const nda = user.onboarding?.nda || {};
-        const zohoSetup = user.onboarding?.zohoSetup || {};
-        const gotra = user.onboarding?.gotra || {};
-  
-        const name = hr.name || user.nameAsRM || "Pending";
-        const email = hr.personalEmail || user.email || "Pending";
-  
-        const offerLetterStatus = offerLetter.sentToJoinee ? "Sent" : "Pending";
-  
-        let formSubmissionStatus = "Pending";
-        if (hr.phone && hr.department) {
-          formSubmissionStatus = "Submitted";
-        }
-  
-        let verificationStatus = "Pending";
-        switch (backgroundCheck.status) {
-          case "verified":
-            verificationStatus = "Verified";
-            break;
-          case "in_progress":
-            verificationStatus = "In progress";
-            break;
-          case "failed":
-            verificationStatus = "Failed";
-            break;
-          default:
-            verificationStatus = "Pending";
-            break;
-        }
-  
-        const ndaStatus = nda.signed ? "Signed" : "Pending";
-  
-        const userSetupStatus = zohoSetup.userCreated ? "Completed" : "Pending";
-  
-        const assetsStatus = user.onboarding?.hasAssestAllocated ? "Allocated" : "Pending";
-  
-        let gotraStatus = "Pending";
-        const notifyStatus = "Pending";
-  
-        return {
-          name,
-          email,
-          offerLetter: offerLetterStatus,
-          formSubmission: formSubmissionStatus,
-          verification: verificationStatus,
-          nda: ndaStatus,
-          userSetup: userSetupStatus,
-          assets: assetsStatus,
-          gotra: gotraStatus,
-          notify: notifyStatus
-        };
-      });
-  
+      const users = await User.find({ status: { $ne: "complete" } }).lean();
       return res.status(200).json({
         success: true,
         message: "Status details fetched successfully",
-        data: result
+        data: users
       });
     } catch (error) {
       console.error("Error fetching status details:", error.message);

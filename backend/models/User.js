@@ -105,7 +105,8 @@ const userSchema = new mongoose.Schema({
         gotra: {
             sent: { type: Boolean, default: false },
             sentAt: { type: Date }
-        }
+        },
+        hasNotifiedToAll: { type: Boolean, default: false }
     },
     status: {
         type: String,
