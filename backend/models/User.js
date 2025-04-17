@@ -1,5 +1,7 @@
 //schema for adding users and assigning roles to them 
 const mongoose = require("mongoose")
+// const { connectToMniveshDB } = require("../dbConfig/connection")
+// const mniveshDbConnection = connectToMniveshDB();
 
 const userSchema = mongoose.Schema({
     email: {
@@ -18,5 +20,4 @@ const userSchema = mongoose.Schema({
     folderId: {type: String, trim: true},
 })
 
-const User = mongoose.model("USERS", userSchema)
-module.exports = User
+module.exports = mongoose.model("USERS", userSchema);

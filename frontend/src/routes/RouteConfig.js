@@ -54,7 +54,7 @@ export const appRoutes = [
   { to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
   },
-  { to: '/assets', label: 'Assets', element: <Assets />, protected: false, showInSidebar: true,
+  { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
     nestedRoutes: assetRoutes
   },
 ]

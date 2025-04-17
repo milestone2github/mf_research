@@ -72,7 +72,7 @@ app.use('/api/mint', mintRoutes);
 app.use('/api/mnivesh/admin',AdminRoute);
 app.post('/api/send-mail', verifyUser, sendEmailController);
 
-// Centralized Routes (ADD OTHER ROUTES INSIDE THIS)
+// Centralized Routes (ToDo: ADD OTHER ROUTES INSIDE THIS)
 app.use('/api', router);
 
 // wildcard route to serve react using express
