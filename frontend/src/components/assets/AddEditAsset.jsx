@@ -38,12 +38,10 @@ const AddEditAsset = () => {
 
   // For Editing the Asset Data
   useEffect(() => {
-    // console.log("ASSET ID ==> ", id);
     if (id) {
       axios.get(FETCH_SINGLE_ASSET_URL(id))
         .then(res => {
           const asset = res.data;
-          // console.log("FETCHED SINGLE ASSET DATA ====> ", asset);
           setName(asset.data.name || '');
           setSerialNumber(asset.data.serialNumber || '');
           setRemarks(asset.data.remarks || '');

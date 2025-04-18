@@ -5,13 +5,18 @@ import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 import { Link } from 'react-router-dom';
 import AssetList from './AssetList';
 import { ASSET_DELETE_MESSAGE } from '../../utils/stringConstants';
-import { FETCH_ASSET_BASED_ON_TYPE, FETCH_ASSETS_URL, FETCH_CATEGORIES_URL, FETCH_SINGLE_ASSET_URL, FETCH_TYPES_BASED_ON_CAT_URL, FETCH_TYPES_URL } from '../../utils/urlConstants';
+import {
+  FETCH_ASSET_BASED_ON_TYPE,
+  FETCH_ASSETS_URL,
+  FETCH_CATEGORIES_URL,
+  FETCH_TYPES_BASED_ON_CAT_URL,
+  FETCH_TYPES_URL
+} from '../../utils/urlConstants';
 
 function AssetIndex() {
   const [assets, setAssets] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [modalData, setModalData] = useState({ show: false, deleteTitle: '', deleteUrl: '' });
-
   const [categories, setCategories] = useState([]);
   const [types, setTypes] = useState([]);
   const [status, setStatus] = useState(['available', 'allocated', 'repair', 'removed']);
@@ -22,9 +27,11 @@ function AssetIndex() {
     status: ''
   });
 
-  const fetchAssets = async () => {
+  const fetchAssets = async (filters = {}) => {
     try {
-      const res = await axios.get(FETCH_ASSETS_URL);
+      const { type } = filters;
+      const url = type ? FETCH_ASSET_BASED_ON_TYPE(type) : FETCH_ASSETS_URL;
+      const res = await axios.get(url);
       const data = res.data.data;
       setAssets(data);
       setFiltered(data);
@@ -32,7 +39,7 @@ function AssetIndex() {
       console.error('Error fetching assets:', error);
     }
   };
-
+  
   const fetchCategories = async () => {
     try {
       const res = await axios.get(FETCH_CATEGORIES_URL);
@@ -52,23 +59,6 @@ function AssetIndex() {
     }
   };
 
-  // const refreshSingleAsset = async (assetId) => {
-  //   try {
-  //     const res = await axios.get(FETCH_SINGLE_ASSET_URL(assetId));
-  //     const updatedAsset = res.data.data;
-  
-  //     // Replace the old asset with the updated one in state
-  //     setAssets(prevAssets =>
-  //       prevAssets.map(asset => asset._id === assetId ? updatedAsset : asset)
-  //     );
-  //     setFiltered(prevFiltered =>
-  //       prevFiltered.map(asset => asset._id === assetId ? updatedAsset : asset)
-  //     );
-  //   } catch (error) {
-  //     console.error('Error refreshing asset:', error);
-  //   }
-  // };
-
   useEffect(() => {
     fetchAssets();
     fetchCategories();
@@ -85,7 +75,7 @@ function AssetIndex() {
     let temp = [...assets];
     const { category, type, status } = selectedFilters;
 
-    if (category) temp = temp.filter(a => a.type?.category === category);
+    if (category) temp = temp.filter(a => a.type?.category._id === category);
     if (type) temp = temp.filter(a => a.type?._id === type);
     if (status) temp = temp.filter(a => a.status === status);
 
@@ -97,30 +87,7 @@ function AssetIndex() {
     if (key === 'category') updated.type = '';
   
     setSelectedFilters(updated);
-  
-    // Fetch assets based on selected type
-    if (key === 'type' && value) {
-      try {
-        // const res = await axios.get(FETCH_SINGLE_ASSET_URL(value));
-        console.log("Type value ===== ", value);
-        const res = await axios.get(FETCH_ASSET_BASED_ON_TYPE(value));
-        console.log("RESPONSE FROM Type based Assets: --> ", res);
-        const data = Array.isArray(res.data.data) ? res.data.data : [res.data.data];
-        setAssets(data);
-        setFiltered(data);
-      } catch (error) {
-        console.error('Error fetching assets by type:', error);
-      }
-    }
   };
-
-  // const handleFilterChange = (key, value) => {
-  //   setSelectedFilters(prev => {
-  //     const updated = { ...prev, [key]: value };
-  //     if (key === 'category') updated.type = '';
-  //     return updated;
-  //   });
-  // };
 
   useEffect(() => {
     applyFilters();
@@ -140,7 +107,7 @@ function AssetIndex() {
     try {
       await axios.delete(modalData.deleteUrl);
       setModalData({ show: false, deleteTitle: '', deleteUrl: '' });
-      fetchAssets();
+      fetchAssets({ type: selectedFilters.type });
     } catch (error) {
       console.error('Error removing asset:', error);
     }
@@ -158,6 +125,7 @@ function AssetIndex() {
         <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
           <SearchModal onSearch={handleSearch} />
 
+          {/* Category Filter */}
           <select
             className="border px-3 py-2 rounded-md w-36"
             value={selectedFilters.category}
@@ -169,6 +137,7 @@ function AssetIndex() {
             ))}
           </select>
 
+          {/* Type Filter */}
           <select
             className="border px-3 py-2 rounded-md w-36"
             value={selectedFilters.type}
@@ -181,6 +150,7 @@ function AssetIndex() {
             ))}
           </select>
 
+          {/* Status Filter */}
           <select
             className="border px-3 py-2 rounded-md w-36"
             value={selectedFilters.status}
@@ -206,7 +176,7 @@ function AssetIndex() {
         assets={filtered} 
         setModalData={setModalData}
         fetchAssets={fetchAssets}
-        // refreshAsset={refreshSingleAsset}
+        selectedFilters={selectedFilters}
       />
 
       {modalData.show && (

@@ -1,7 +1,7 @@
 import React from 'react';
 import AssetActions from './AssetActions';
 
-const AssetList = ({ assets, setModalData, fetchAssets }) => {
+const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters }) => {
   return (
     <table className="min-w-full bg-white border border-gray-200">
       <thead>
@@ -29,7 +29,7 @@ const AssetList = ({ assets, setModalData, fetchAssets }) => {
                 asset={asset}
                 setModalData={setModalData}
                 fetchAssets={fetchAssets}
-                // refreshAsset={refreshAsset}
+                selectedFilters={selectedFilters}
               />
             </td>
           </tr>
