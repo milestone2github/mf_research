@@ -77,7 +77,7 @@ const EmployeeOnboardingHome = () => {
           <tbody>
             {users.map(user => (
               <tr key={user._id} className="border-t">
-                <td className="px-4 py-2">{user.nameAsRM || '-'}</td>
+                <td className="px-4 py-2">{user?.onboarding?.hrFilledInfo.name || '-'}</td>
                 <td className="px-4 py-2">{user.email}</td>
                 <td className="px-4 py-2">{renderStatus(user.offerLetterStatus || 'Pending')}</td>
                 <td className="px-4 py-2">{renderStatus(user.formStatus || 'Pending')}</td>
