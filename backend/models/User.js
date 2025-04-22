@@ -1,5 +1,7 @@
+//schema for adding users and assigning roles to them 
 const mongoose = require("mongoose");
-
+// const { connectToMniveshDB } = require("../dbConfig/connection")
+// const mniveshDbConnection = connectToMniveshDB();
 const userSchema = new mongoose.Schema({
     email: {
         type: String,

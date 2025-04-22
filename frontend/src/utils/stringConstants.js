@@ -28,3 +28,7 @@ export const IPO_CREATE_SUCCESSFUL = "IPO created successfully.";
 export const IPO_UPDATE_SUCCESSFUL = "IPO updated successfully.";
 
 export const ERROR_WHILE_SAVING = "An error occurred while saving changes.";
+
+// Assets
+export const ASSET_DELETE_MESSAGE = "Asset Deleted Successful.";
+

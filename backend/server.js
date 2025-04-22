@@ -17,6 +17,7 @@ const verifyUser = require("./middlewares/VerifyUser");
 const { pendingTransactionsNotification } = require("./utils/scheduledTasks");
 const MongoStore = require("connect-mongo");
 const AdminRoute = require("./routes/mniveshAdminRoutes/mniveshAdminRoutes");
+const router = require("./routes");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
 
@@ -72,6 +73,10 @@ app.use('/api/mint', mintRoutes);
 app.use('/api/mnivesh/admin',AdminRoute);
 app.use('/api/onboarding', OnboardingRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
+;
+
+// Centralized Routes (ToDo: ADD OTHER ROUTES INSIDE THIS)
+app.use('/api', router);
 
 // wildcard route to serve react using express
 app.get("*", (req, res) => {
