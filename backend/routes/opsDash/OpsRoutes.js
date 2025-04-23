@@ -1,4 +1,4 @@
-const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead, updateTransaction } = require('../../controllers/opsDash/OpsTransactions');
+const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead, updateTransaction, exportAllTransactions } = require('../../controllers/opsDash/OpsTransactions');
 const verifyUser = require('../../middlewares/VerifyUser')
 const router = require('express').Router();
 
@@ -22,6 +22,9 @@ router.patch('/update-status/:id', updateApprovalStatus);
 router.patch('/update-transction/:id', updateTransaction);
 router.patch('/note/:id', updateNote);
 router.patch('/relationship-manager', setRelationshipManager); //TEMPORARY
+
+// Export all the filtered transactions in XLSX file
+router.get('/export/filtered-transactions', exportAllTransactions);
 
 // RECONCILLATION ROUTES 
 router.use('/reconciliation',  require('./Reconciliation'))

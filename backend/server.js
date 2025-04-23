@@ -50,7 +50,8 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['Content-Disposition']
 };
 
 app.use(cors(corsOptions));
