@@ -6,5 +6,9 @@
         "start-backend": "cd backend && npm start",
         "start": "npm run build-frontend && npm run start-backend",
         "postinstall": "npm run install-backend && npm run install-frontend && npm run build-frontend"
+    },
+    "dependencies": {
+        "icons": "^1.0.0",
+        "react": "^19.1.0"
     }
 }

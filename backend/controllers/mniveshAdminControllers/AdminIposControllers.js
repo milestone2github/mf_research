@@ -79,6 +79,7 @@ async function createIpos(req, res) {
   async function updateIpos(req, res) {
       try {
         const {
+          company,
           open_date,
           close_date,
           lot_size,
@@ -104,7 +105,6 @@ async function createIpos(req, res) {
         const { slug } = req.params; 
     
         const ipoData = {
-          slug: slug,
           open_date,
           close_date,
           lot_size,
@@ -128,6 +128,17 @@ async function createIpos(req, res) {
           status: 1,
           updated_at: new Date() // Update the timestamp
         };
+
+        if(company) {
+          ipoData.company = company;
+          ipoData.slug = company
+            .toLowerCase()
+            .replace(/(\w)\(/g, '$1-(')
+            .replace(/\s+/g, '-')
+            .replace(/[()]/g, '')
+            .replace(/-+/g, '-');
+        }
+        
         const update_Ipos = await IposModel.findOneAndUpdate(
           { slug },      
           ipoData,
@@ -153,19 +164,34 @@ async function createIpos(req, res) {
       }
     }
   
-async function getIpos(req, res) {
+async function getIposSearch(req, res) {
   try {
-    const Ipos = await IposModel.find();
-    
-    res.status(200).send({
+    const searchQuery = req.query.q || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = 15;
+    const skip = (page - 1) * limit;
+
+    const regex = new RegExp(searchQuery, "i");
+
+    const query = {
+      company: regex
+    };
+
+    let Ipos = await IposModel.find(query).sort({'open_date': -1}).skip(skip).limit(limit);
+    let totalCount = await IposModel.countDocuments(query);
+
+    res.status(200).json({
       success: true,
-      message: 'Ipos retrieved successfully',
+      message: "Ipos retrieved successfully",
+      currentPage: page,
+      items: limit,
+      totalCount,
       data: Ipos,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: `Failed to retrieve Ipos By Slug ${error.message}`, 
+      error: `Failed to retrieve Ipos ${error.message}`
     });
   }
 }
@@ -222,4 +248,4 @@ async function deleteIpos(req, res){
 }
 
   
-module.exports = {getIpos, getIposBySlug, createIpos, deleteIpos, updateIpos};
+module.exports = {getIposSearch, getIposBySlug, createIpos, deleteIpos, updateIpos};

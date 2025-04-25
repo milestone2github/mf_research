@@ -34,7 +34,7 @@ function App() {
 export default App;
 
 const renderRoutes = (routes, basePath = '') => {
-  return routes.map(({ to, element, nestedRoutes, protected: isProtected, name }) => {
+  return routes.map(({ to, element, nestedRoutes, protected: isProtected, requiredPermission }) => {
     const fullPath = basePath + to
 
     if (nestedRoutes && nestedRoutes.length > 0) {
@@ -42,7 +42,7 @@ const renderRoutes = (routes, basePath = '') => {
         <Route
           key={fullPath}
           path={to}
-          element={isProtected ? <Protected requiredPermission={name}>{element}</Protected> : element}
+          element={isProtected ? <Protected requiredPermission={requiredPermission}>{element}</Protected> : element}
         >
           {renderRoutes(nestedRoutes)}
         </Route>
@@ -53,7 +53,7 @@ const renderRoutes = (routes, basePath = '') => {
       <Route
         key={fullPath}
         path={fullPath}
-        element={isProtected ? <Protected requiredPermission={name}>{element}</Protected> : element}
+        element={isProtected ? <Protected requiredPermission={requiredPermission}>{element}</Protected> : element}
       />
     )
   })

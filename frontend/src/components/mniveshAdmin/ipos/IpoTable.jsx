@@ -55,7 +55,7 @@ function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
                       onClick={() =>
                         setModalData({
                           show: true,
-                          ipoName: ipo.title,
+                          ipoName: ipo.company,
                           deleteUrl: IPO_URL(ipo.slug),
                         })
                       }
@@ -97,7 +97,7 @@ function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
               «
             </button>
 
-            {Array.from({ length: Math.ceil(pagination.totalCount / 10) }, (_, i) => (
+            {Array.from({ length: Math.ceil(pagination.totalCount / pagination.items) }, (_, i) => (
               <button
                 key={i + 1}
                 className={`px-3 py-1 rounded-md border ${
@@ -111,7 +111,7 @@ function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
 
             <button
               className="px-3 py-1 rounded-md border"
-              disabled={pagination.currentPage === Math.ceil(pagination.totalCount / 10)}
+              disabled={pagination.currentPage === Math.ceil(pagination.totalCount / pagination.items)}
               onClick={() => onPageChange(pagination.currentPage + 1)}
             >
               »

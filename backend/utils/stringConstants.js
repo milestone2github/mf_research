@@ -2,6 +2,7 @@
 // Common string responses
 export const INTERNAL_SERVER_ERROR = "Internal Server Error.";
 export const INTERNAL_ERROR_CONSOLE = (error) => `Internal server error ${error} the Asset.`;
+export const INTERNAL_SERVER_ERROR_USER = "Internal Server Error while fetching users list.";
 
 export const REQUIRED_FIELDS_NOT_FOUND = "You have one or more missing required fields, try again.";
 export const ASSET_FOUND_IN_DB = "Asset already exists in db.";
@@ -9,7 +10,6 @@ export const ASSET_NOT_FOUND_IN_DB = "Asset does not exists in db, create one.";
 export const ASSET_FETCH_SUCCESS = "Asset fetched successfully.";
 export const ASSET_CREATE_SUCCESS = "Asset created successfully";
 export const ASSET_UPDATE_SUCCESS = "Asset updated successfully.";
-export const USER_ID_NOT_FOUND = "User id not found.";
 export const ASSET_ID_NOT_FOUND = "Asset id not found.";
 export const ASSET_ALLOTTED_ERROR = "Asset allocated to somebody and cannot be removed. Deallocate first before binding 'remove'.";
 export const ASSET_NOT_AVAILABLE_ERROR = "Asset allocated to somebody. Deallocate first before binding 'repair'.";
@@ -49,3 +49,8 @@ export const ASSET_WITH_TYPE_NOT_FOUND = "No assets associated with given type."
 export const ASSET_TYPE_FETCH_SUCCESS = "All assets fetched successfully.";
 export const ASSET_TYPE_FIELDS_REQUIRED = "There are missing fields required to create an Asset Type.";
 export const ASSET_TYPE_CREATE_SUCCESS = "Asset Type created successfully.";
+
+// Users
+export const USER_ID_NOT_FOUND = "User id not found.";
+export const USER_NOT_FOUND = "Users not found in DB.";
+export const USER_FETCH_SUCCESS = "Users list fetched successfully.";

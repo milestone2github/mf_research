@@ -164,7 +164,7 @@ async function getBlogsSearch(req, res) {
       deleted_at: null,
     };
 
-    let blogs = await Blog.find(query).skip(skip).limit(limit);
+    let blogs = await Blog.find(query).sort({'post_date': -1}).skip(skip).limit(limit);
     let totalCount = await Blog.countDocuments(query);
 
     if (totalCount === 0 && searchQuery) {

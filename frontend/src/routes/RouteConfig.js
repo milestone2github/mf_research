@@ -23,6 +23,13 @@ import MniveshAdmin from '../components/pages/MniveshAdmin'
 import { mniveshAdminRoutes } from './mniveshAdminRoutes'
 import { assetRoutes } from './assetRoutes'
 import Assets from '../components/pages/Assets'
+import OnboardingLayout from '../components/onboarding/OnboardingLayout';
+
+import onboardingRoutes from './onboarding'
+
+
+
+
 
 
 export const appRoutes = [
@@ -49,9 +56,20 @@ export const appRoutes = [
   { requiredPermission: 'Mint', to: '/mint', label: 'Mint', element: <Mint />, protected: true, showInSidebar: true },
   { requiredPermission: 'Workdrive', to: '/workdrive', label: 'Workdrive Files', element: <Workdrive />, protected: true, showInSidebar: true },
   { requiredPermission: 'Login', to: '/login', element: <Loginpage />, protected: false, showInSidebar: false },
+  {
+    requiredPermission: 'Employee Onboarding',
+    to: '/onboarding',
+    label: 'Employee Onboarding',
+    element: <OnboardingLayout />,
+    protected: true,
+    showInSidebar: true,
+    nestedRoutes: onboardingRoutes
+  }
+  
+  
+,
 
-  // { requiredPermission: 'mnivesh admin', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: false, showInSidebar: true,
-  { to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
+  { requiredPermission: 'Employee Onboarding', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
   },
   { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
