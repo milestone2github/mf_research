@@ -1,10 +1,10 @@
 const { Router } = require("express");
 const router = Router();
 const assetRoutes = require("./AssetRoutes");
-const dataRoutes = require('./routes/Data');
-const opsRoutes = require('./routes/opsDash/OpsRoutes');
-const mintRoutes = require('./routes/Mint');
-const AdminRoute = require("./routes/mniveshAdminRoutes/mniveshAdminRoutes");
+const dataRoutes = require('./Data');
+const opsRoutes = require('./opsDash/OpsRoutes');
+const mintRoutes = require('./Mint');
+const AdminRoute = require("./mniveshAdminRoutes/mniveshAdminRoutes");
 
 router.use("/assets", assetRoutes);
 router.use("/data", dataRoutes);
