@@ -21,6 +21,8 @@ import Loginpage from '../components/pages/Loginpage'
 import Workdrive from '../components/pages/workdrive'
 import MniveshAdmin from '../components/pages/MniveshAdmin'
 import { mniveshAdminRoutes } from './mniveshAdminRoutes'
+import { assetRoutes } from './assetRoutes'
+import Assets from '../components/pages/Assets'
 
 
 export const appRoutes = [
@@ -50,5 +52,8 @@ export const appRoutes = [
 
   { requiredPermission: 'Mnivesh Admin', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
+  },
+  { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
+    nestedRoutes: assetRoutes
   },
 ]
