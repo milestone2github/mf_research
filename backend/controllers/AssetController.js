@@ -204,7 +204,7 @@ const changeAssetStatus = async (req, res) => {
 
         // Take input from body if allocating asset to someone
         if (status === 'allocate') {
-            allocatedTo = req.body.allocatedTo;
+            allocatedTo = req.body.assignedTo;
             remarks = req.body.remarks;
         } else {
             allocatedTo = null;

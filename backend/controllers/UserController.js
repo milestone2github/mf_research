@@ -4,7 +4,7 @@ const { INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_USER, USER_NOT_FOUND, USER_
 // Get list of users for creating asset
 const getUserList = async (_req, res) => {
     try {
-        const getUsers = await User.find().populate('role').select('-__v -createdAt -updatedAt');
+        const getUsers = await User.find().select('email');
         if (!getUsers) {
             return res.status(404).json({ message: USER_NOT_FOUND });
         }
