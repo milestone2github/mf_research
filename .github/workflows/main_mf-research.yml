@@ -6,7 +6,7 @@ name: Build and deploy Node.js app to Azure Web App - mf-research
 on:
   push:
     branches:
-      - main
+      - testing-azure
   workflow_dispatch:
 
 jobs:
