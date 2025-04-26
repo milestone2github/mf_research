@@ -41,7 +41,7 @@ export const appRoutes = [
   { requiredPermission: 'Direct Client Payout Accounts', to: '/dir-client-payout-accounts', label: 'Direct Client Payout Accounts', element: <DirectClientPayouts />, protected: true, showInSidebar: true },
   { requiredPermission: 'MF Transaction', to: '/mf-trans-form', label: 'MF Transaction', element: <MfTransForm />, protected: true, showInSidebar: true },
   { requiredPermission: 'NFO', to: '/nfo-form', label: 'NFO Transaction', element: <NfoForm />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Operations Dashboard', to: 'https://ops.mnivesh.com', label: 'OPS Dashboard', external: true, showInSidebar: true },
+  { requiredPermission: 'Operations Dashboard', to: 'https://opss.mnivesh.com', label: 'OPS Dashboard', external: true, showInSidebar: true },
   { requiredPermission: 'Links', to: '/links', label: 'Links', element: <InternalLink />, protected: true, showInSidebar: true,
     nestedRoutes: internalLinkRoutes
   },
