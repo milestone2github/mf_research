@@ -1344,5 +1344,5 @@ module.exports = {
   updateNote,
   setRelationshipManager, //TEMPORARY
   exportAllTransactions,
-  getAllSMNames,
+  getAllSMNames,  // New
 }
