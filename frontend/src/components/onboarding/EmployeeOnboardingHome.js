@@ -77,7 +77,7 @@ const EmployeeOnboardingHome = () => {
           <tbody>
             {users.map(user => (
               <tr key={user._id} className="border-t">
-                <td className="px-4 py-2">{user?.onboarding?.hrFilledInfo.name || '-'}</td>
+                <td className="px-4 py-2">{user?.onboarding?.hrFilledInfo?.name || '-'}</td>
                 <td className="px-4 py-2">{user.email}</td>
                 <td className="px-4 py-2">{renderStatus(user.offerLetterStatus || 'Pending')}</td>
                 <td className="px-4 py-2">{renderStatus(user.formStatus || 'Pending')}</td>
@@ -85,13 +85,29 @@ const EmployeeOnboardingHome = () => {
                 <td className="px-4 py-2">{renderStatus(user.ndaStatus || 'Pending')}</td>
                 <td className="px-4 py-2">{renderStatus(user.userSetupStatus || 'Pending')}</td>
                 <td className="px-4 py-2">
-                  <button
-                    className="px-3 py-1 text-sm text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
-                    onClick={() => navigate(`/onboarding/allocate/${user._id}`)}
-                  >
-                    Allocate
-                  </button>
-                </td>
+  {/* Uncomment the below condition when real status data is available */}
+  {/*
+  const isEligibleForAllocation =
+    ['Completed', 'Sent'].includes(user.offerLetterStatus) &&
+    ['Completed', 'Submitted'].includes(user.formStatus) &&
+    ['Verified'].includes(user.verificationStatus) &&
+    ['Signed'].includes(user.ndaStatus) &&
+    ['Completed'].includes(user.userSetupStatus);
+  */}
+
+  {/* Replace `true` with `isEligibleForAllocation` when ready */}
+  {true ? (
+    <button
+      className="px-3 py-1 text-sm text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
+      onClick={() => navigate(`/onboarding/allocate/${user._id}`)}
+    >
+      Allocate
+    </button>
+  ) : (
+    <span className="text-xs text-gray-400 italic">Complete steps first</span>
+  )}
+</td>
+
                 <td className="px-4 py-2">{renderStatus(user.gotraStatus || 'Pending')}</td>
                 <td className="px-4 py-2">{renderStatus(user.notifyStatus || 'Pending')}</td>
               </tr>

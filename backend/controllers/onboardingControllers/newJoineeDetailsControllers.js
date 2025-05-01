@@ -2,21 +2,19 @@ const User = require("../../models/User");
 const PDFDocument = require('pdfkit');
 const nodemailer = require('nodemailer');
 
-//pdf genration
+// ======= PDF Generation =======
 function generateOfferLetterPDF({ name, role, department, baseSalary, annualCtc }) {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument();
       const buffers = [];
 
-      // Listen for data events and accumulate the PDF chunks
       doc.on('data', (chunk) => buffers.push(chunk));
       doc.on('end', () => {
         const pdfBuffer = Buffer.concat(buffers);
         resolve(pdfBuffer);
       });
 
-      // Build the PDF content
       doc.fontSize(20).text('Offer Letter', { align: 'center' });
       doc.moveDown();
       doc.fontSize(12).text(`Date: ${new Date().toLocaleDateString()}`, { align: 'right' });
@@ -32,7 +30,6 @@ function generateOfferLetterPDF({ name, role, department, baseSalary, annualCtc 
       doc.text('Best regards,');
       doc.text('The HR Team');
 
-      // Finalize the PDF and trigger the 'end' event
       doc.end();
     } catch (error) {
       reject(error);
@@ -40,12 +37,12 @@ function generateOfferLetterPDF({ name, role, department, baseSalary, annualCtc 
   });
 }
 
-// email
+// ======= Email Sending =======
 async function sendEmail(subject, body, toAddress, ccAddress, attachmentFiles = {}) {
   const transporter = nodemailer.createTransport({
     host: 'smtp.zeptomail.com',
     port: 587,
-    secure: false, 
+    secure: false,
     auth: {
       user: 'emailapikey',
       pass: 'wSsVR60gq0X2W6d8yjb/Lutpmg8BAFOlHEt0iwPw4if/S/uXosc5n02bVgX1T/NORDVgFDRHpuounRtV0TsJj955mQwHCiiF9mqRe1U4J3x17qnvhDzCX29UlRuJL4wBxg9ikmhoEcgr+g=='
@@ -63,7 +60,6 @@ async function sendEmail(subject, body, toAddress, ccAddress, attachmentFiles = 
     }
   }
 
-  // Setup the email options
   const mailOptions = {
     from: 'hr@mnivesh.niveshonline.com',
     to: toAddress,
@@ -83,9 +79,10 @@ async function sendEmail(subject, body, toAddress, ccAddress, attachmentFiles = 
   }
 }
 
+// ======= Save Joinee =======
 async function saveJoineeDetails(req, res) {
   try {
-    const { name,  personalEmail, phone, baseSalary, annualCtc, department, role, isPfApplicable, doj } = req.body;
+    const { name, personalEmail, phone, baseSalary, annualCtc, department, role, isPfApplicable, doj } = req.body;
     const filter = { email: personalEmail };
 
     const update = {
@@ -93,7 +90,7 @@ async function saveJoineeDetails(req, res) {
       onboarding: {
         hrFilledInfo: {
           name,
-          personalEmail:  personalEmail,
+          personalEmail,
           phone,
           baseSalary,
           annualCtc,
@@ -107,11 +104,7 @@ async function saveJoineeDetails(req, res) {
       }
     };
 
-    const options = {
-      new: true,               // Return the modified document rather than the original
-      upsert: true,            // Create a new document if none matches the filter
-      setDefaultsOnInsert: true // Apply default values if a new document is created
-    };
+    const options = { new: true, upsert: true, setDefaultsOnInsert: true };
 
     const savedUser = await User.findOneAndUpdate(filter, update, options);
 
@@ -122,7 +115,7 @@ async function saveJoineeDetails(req, res) {
       <p>We are pleased to extend to you an offer of employment. Please find your official offer letter attached to this email.</p>
       <p>We look forward to welcoming you to the team and are excited about the contributions you will bring to our organization.</p>
       <p>Should you have any questions, feel free to reach out.</p>
-      <p>Sincerely,<br/>[Your Company Name] Recruitment Team</p>
+      <p>Sincerely,<br/>Milestone HR Team</p>
     `;
 
     const toAddress = personalEmail; 
@@ -139,18 +132,17 @@ async function saveJoineeDetails(req, res) {
     };
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData);
-    const user = await User. findById(userId);
+
     if (!updatedUser) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
-        user: user
       });
     }
 
     res.status(201).json({
       success: true,
-      message: 'New Joinee details taken successfully',
+      message: 'New Joinee details saved successfully',
       user: savedUser
     });
   } catch (error) {
@@ -163,55 +155,56 @@ async function saveJoineeDetails(req, res) {
   }
 }
 
+// ======= Fetch All Joinees Status =======
 async function statusDetailsAllJoinee(req, res) {
-    try {
-      const newJoiners = await User.find({ status: 'onboarding' });
-  
-      const pendingVerification = await User.find({ status: 'pending' });
-  
-      const assetToAllocate = await User.find({ status: 'pending' });
-  
-      res.status(201).json({
-        success: true,
-        message: 'Status details fetched successfully',
-        data: {
-          newJoinersCount: newJoiners.length,
-          pendingVerificationCount: pendingVerification.length,
-          assetToAllocateCount: assetToAllocate.length,
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching data:', error.message);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch status data',
-        error: error.message,
-      });
-    }
-  }
+  try {
+    const newJoiners = await User.find({ status: 'onboarding' });
+    const pendingVerification = await User.find({ status: 'pending' });
+    const assetToAllocate = await User.find({ status: 'pending' });
 
-  async function statusDetails(req, res) {
-    try {
-      const users = await User.find({ status: { $ne: "complete" } }).lean();
-      return res.status(200).json({
-        success: true,
-        message: "Status details fetched successfully",
-        data: users
-      });
-    } catch (error) {
-      console.error("Error fetching status details:", error.message);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to fetch status data",
-        error: error.message
-      });
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Status details fetched successfully',
+      data: {
+        newJoinersCount: newJoiners.length,
+        pendingVerificationCount: pendingVerification.length,
+        assetToAllocateCount: assetToAllocate.length,
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching status data:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch status data',
+      error: error.message,
+    });
   }
-  
+}
+
+// ======= Fetch All Incomplete Joinee Records =======
+async function statusDetails(req, res) {
+  try {
+    const users = await User.find({ status: { $ne: "complete" } }).lean();
+    return res.status(200).json({
+      success: true,
+      message: "Status details fetched successfully",
+      data: users
+    });
+  } catch (error) {
+    console.error("Error fetching status details:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch status data",
+      error: error.message
+    });
+  }
+}
+
+// ======= Fetch Single Joinee Status =======
 async function statusDetailsById(req, res) {
   try {
     const { id } = req.params;
-    const users = await User.findOne({ _id : id }).lean();
+    const users = await User.findOne({ _id: id }).lean();
     if (!users) {
       return res.status(404).json({
         success: false,
@@ -233,4 +226,37 @@ async function statusDetailsById(req, res) {
     });
   }
 }
-module.exports = { saveJoineeDetails, statusDetailsAllJoinee, statusDetails, statusDetailsById};
+
+// ======= Update hasAssetsAllocated =======
+async function updateAssetAllocationStatus(req, res) {
+  const { userId } = req.params;
+  
+  try {
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { 'onboarding.hasAssestAllocated': true } },
+      { new: true }      // return the updated document
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Allocation status updated successfully', data: user });
+  } catch (error) {
+    console.error('Error updating allocation status:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+}
+
+// ======= EXPORT ==========
+// ======= EXPORT ==========
+
+module.exports = {
+  saveJoineeDetails,
+  statusDetailsAllJoinee,
+  statusDetails,
+  statusDetailsById,
+  updateAllocationStatus: updateAssetAllocationStatus  // ✅ Mapping done here
+};
+
