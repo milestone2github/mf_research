@@ -3,6 +3,7 @@
 export const INTERNAL_SERVER_ERROR = "Internal Server Error.";
 export const INTERNAL_ERROR_CONSOLE = (error) => `Internal server error ${error} the Asset.`;
 export const INTERNAL_SERVER_ERROR_USER = "Internal Server Error while fetching users list.";
+export const ACCESS_TOKEN_NOT_FOUND = "Access Token not found in Session.";
 
 export const REQUIRED_FIELDS_NOT_FOUND = "You have one or more missing required fields, try again.";
 export const ASSET_FOUND_IN_DB = "Asset already exists in db.";

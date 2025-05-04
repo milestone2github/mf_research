@@ -3,6 +3,7 @@ const { default: axios } = require('axios');
 const User = require('../models/User');
 require('../models/Role');
 const jwt = require('jsonwebtoken');
+const { ACCESS_TOKEN_NOT_FOUND } = require('../utils/stringConstants');
 
 const loginWithZoho = (req, res) => {
   const redirectUrl = req.query.redirect || process.env.DEFAULT_FRONTEND_URL; 
@@ -123,7 +124,7 @@ const fetchSMList = async (req, res) => {
     const access_token = req.session.user.access_token;
 
     if (!access_token) {
-      return res.status(401).json({ message: "Access token not found in session." });
+      return res.status(401).json({ message: ACCESS_TOKEN_NOT_FOUND });
     }
   
     const peopleUrl = 'https://people.zoho.com/people/api/forms/P_EmployeeView/records';
@@ -143,6 +144,41 @@ const fetchSMList = async (req, res) => {
     res.status(500).json({success: false, msg: "Internal server error"});
   }
 }
+
+// Fetch RM Names from Zoho People
+const fetchRMList = async (req, res) => {
+  try {
+    const access_token = req.session.user.access_token;
+
+    if (!access_token) {
+      return res.status(401).json({ message: ACCESS_TOKEN_NOT_FOUND });
+    }
+
+    const peopleUrl = 'https://people.zoho.com/people/api/forms/P_EmployeeView/records';
+    const fetchPeople = await axios.get(peopleUrl, {
+      headers: {
+        'Authorization': `Zoho-oauthtoken ${access_token}`
+      }
+    });
+
+    const relationshipManagers = fetchPeople.data
+      .filter(person => person.Title && person.Title.includes('Relationship Manager'))
+      .map(person => `${person['First Name']} ${person['Last Name']}`.trim());
+
+    res.status(200).json({ data: relationshipManagers });
+  } catch (err) {
+    console.error("Error in fetchRMList: \n", err);
+    res.status(500).json({success: false, msg: "Internal server error"});
+  }
+}
   
 
-module.exports = { loginWithZoho, zohoCallback, verifySession, verifyGoogleUser, logout, fetchSMList }
+module.exports = {
+  loginWithZoho,
+  zohoCallback,
+  verifySession,
+  verifyGoogleUser,
+  logout,
+  fetchSMList,
+  fetchRMList
+}

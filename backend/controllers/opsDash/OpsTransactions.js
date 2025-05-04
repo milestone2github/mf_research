@@ -1292,7 +1292,7 @@ const exportAllTransactions = async (req, res) => {
 };
 
 // Fetch unique SM Names from Transactions
-const getAllSMNames = async (req, res) => {
+const getAllSMNames = async (_req, res) => {
   try {
     const uniqueSMList = await Transactions.aggregate([
       {
@@ -1321,6 +1321,35 @@ const getAllSMNames = async (req, res) => {
   }
 };
 
+// Fetch Unique RM Names from Transactions {ToDo Improvements: Merge getAllSMNames and getAllRMNames into one}
+const getAllRMNames = async (_req, res) => {
+  try {
+    const uniqueRMList = await Transactions.aggregate([
+      {
+        $group: {
+          _id: '$relationshipManager'
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          relationshipManager: '$_id'
+        }
+      },
+      {
+        $sort: { relationshipManager: 1 }
+      }
+    ]);
+
+    res.status(200).json({
+      data: uniqueRMList.map(item => item.relationshipManager),
+      message: 'All unique relationship managers fetched'
+    });
+  } catch (error) {
+    console.log('Error fetching relationship managers:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 module.exports = {
   getGroupedTransactions,
@@ -1345,4 +1374,5 @@ module.exports = {
   setRelationshipManager, //TEMPORARY
   exportAllTransactions,
   getAllSMNames,  // New
+  getAllRMNames,  // New
 }
