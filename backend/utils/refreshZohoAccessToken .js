@@ -1,5 +1,5 @@
 // Fetch the Zoho access_token based on refresh_token
-export const refreshZohoAccessToken = async (refreshToken) => {
+const refreshZohoAccessToken = async (refreshToken) => {
     const response = await axios.post(
       "https://accounts.zoho.com/oauth/v2/token",
       null,
@@ -15,3 +15,5 @@ export const refreshZohoAccessToken = async (refreshToken) => {
   
     return response.data.access_token;
   };
+
+  module.exports = { refreshZohoAccessToken };
