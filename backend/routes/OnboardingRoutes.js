@@ -3,19 +3,48 @@ const {
   statusDetailsAllJoinee,
   statusDetails,
   statusDetailsById,
-  updateAllocationStatus  
+  updateAllocationStatus,
+  fetchUserOnboardingInfo,
+  savePartialUserOnboardingInfo,
+  newEmployeeSetup,
+  
+  getAllDepartments,
+  getRoles
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
 
 const verifyUser = require('../middlewares/VerifyUser');
+const verifyToken = require('../middlewares/verifyToken');
 
-const router = require('express').Router();
+
+const {
+  sendOtpSms,
+  verifyOtp
+} = require('../controllers/onboardingControllers/otpController');
+
+const router = require('express').Router(); 
+
 
 router.post('/onboarding-form', saveJoineeDetails);
 router.get('/onboarding-status', statusDetailsAllJoinee);
 router.get('/onboarding-details', statusDetails);
 router.get('/onboarding-details/:id', statusDetailsById);
-
-// ✅ NEW Route
+router.put('/zohosetup', newEmployeeSetup);
 router.patch('/update-allocation-status/:userId', verifyUser, updateAllocationStatus);
+
+
+router.post('/otp/send', (req, res) => {
+  
+  if (req.body.phone) return sendOtpSms(req, res);
+  return res.status(400).json({ error: 'Phone required' });
+});
+
+router.post('/otp/verify', verifyOtp);
+
+router.get('/me', verifyToken, fetchUserOnboardingInfo);
+router.patch('/onboarding-form', verifyToken, savePartialUserOnboardingInfo);
+
+router.get('/department', getAllDepartments);
+router.get('/roles', getRoles);
+
 
 module.exports = router;

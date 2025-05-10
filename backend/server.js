@@ -21,6 +21,8 @@ const router = require("./routes");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
 
+
+
 // Configure session middleware
 app.use(
   session({
@@ -73,7 +75,8 @@ app.use('/api/mint', mintRoutes);
 app.use('/api/mnivesh/admin',AdminRoute);
 app.use('/api/onboarding', OnboardingRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
-;
+
+
 
 // Centralized Routes (ToDo: ADD OTHER ROUTES INSIDE THIS)
 app.use('/api', router);
