@@ -81,6 +81,7 @@ const verifySession = (req, res) => {
   if (req.session && req.session.user) {
     // refresh the session expiration time by the time set during configuration  
     req.session.touch();
+    console.log(req.session.user);
 
     // If the session exists and contains user information, the user is logged in
     res.status(200).json({ loggedIn: true, user: req.session.user });

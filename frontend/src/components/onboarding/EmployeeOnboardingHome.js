@@ -12,12 +12,12 @@ const EmployeeOnboardingHome = () => {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/onboarding/onboarding-status')
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/onboarding-status`)
       .then(res => res.json())
       .then(data => setStatusCounts(data.data))
       .catch(err => console.error('Failed to fetch status counts:', err));
 
-    fetch('http://localhost:5000/api/onboarding/onboarding-details')
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/onboarding-details`)
       .then(res => res.json())
       .then(data => setUsers(data.data))
       .catch(err => console.error('Failed to fetch user details:', err));

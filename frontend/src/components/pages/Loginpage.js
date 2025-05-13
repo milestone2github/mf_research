@@ -31,7 +31,7 @@ const Loginpage = () => {
 
   const handleLogin = async () => {
     const frontendRedirectUrl = encodeURIComponent(window.location.origin);
-    window.location.href = `${process.env.REACT_APP_API_BASE_URL}/auth/zoho?redirect=${frontendRedirectUrl}`
+    window.location.href = `${process.env.REACT_APP_AUTH_BASE_URL}/auth/zoho?redirect=${frontendRedirectUrl}`
   }
 
   const googlelogin = async () => {

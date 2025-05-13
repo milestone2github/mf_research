@@ -34,30 +34,30 @@ import onboardingRoutes from './onboarding'
 
 export const appRoutes = [
   { to: '/', label: 'Home', element: <Home />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Portfolio Analysis', to: '/portfolio-analysis', label: 'Portfolio Analysis', element: <PortfolioReport />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Existing Portfolio', to: '/existing-portfolio', label: 'Existing Portfolio', element: <ExistingPortfolio />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Import CAS', to: '/import-cas', label: 'Import CAS', element: <CasImport />, protected: true, showInSidebar: false },
-  { requiredPermission: 'Model Portfolio', to: '/model-portfolio', label: 'Model Portfolio', element: <ModelPortfolio />, protected: true, showInSidebar: false },
-  { requiredPermission: 'Calculator', to: '/calculator', label: 'Calculator', element: <Calculators />, protected: true, showInSidebar: true,
+  { requiredPermission: 'portfolio_analysis', to: '/portfolio-analysis', label: 'Portfolio Analysis', element: <PortfolioReport />, protected: true, showInSidebar: true },
+  { requiredPermission: 'existing_portfolio', to: '/existing-portfolio', label: 'Existing Portfolio', element: <ExistingPortfolio />, protected: true, showInSidebar: true },
+  { requiredPermission: 'import_cas', to: '/import-cas', label: 'Import CAS', element: <CasImport />, protected: true, showInSidebar: false },
+  { requiredPermission: 'model_portfolio', to: '/model-portfolio', label: 'Model Portfolio', element: <ModelPortfolio />, protected: true, showInSidebar: false },
+  { requiredPermission: 'calculator', to: '/calculator', label: 'Calculator', element: <Calculators />, protected: true, showInSidebar: true,
     nestedRoutes: calculatorRoutes
   },
-  { requiredPermission: 'MF Trans Request', to: '/mf-trans-request', label: 'MF Trans Request', element: <MFTransRequest />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Associate Payout', to: '/associate-payout', label: 'Associate Payout', element: <AssociatePayout />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Associate Payout Accounts', to: '/associate-payout-accounts', label: 'Associate Payout Accounts', element: <AssociatePayoutAccounts />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Direct Client Payout', to: '/dir-client-payout', label: 'Direct Client Payout', element: <DirClientPayouts />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Direct Client Payout Accounts', to: '/dir-client-payout-accounts', label: 'Direct Client Payout Accounts', element: <DirectClientPayouts />, protected: true, showInSidebar: true },
-  { requiredPermission: 'MF Transaction', to: '/mf-trans-form', label: 'MF Transaction', element: <MfTransForm />, protected: true, showInSidebar: true },
-  { requiredPermission: 'NFO', to: '/nfo-form', label: 'NFO Transaction', element: <NfoForm />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Operations Dashboard', to: 'https://ops.mnivesh.com', label: 'OPS Dashboard', external: true, showInSidebar: true },
-  { requiredPermission: 'Links', to: '/links', label: 'Links', element: <InternalLink />, protected: true, showInSidebar: true,
+  { requiredPermission: 'mf_trans_request', to: '/mf-trans-request', label: 'MF Trans Request', element: <MFTransRequest />, protected: true, showInSidebar: true },
+  { requiredPermission: 'associate_payout', to: '/associate-payout', label: 'Associate Payout', element: <AssociatePayout />, protected: true, showInSidebar: true },
+  { requiredPermission: 'associate_payout_accounts', to: '/associate-payout-accounts', label: 'Associate Payout Accounts', element: <AssociatePayoutAccounts />, protected: true, showInSidebar: true },
+  { requiredPermission: 'direct_client_payout', to: '/dir-client-payout', label: 'Direct Client Payout', element: <DirClientPayouts />, protected: true, showInSidebar: true },
+  { requiredPermission: 'direct_client_payout_accounts', to: '/dir-client-payout-accounts', label: 'Direct Client Payout Accounts', element: <DirectClientPayouts />, protected: true, showInSidebar: true },
+  { requiredPermission: 'mf_transaction', to: '/mf-trans-form', label: 'MF Transaction', element: <MfTransForm />, protected: true, showInSidebar: true },
+  { requiredPermission: 'nfo', to: '/nfo-form', label: 'NFO Transaction', element: <NfoForm />, protected: true, showInSidebar: true },
+  { requiredPermission: 'operations_dashboard', to: 'https://ops.mnivesh.com', label: 'OPS Dashboard', external: true, showInSidebar: true },
+  { requiredPermission: 'links', to: '/links', label: 'Links', element: <InternalLink />, protected: true, showInSidebar: true,
     nestedRoutes: internalLinkRoutes
   },
-  { requiredPermission: 'Marketing Templates', to: '/marketing-templates', label: 'Marketing Templates', element: <MarketingTemplates />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Mint', to: '/mint', label: 'Mint', element: <Mint />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Workdrive', to: '/workdrive', label: 'Workdrive Files', element: <Workdrive />, protected: true, showInSidebar: true },
-  { requiredPermission: 'Login', to: '/login', element: <Loginpage />, protected: false, showInSidebar: false },
+  { requiredPermission: 'marketing_templates', to: '/marketing-templates', label: 'Marketing Templates', element: <MarketingTemplates />, protected: true, showInSidebar: true },
+  { requiredPermission: 'mint', to: '/mint', label: 'Mint', element: <Mint />, protected: true, showInSidebar: true },
+  { requiredPermission: 'workdrive', to: '/workdrive', label: 'Workdrive Files', element: <Workdrive />, protected: true, showInSidebar: true },
+  { requiredPermission: 'login', to: '/login', element: <Loginpage />, protected: false, showInSidebar: false },
   {
-    requiredPermission: 'Employee Onboarding',
+    requiredPermission: 'employee_onboarding',
     to: '/onboarding',
     label: 'Employee Onboarding',
     element: <OnboardingLayout />,
@@ -69,10 +69,10 @@ export const appRoutes = [
   
 ,
 
-  { requiredPermission: 'Employee Onboarding', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
+  { requiredPermission: 'employee_onboarding', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
   },
-  { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
-    nestedRoutes: assetRoutes
-  },
+  // { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
+  //   nestedRoutes: assetRoutes
+  // },
 ]

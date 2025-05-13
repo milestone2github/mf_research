@@ -5,7 +5,8 @@ import { appRoutes } from '../../routes/RouteConfig'
 
 const Sidebar = () => {
     const { isLoggedIn, userData } = useSelector((state) => state.user)
-    const permissions = userData?.role?.permissions;
+    const permissions = userData?.permissions;
+    console.log(userData);
 
     if (!isLoggedIn) return null;
 
