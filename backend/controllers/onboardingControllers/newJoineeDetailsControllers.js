@@ -573,6 +573,9 @@ const getRoles = async (req, res) => {
   }
 };
 
+
+
+
 // ======= EXPORT ==========
 // ======= EXPORT ==========
 
@@ -586,5 +589,5 @@ module.exports = {
   savePartialUserOnboardingInfo,
   newEmployeeSetup,
   getAllDepartments,
-  getRoles,
+  getRoles
 };

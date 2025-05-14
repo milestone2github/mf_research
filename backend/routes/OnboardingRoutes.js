@@ -9,7 +9,8 @@ const {
   newEmployeeSetup,
   
   getAllDepartments,
-  getRoles
+  getRoles,
+   
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
 
 const verifyUser = require('../middlewares/VerifyUser');
@@ -45,6 +46,9 @@ router.patch('/onboarding-form', verifyToken, savePartialUserOnboardingInfo);
 
 router.get('/department', getAllDepartments);
 router.get('/roles', getRoles);
+
+
+
 
 
 module.exports = router;

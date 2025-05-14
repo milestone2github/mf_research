@@ -7,7 +7,7 @@ const EmployeeOnboardingHome = () => {
   const [statusCounts, setStatusCounts] = useState({
     newJoinersCount: 0,
     pendingVerificationCount: 0,
-    assetToAllocateCount: 0
+    assetToAllocateCount: 0,
   });
   const [users, setUsers] = useState([]);
 
@@ -17,19 +17,24 @@ const EmployeeOnboardingHome = () => {
       .then(data => setStatusCounts(data.data))
       .catch(err => console.error('Failed to fetch status counts:', err));
 
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/onboarding-details`)
-      .then(res => res.json())
-      .then(data => setUsers(data.data))
-      .catch(err => console.error('Failed to fetch user details:', err));
+ fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/onboarding-details`)
+  .then(res => res.json())
+  .then(data => setUsers(data.data))
+  .catch(err => console.error('Failed to fetch user details:', err));
+
+
   }, []);
 
   const renderStatus = (value) => {
-    const completeStatuses = ['Completed', 'Allocated', 'Verified', 'Submitted', 'Sent', 'Signed'];
-    const isComplete = completeStatuses.includes(value);
-    const Icon = isComplete ? FaCheckCircle : FaClock;
-    const color = isComplete ? 'text-green-600' : 'text-orange-500';
-    return <span className={`flex items-center ${color}`}><Icon className="mr-1" /> {value}</span>;
-  };
+  const normalized = value?.toLowerCase();
+  const completeStatuses = ['completed', 'allocated', 'verified', 'submitted', 'sent', 'signed'];
+  const isComplete = completeStatuses.includes(normalized);
+  const Icon = isComplete ? FaCheckCircle : FaClock;
+  const color = isComplete ? 'text-green-600' : 'text-orange-500';
+
+  return <span className={`flex items-center ${color}`}><Icon className="mr-1" /> {value}</span>;
+};
+
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -75,28 +80,49 @@ const EmployeeOnboardingHome = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
-              <tr key={user._id} className="border-t">
-                <td className="px-4 py-2">{user?.onboarding?.hrFilledInfo?.name || '-'}</td>
-                <td className="px-4 py-2">{user.email}</td>
-                <td className="px-4 py-2">{renderStatus(user.offerLetterStatus || 'Pending')}</td>
-                <td className="px-4 py-2">{renderStatus(user.formStatus || 'Pending')}</td>
-                <td className="px-4 py-2">{renderStatus(user.verificationStatus || 'Pending')}</td>
-                <td className="px-4 py-2">{renderStatus(user.ndaStatus || 'Pending')}</td>
-                <td className="px-4 py-2">{renderStatus(user.userSetupStatus || 'Pending')}</td>
-                <td className="px-4 py-2">
-  {/* Uncomment the below condition when real status data is available */}
-  {/*
-  const isEligibleForAllocation =
-    ['Completed', 'Sent'].includes(user.offerLetterStatus) &&
-    ['Completed', 'Submitted'].includes(user.formStatus) &&
-    ['Verified'].includes(user.verificationStatus) &&
-    ['Signed'].includes(user.ndaStatus) &&
-    ['Completed'].includes(user.userSetupStatus);
-  */}
+  {users.map(user => {
+    const onboarding = user?.onboarding || {};
+    const formStatus = user.formStatus || 'Pending';
 
-  {/* Replace `true` with `isEligibleForAllocation` when ready */}
-  {true ? (
+    const offerGenerated = onboarding?.offerLetter?.generated;
+    const backgroundVerified = onboarding?.backgroundCheck?.status === 'verified';
+    const ndaSigned = onboarding?.nda?.signed;
+    const zohoCreated = onboarding?.zohoSetup?.userCreated;
+
+    const isEligibleForAllocation =
+      offerGenerated &&
+      formStatus === 'Submitted' &&
+      backgroundVerified &&
+      ndaSigned &&
+      zohoCreated;
+
+    return (
+      <tr key={user._id} className="border-t">
+        <td className="px-4 py-2">{onboarding?.hrFilledInfo?.name || '-'}</td>
+        <td className="px-4 py-2">{user.email}</td>
+
+        <td className="px-4 py-2">{renderStatus(offerGenerated ? 'Completed' : 'Pending')}</td>
+        <td className="px-4 py-2">{renderStatus(formStatus)}</td>
+        <td className="px-4 py-2">{renderStatus(onboarding?.backgroundCheck?.status || 'pending')}</td>
+
+        <td className="px-4 py-2">
+          {renderStatus(
+            onboarding?.nda?.signed
+              ? 'Signed'
+              : onboarding?.nda?.sent
+              ? 'Sent'
+              : 'Pending'
+          )}
+        </td>
+
+        <td className="px-4 py-2">
+          {renderStatus(zohoCreated ? 'Completed' : 'Pending')}
+        </td>
+
+        <td className="px-4 py-2">
+  {onboarding?.hasAssestAllocated ? (
+    renderStatus('Allocated')
+  ) : isEligibleForAllocation ? (
     <button
       className="px-3 py-1 text-sm text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
       onClick={() => navigate(`/onboarding/allocate/${user._id}`)}
@@ -104,15 +130,34 @@ const EmployeeOnboardingHome = () => {
       Allocate
     </button>
   ) : (
-    <span className="text-xs text-gray-400 italic">Complete steps first</span>
+    renderStatus('Pending')
   )}
 </td>
 
-                <td className="px-4 py-2">{renderStatus(user.gotraStatus || 'Pending')}</td>
-                <td className="px-4 py-2">{renderStatus(user.notifyStatus || 'Pending')}</td>
-              </tr>
-            ))}
-          </tbody>
+
+        {/* Gotra: show only after eligible */}
+        <td className="px-4 py-2">
+          {renderStatus(
+            isEligibleForAllocation && onboarding?.gotra?.sent
+              ? 'Completed'
+              : 'Pending'
+          )}
+        </td>
+
+        {/* Notify: show only after eligible */}
+        <td className="px-4 py-2">
+          {renderStatus(
+            isEligibleForAllocation && onboarding?.hasNotifiedToAll
+              ? 'Completed'
+              : 'Pending'
+          )}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+
+
         </table>
       </div>
     </div>
