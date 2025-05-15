@@ -73,7 +73,8 @@ const userSchema = new mongoose.Schema({
                 stateRegionProvince: { type: String , default: ""},
                 country: { type: String, default: "" },
                 photo: { type: String , default: ""}
-            }
+            },
+            submittedAt: Date
         },
         offerLetter: {
             generated: { type: Boolean, default: false },

@@ -25,15 +25,37 @@ const EmployeeOnboardingHome = () => {
 
   }, []);
 
-  const renderStatus = (value) => {
+ const renderStatus = (value) => {
   const normalized = value?.toLowerCase();
-  const completeStatuses = ['completed', 'allocated', 'verified', 'submitted', 'sent', 'signed'];
-  const isComplete = completeStatuses.includes(normalized);
-  const Icon = isComplete ? FaCheckCircle : FaClock;
-  const color = isComplete ? 'text-green-600' : 'text-orange-500';
 
-  return <span className={`flex items-center ${color}`}><Icon className="mr-1" /> {value}</span>;
+  let Icon = FaClock;
+  let color = 'text-orange-500';
+  let label = value;
+
+  if (['completed', 'allocated', 'verified', 'submitted', 'sent', 'signed'].includes(normalized)) {
+    Icon = FaCheckCircle;
+    color = 'text-green-600';
+  }
+
+  if (normalized === 'in_progress') {
+    Icon = FaClock;
+    label = 'In progress';
+    color = 'text-green-400'; // Light green
+  }
+
+  if (normalized === 'failed') {
+    Icon = () => <span className="text-red-600 font-bold text-lg">✖</span>; // Red cross emoji
+    label = 'Failed';
+    color = 'text-red-600';
+  }
+
+  return (
+    <span className={`flex items-center ${color}`}>
+      <Icon className="mr-1" /> {label}
+    </span>
+  );
 };
+
 
 
   return (
@@ -71,7 +93,7 @@ const EmployeeOnboardingHome = () => {
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Offer Letter</th>
               <th className="px-4 py-2">Form Submission</th>
-              <th className="px-4 py-2">Verification</th>
+              <th className="px-6 py-2 w-40">Verification</th>
               <th className="px-4 py-2">NDA</th>
               <th className="px-4 py-2">User Setup</th>
               <th className="px-4 py-2">Assets</th>
@@ -82,7 +104,7 @@ const EmployeeOnboardingHome = () => {
           <tbody>
   {users.map(user => {
     const onboarding = user?.onboarding || {};
-    const formStatus = user.formStatus || 'Pending';
+    const formStatus = user.onboarding?.userFilledInfo?.submittedAt ?"Submitted" : 'Pending';
 
     const offerGenerated = onboarding?.offerLetter?.generated;
     const backgroundVerified = onboarding?.backgroundCheck?.status === 'verified';
