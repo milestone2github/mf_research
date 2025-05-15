@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CHANGE_STATUS_URL, REMOVE_ASSET_URL } from '../../utils/urlConstants';
+import { CHANGE_STATUS_URL } from '../../utils/urlConstants';
 import axios from 'axios';
 import AllocateAssetModal from './AllocateAssetModal';
 

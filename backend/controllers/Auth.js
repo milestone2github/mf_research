@@ -3,11 +3,13 @@ const { default: axios } = require('axios');
 const User = require('../models/User');
 require('../models/Role');
 const jwt = require('jsonwebtoken');
+const { ACCESS_TOKEN_NOT_FOUND } = require('../utils/stringConstants');
+const { refreshZohoAccessToken } = require('../utils/refreshZohoAccessToken ');
 
 const loginWithZoho = (req, res) => {
   const redirectUrl = req.query.redirect || process.env.DEFAULT_FRONTEND_URL; 
   const state = encodeURIComponent(JSON.stringify({ redirectUrl }));
-  const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline&state=${state}`;
+  const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email,ZOHOPEOPLE.forms.ALL&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline&state=${state}&prompt=consent`;
   res.redirect(authUrl);
 }
 
@@ -32,21 +34,24 @@ const zohoCallback = async (req, res) => {
       }
     );
 
+    // const access_token = tokenResponse.data.access_token;
+    const { access_token, refresh_token } = tokenResponse.data;
     let id_token = tokenResponse.data.id_token;
     const decode = jwt.decode(id_token);
     // Store user data in session
-
     const userExist = await User.findOne({ email: decode.email }).populate("role")
-
+    
     if (userExist) {
       req.session.user = {
         name: userExist.nameAsRM || `${decode.first_name} ${decode.last_name}`,
         email: userExist.email,
         mintUsername: userExist.mintUsername,
         insuranceDashboardId: userExist.insuranceDashboardId,
-        role: userExist.role
+        role: userExist.role,
+        access_token,
+        refresh_token
       };
-      console.log("Session Set:", req.session);//debug
+      // console.log("Session Set:", req.session);//debug
       res.redirect(redirectUrl ?? '/');
     }
     else {
@@ -116,4 +121,80 @@ const verifyGoogleUser = async (req, res) => {
   }
 }
 
-module.exports = { loginWithZoho, zohoCallback, verifySession, verifyGoogleUser, logout }
+// Extract access_token and fetch list of SM users
+const fetchSMList = async (req, res) => {
+  try {
+    let access_token = req.session.user?.access_token;
+    const refresh_token = req.session.user?.refresh_token;
+
+    if (!access_token && !refresh_token) {
+      return res.status(401).json({ message: ACCESS_TOKEN_NOT_FOUND });
+    }
+    
+    if (!access_token && refresh_token) {
+      access_token = await refreshZohoAccessToken(refresh_token);
+      req.session.user.access_token = access_token;
+    }
+  
+    const peopleUrl = 'https://people.zoho.com/people/api/forms/P_EmployeeView/records';
+    const fetchPeople = await axios.get(peopleUrl, {
+      headers: {
+        'Authorization': `Zoho-oauthtoken ${access_token}`
+      }
+    });
+    
+    const serviceManagers = fetchPeople.data
+    .filter(person => person.Title === 'Service Manager')
+    .map(person => `${person['First Name']} ${person['Last Name']}`.trim());
+    
+    res.status(200).json({ data: serviceManagers });
+  } catch (err) {
+    console.error("Error in fetchSMList: \n", err);
+    res.status(500).json({success: false, msg: "Internal server error"});
+  }
+}
+
+// Fetch RM Names from Zoho People
+const fetchRMList = async (req, res) => {
+  try {
+    let access_token = req.session.user?.access_token;
+    const refresh_token = req.session.user?.refresh_token;
+
+    if (!access_token && !refresh_token) {
+      return res.status(401).json({ message: ACCESS_TOKEN_NOT_FOUND });
+    }
+    
+    if (!access_token && refresh_token) {
+      console.log("Refresh Token found: ==> ", refresh_token);
+      access_token = await refreshZohoAccessToken(refresh_token);
+      req.session.user.access_token = access_token;
+    }
+
+    const peopleUrl = 'https://people.zoho.com/people/api/forms/P_EmployeeView/records';
+    const fetchPeople = await axios.get(peopleUrl, {
+      headers: {
+        'Authorization': `Zoho-oauthtoken ${access_token}`
+      }
+    });
+
+    const relationshipManagers = fetchPeople.data
+      .filter(person => person.Title && person.Title.includes('Relationship Manager'))
+      .map(person => `${person['First Name']} ${person['Last Name']}`.trim());
+
+    res.status(200).json({ data: relationshipManagers });
+  } catch (err) {
+    console.error("Error in fetchRMList: \n", err);
+    res.status(500).json({success: false, msg: "Internal server error"});
+  }
+}
+  
+
+module.exports = {
+  loginWithZoho,
+  zohoCallback,
+  verifySession,
+  verifyGoogleUser,
+  logout,
+  fetchSMList,
+  fetchRMList
+}
