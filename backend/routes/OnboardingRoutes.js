@@ -17,10 +17,7 @@ const verifyUser = require('../middlewares/VerifyUser');
 const verifyToken = require('../middlewares/verifyToken');
 
 
-const {
-  sendOtpSms,
-  verifyOtp
-} = require('../controllers/onboardingControllers/otpController');
+const { sendOtpSms, verifyOtp, otpVerifiedStatus } = require('../controllers/onboardingControllers/otpController');
 
 const router = require('express').Router(); 
 
@@ -40,6 +37,7 @@ router.post('/otp/send', (req, res) => {
 });
 
 router.post('/otp/verify', verifyOtp);
+router.get('/check-session', otpVerifiedStatus);
 
 router.get('/me', verifyToken, fetchUserOnboardingInfo);
 router.patch('/onboarding-form', verifyToken, savePartialUserOnboardingInfo);

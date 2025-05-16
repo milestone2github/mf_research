@@ -21,7 +21,7 @@ async function sendOtpSms(req, res) {
       { upsert: true, new: true }
     );
 
-    res.status(200).json({ message: 'OTP sent via SMS', data: pid });
+    res.status(200).json({ message: 'OTP sent via SMS ✅', data: pid });
   } catch (error) {
     res.status(500).json({ error: error.response?.data || error.message });
   }
@@ -32,41 +32,63 @@ async function sendOtpSms(req, res) {
 
 // --- VERIFY OTP ---
 async function verifyOtp(req, res) {
-  const {  phone, otp } = req.body;
+  const { phone, otp } = req.body;
 
   if (!otp || !phone) {
     return res.status(400).json({ error: 'Contact and OTP are required.' });
   }
 
-  const query =  { 'onboarding.hrFilledInfo.phone': phone };
+  const query = { 'onboarding.hrFilledInfo.phone': phone };
 
   try {
-    const otpDoc = await Otp.findOne({phone});
+    const otpDoc = await Otp.findOne({ phone });
 
     if (!otpDoc || otpDoc.otp !== Number(otp)) {
-      return res.status(400).json({ error: 'Invalid or expired OTP.' });
+      return res.status(400).json({ error: ' ❌ Invalid or expired OTP. ❌' });
     }
 
     let user = await User.findOne(query);
     if (!user) {
-      return res.status(400).json({error: 'User not found in DB'});
+      return res.status(400).json({ error: 'User not found in DB' });
     }
+    // Set OTP verified status in session
+    req.session.otpVerified = true;
+    const otpStatus = req.session.otpVerified
+
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: '1d'
     });
 
     res.status(200).json({
-      message: 'OTP verified successfully.',
-      data: { token, user }
+      message: ' ✅ OTP verified successfully. ✅',
+      data: { token, user, otpVerified: otpStatus }
     });
   } catch (error) {
     console.error('Error during OTP verification:', error);
-    res.status(500).json({ error: 'Error during OTP verification.' });
+    res.status(500).json({ error: ' ❌ Error during OTP verification. ❌' });
+  }
+}
+
+// check otpVerifiedStatus
+async function otpVerifiedStatus(req, res) {
+  try {
+    const otpVerified = req.session.otpVerified || false;
+    
+    if (otpVerified) {
+      res.sendStatus(200); // OK
+    } else {
+      res.sendStatus(401); // Unauthorized
+    }
+  } catch (error) {
+    console.error(' ❌ Error checking OTP verification:', error);
+    res.sendStatus(500);
   }
 }
 
 
+
 module.exports = {
   sendOtpSms,
-  verifyOtp
+  verifyOtp,
+  otpVerifiedStatus
 };
