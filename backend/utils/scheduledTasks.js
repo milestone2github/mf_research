@@ -3,6 +3,10 @@ const Transactions = require("../models/Transactions");
 const sendEmail = require("./sendEmail");
 const xlsx = require('xlsx');
 let milestoneDbConnection = connectToMilestoneDB();
+const User = require("../models/User"); 
+const getCandidateStatus = require("../controllers/onboardingControllers/springVerifyControllers"); 
+const dispatchNdaFlow = require("./ndaWorkFlow"); 
+
 
 const headers = [
   { header: 'Transaction date', key: 'transactionPreference' },
@@ -131,4 +135,48 @@ async function pendingTransactionsNotification() {
   }
 }
 
-module.exports = { pendingTransactionsNotification }
+async function  springVerifyStatusCheck() {
+  try {
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+
+    const users = await User.find({
+      "onboarding.backgroundCheck.status": "in_progress",
+      "onboarding.backgroundCheck.initiatedAt": { $lte: fiveDaysAgo },
+    });
+
+    for (const user of users) {
+      const email = user?.onboarding?.userFilledInfo?.personalDetails?.email || user.email;
+      const userId = user._id.toString();
+
+      const statusRes = await getCandidateStatus(userId, email);
+
+      if (statusRes.status === "success") {
+        const springStatus = statusRes.data?.status;
+
+        if (springStatus === "verified" || springStatus === "failed") {
+          await User.findByIdAndUpdate(userId, {
+            $set: {
+              "onboarding.backgroundCheck.status": springStatus,
+              "onboarding.backgroundCheck.completedAt": new Date(),
+            },
+          });
+
+          if (springStatus === "verified") {
+            await dispatchNdaFlow(userId, user?.onboarding?.userFilledInfo?.personalDetails || {});
+            console.log(`NDA dispatched for ${email}`);
+          }
+
+          console.log(`User ${email} status updated to ${springStatus}`);
+        } else {
+          console.log(`User ${email} still has background status: ${springStatus}`);
+        }
+      } else {
+        console.error(`Error checking candidate status for ${email}:`, statusRes.message);
+      }
+    }
+  } catch (error) {
+    console.error("Error in cron job:", error.message);
+  }
+};
+
+module.exports = { pendingTransactionsNotification, springVerifyStatusCheck }

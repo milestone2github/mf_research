@@ -72,13 +72,11 @@ const fetchPackageAndAddCandidate = async (userId, userDetails) => {
 
     await User.findByIdAndUpdate(userId, {
       $set: {
-        'onboarding.springVerify': {
-          packageId,
-          subtypeId,
-          springCandidateData: addCandidateRes.data,
-          verified: true,
-          initiatedAt: new Date(),
-        },
+        'onboarding.backgroundCheck.status': 'in_progress',
+        'onboarding.backgroundCheck.initiatedAt': new Date(),
+        'onboarding.backgroundCheck.reportUrl': '', 
+        // want to save SpringVerify response, add this line:
+        // 'onboarding.backgroundCheck.springVerifyMeta': addCandidateRes.data
       },
     });
 
@@ -96,6 +94,7 @@ const fetchPackageAndAddCandidate = async (userId, userDetails) => {
   }
 };
 
+
 // === Step 3: Get Candidate Status ===
 const getCandidateStatus = async (userId, email) => {
   try {
@@ -105,23 +104,38 @@ const getCandidateStatus = async (userId, email) => {
       },
     });
 
-    const candidateDataResponse = statusRes.data; //full response of candidate from springVerify
+    const candidateData = statusRes.data; //full response of candidate from springVerify
+    const springStatus = candidateData?.overall_status; //verification status
 
-    const candidateStatus = candidateDataResponse.overall_status; // status check
+    // Map SpringVerify status to DB enum
+    let backgroundStatus = 'pending';
+    if (springStatus === 'Completed') backgroundStatus = 'verified';
+    else if (springStatus === 'In Progress') backgroundStatus = 'in_progress';
+    else if (springStatus === 'Failed') backgroundStatus = 'failed';
+    else if (springStatus === 'Skipped') backgroundStatus = 'skipped';
+
+    // Extract report URL if available
+    const reportUrl = candidateData?.report_url || '';
 
     await User.findByIdAndUpdate(userId, {
       $set: {
-        'onboarding.springVerify.candidateStatus': candidateStatus,
-        'onboarding.springVerify.completedAt': new Date(),
+        'onboarding.backgroundCheck.status': backgroundStatus,
+        'onboarding.backgroundCheck.completedAt': new Date(),
+        ...(reportUrl && { 'onboarding.backgroundCheck.reportUrl': reportUrl }),
       },
     });
 
     return {
       status: 'success',
-      message: 'Candidate status fetched successfully',
-      data: candidateStatus,
+      message: 'Candidate status fetched and saved successfully',
+      data: {
+        springStatus,
+        mappedStatus: backgroundStatus,
+        reportUrl,
+      },
     };
   } catch (error) {
+    console.error('SpringVerify getCandidateStatus error:', error?.response?.data || error.message);
     return {
       status: 'error',
       message: 'Failed to fetch candidate status',

@@ -452,22 +452,33 @@ const savePartialUserOnboardingInfo = async (req, res) => {
   try {
     const userId = req.user.userId;
     const update = { $set: {} };
+    const submitStatus = req.body;
 
-    for (const [key, value] of Object.entries(req.body)) {
-      update.$set[`onboarding.userFilledInfo.${key}`] = value;
+    const isFinalSubmit = submitStatus.finalSubmit === true;
+
+    for (const [key, value] of Object.entries(submitStatus)) {
+      if (key !== "finalSubmit") {
+        update.$set[`onboarding.userFilledInfo.${key}`] = value;
+      }
+    }
+
+    if (isFinalSubmit) {
+      update.$set["onboarding.userFilledInfo.submittedAt"] = new Date();
     }
 
     const user = await User.findByIdAndUpdate(userId, update, { new: true });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    res
-      .status(200)
-      .json({ message: "Data saved", data: user.onboarding.userFilledInfo });
+    res.status(200).json({
+      message: isFinalSubmit ? "Final submission successful" : "Data saved",
+      data: user.onboarding.userFilledInfo,
+    });
   } catch (error) {
     console.error("Error saving onboarding info:", error);
     res.status(500).json({ error: "Failed to save onboarding data" });
   }
 };
+
 
 // ========== [3] Save Final Onboarding Info + Trigger SpringVerify ==========
 // const saveFinalUserOnboardingInfo = async (req, res) => {
@@ -576,7 +587,7 @@ const savePartialUserOnboardingInfo = async (req, res) => {
 // };
 
 
-const saveFinalUserOnboardingInfo = async (req, res) => {
+const processSpringVerifyOrNda = async (req, res) => {
   try {
     const userId = req.user.userId;
     const user = await User.findById(userId).lean();
@@ -592,30 +603,36 @@ const saveFinalUserOnboardingInfo = async (req, res) => {
     const { email } = userDetails;
     const action = req.body.action; // 'verify' or 'skip'
 
-    // Save user-filled onboarding info regardless of action
+    // Save user-filled onboarding info
     await User.findByIdAndUpdate(userId, {
       $set: {
         'onboarding.userFilledInfo': userDetails,
-        'onboarding.springVerify.verified': action === 'verify',
-        'onboarding.springVerify.initiatedAt': new Date(),
       },
     });
 
     if (action === 'verify') {
-      // Step 1 + 2: Fetch packages and add candidate
+      // Step 1: Fetch SpringVerify package & add candidate
       const verifyRes = await fetchPackageAndAddCandidate(userId, userDetails);
       if (verifyRes.status === 'error') {
         return res.status(500).json(verifyRes);
       }
 
-      // Step 3: Get candidate status
+      // Step 2: Get candidate status
       const statusRes = await getCandidateStatus(userId, email);
       if (statusRes.status === 'error') {
         return res.status(500).json(statusRes);
       }
 
-      // Dispatch NDA if spring verify check completed
-      if (statusRes.data?.status === 'completed') {
+      // Step 3: If background check is completed, mark it as verified
+      if (statusRes.data === 'Completed') {
+        await User.findByIdAndUpdate(userId, {
+          $set: {
+            'onboarding.backgroundCheck.status': 'verified',
+            'onboarding.backgroundCheck.completedAt': new Date(),
+          },
+        });
+
+        // Step 4: Dispatch NDA
         await dispatchNdaFlow(userId, userDetails);
       }
 
@@ -628,8 +645,14 @@ const saveFinalUserOnboardingInfo = async (req, res) => {
         },
       });
 
-      //dispatch NDA if selected to skip springVerify
     } else if (action === 'skip') {
+      // Skip background check
+      await User.findByIdAndUpdate(userId, {
+        $set: {
+          'onboarding.backgroundCheck.status': 'skipped',
+        },
+      });
+
       await dispatchNdaFlow(userId, userDetails);
 
       return res.status(200).json({
@@ -644,7 +667,7 @@ const saveFinalUserOnboardingInfo = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('saveFinalUserOnboardingInfo error:', error);
+    console.error('processSpringVerifyOrNda error:', error);
     return res.status(500).json({
       status: 'error',
       message: 'Unexpected server error during onboarding',
@@ -652,6 +675,7 @@ const saveFinalUserOnboardingInfo = async (req, res) => {
     });
   }
 };
+
 
 // Fetch department details
 const getAllDepartments = async (req, res) => {
@@ -733,7 +757,7 @@ module.exports = {
   updateAllocationStatus: updateAssetAllocationStatus,
   fetchUserOnboardingInfo,
   savePartialUserOnboardingInfo,
-  saveFinalUserOnboardingInfo,
+  processSpringVerifyOrNda,
   newEmployeeSetup,
   getAllDepartments,
   getRoles

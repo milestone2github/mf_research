@@ -92,4 +92,9 @@ app.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
   // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
+  cron.schedule("0 9 */5 * *", () => {
+  console.log("Running SpringVerify status cron...");
+  springVerifyStatusCheck();
+});
+
 });
