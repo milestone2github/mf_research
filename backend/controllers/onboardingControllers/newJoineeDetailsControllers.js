@@ -4,10 +4,16 @@ const nodemailer = require("nodemailer");
 const axios = require("axios");
 const Department = require("../../models/Department");
 const Role = require("../../models/Role");
+const User = require('../models/User');
+const { fetchPackageAndAddCandidate, getCandidateStatus } = require('./springVerifyController');
+const { dispatchNdaFlow } = require('../../utils/ndaWorkFlow'); 
+
+
 // zoho setup
 const BASE_URL =
   "https://people.zoho.com/people/api/forms/json/employee/insertRecord";
 
+  // Sending Gotra to new employees Via Mail
 async function sendGotraDocument(userId) {
   // 1. Load the user
   const user = await User.findById(userId);
@@ -40,6 +46,7 @@ async function sendGotraDocument(userId) {
   return user.onboarding.gotra;
 }
 
+// Supporting function to check if E-mail exists & Add new Employee to Zoho
 async function zohoApiOnboarding(val, record) {
   const params = {
     inputData: JSON.stringify(record),
@@ -60,13 +67,14 @@ async function zohoApiOnboarding(val, record) {
   }
 }
 
+// Generating Unique Email id for new Employee
 async function registerEmployeeInZohoById(id, val) {
   const user = await User.findById(id);
   var finalEmail = "";
   if (!user) throw { status: 404, message: "User not found" };
   const domain = "@niveshonline.com";
   var first = user.onboarding.hrFilledInfo.name.split(" ")[0];
-  first = "abhishek";
+  // first = "abhishek";
   var email = first + domain;
   var records = {
     EmployeeID: id.toString(),
@@ -128,6 +136,7 @@ async function registerEmployeeInZohoById(id, val) {
   return finalEmail;
 }
 
+//To get Email ids of all employees
 async function getEmployeeRecords(val) {
   const url = "https://people.zoho.com/people/api/forms/P_EmployeeView/records";
   try {
@@ -153,6 +162,7 @@ async function getEmployeeRecords(val) {
   }
 }
 
+// Main function to Add new Employee in Zoho
 async function newEmployeeSetup(req, res) {
   try {
     const id = "66d94d8860115997c619a5db";
@@ -224,55 +234,7 @@ function generateOfferLetterPDF({
   });
 }
 
-// ======= Email Sending =======
-async function sendEmail(
-  subject,
-  body,
-  toAddress,
-  ccAddress,
-  attachmentFiles = {}
-) {
-  const transporter = nodemailer.createTransport({
-    host: "smtp.zeptomail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: "emailapikey",
-      pass: process.env.SMTP_PASSWORD,
-    },
-  });
-
-  const attachments = [];
-  for (const filename in attachmentFiles) {
-    if (attachmentFiles.hasOwnProperty(filename)) {
-      attachments.push({
-        filename: filename,
-        content: attachmentFiles[filename],
-        contentType: "application/pdf",
-      });
-    }
-  }
-
-  const mailOptions = {
-    from: "hr@mnivesh.niveshonline.com",
-    to: toAddress,
-    cc: ccAddress,
-    subject: subject,
-    html: body,
-    attachments: attachments,
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully:", info);
-    return info;
-  } catch (error) {
-    console.error("Failed to send email:", error);
-    throw error;
-  }
-}
-
-// ======= Save Joinee =======
+// ======= Save Joinee ======= Step 1
 async function saveJoineeDetails(req, res) {
   try {
     const {
@@ -507,6 +469,190 @@ const savePartialUserOnboardingInfo = async (req, res) => {
   }
 };
 
+// ========== [3] Save Final Onboarding Info + Trigger SpringVerify ==========
+// const saveFinalUserOnboardingInfo = async (req, res) => {
+//   try {
+//     const userId = req.user.userId;
+//     const user = await User.findById(userId).lean();
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found', error: 'Invalid userId or user does not exist in DB',
+//       });
+//     }
+
+//     const userDetails = req.body;
+//     const { email, phone } = userDetails;
+//     const name = userDetails.name || `${userDetails.firstName} ${userDetails.lastName}`;
+
+//     // ---------- Step 1: Fetch Packages ----------
+//     const packageResponse = await axios.get(`${SPRINGVERIFY_BASE}/candidate/packages`, {
+//       headers: {
+//         Authorization: `Bearer ${SPRINGVERIFY_TOKEN}`,
+//         Accept: 'application/json',
+//       },
+//     });
+
+//     const selectedPackage = packageResponse.data?.packages?.[0];
+//     if (!selectedPackage) {
+//       return res.status(400).json({
+//         message: 'No SpringVerify packages available',
+//         error: 'Received empty package list from SpringVerify',
+//       });
+//     }
+
+//     const packageId = selectedPackage.package_id;
+//     const subtypeId = selectedPackage.subtypes?.[0]?.subtype_id;
+
+//     // ---------- Step 2: Add Candidate ----------
+//     const candidatePayload = {
+//       candidate: {
+//         name,
+//         email,
+//         alternate_email: '',
+//         phone,
+//         alternate_phone: '',
+//         employee_id: userDetails.employeeId || '',
+//         uan_number: '',
+//         tags: [{ id: 100 }],
+//         resume: '',
+//         invite: true,
+//         is_consent_undertaking_letter: false,
+//         category_id: 200,
+//         meta_data: { uuid: user._id.toString() },
+//       },
+//       package: {
+//         package_id: packageId,
+//         subtype_id: subtypeId,
+//         config: {},
+//       },
+//     };
+
+//     const addCandidateRes = await axios.post(`${SPRINGVERIFY_BASE}/candidate/add`, candidatePayload, {
+//       headers: {
+//         Authorization: `Bearer ${SPRINGVERIFY_TOKEN}`,
+//         'Content-Type': 'application/json',
+//       },
+//     });
+
+//     const springCandidateData = addCandidateRes.data;
+
+//     // ---------- Step 3: Fetch Candidate Status ----------
+//     const statusRes = await axios.get(`${SPRINGVERIFY_BASE}/candidate/details?email=${email}`, {
+//       headers: {
+//         Authorization: `Bearer ${SPRINGVERIFY_TOKEN}`,
+//       },
+//     });
+
+//     const candidateStatus = statusRes.data;
+
+//     // ---------- Step 4: Save to DB ----------
+//     const update = {
+//       $set: {
+//         'onboarding.userFilledInfo': userDetails,
+//         'onboarding.springVerify': {
+//           packageId,
+//           subtypeId,
+//           springCandidateData,
+//           candidateStatus,
+//           verified: true,
+//           initiatedAt: new Date(),
+//         },
+//       },
+//     };
+
+//     await User.findByIdAndUpdate(userId, update);
+
+//     res.status(200).json({
+//       message: 'Final onboarding completed and SpringVerify process triggered successfully.',
+//       springVerifyStatus: candidateStatus,
+//     });
+
+//   } catch (error) {
+//     console.error('Final onboarding error:', error?.response?.data || error.message);
+//     res.status(500).json({
+//       message: 'Final onboarding failed during SpringVerify integration.',
+//       error: error?.response?.data || error.message || 'Unexpected server error',
+//     });
+//   }
+// };
+
+
+const saveFinalUserOnboardingInfo = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await User.findById(userId).lean();
+
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    const userDetails = req.body;
+    const { email } = userDetails;
+    const action = req.body.action; // 'verify' or 'skip'
+
+    // Save user-filled onboarding info regardless of action
+    await User.findByIdAndUpdate(userId, {
+      $set: {
+        'onboarding.userFilledInfo': userDetails,
+        'onboarding.springVerify.verified': action === 'verify',
+        'onboarding.springVerify.initiatedAt': new Date(),
+      },
+    });
+
+    if (action === 'verify') {
+      // Step 1 + 2: Fetch packages and add candidate
+      const verifyRes = await fetchPackageAndAddCandidate(userId, userDetails);
+      if (verifyRes.status === 'error') {
+        return res.status(500).json(verifyRes);
+      }
+
+      // Step 3: Get candidate status
+      const statusRes = await getCandidateStatus(userId, email);
+      if (statusRes.status === 'error') {
+        return res.status(500).json(statusRes);
+      }
+
+      // Dispatch NDA if spring verify check completed
+      if (statusRes.data?.status === 'completed') {
+        await dispatchNdaFlow(userId, userDetails);
+      }
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'SpringVerify process completed',
+        data: {
+          springVerifyResponse: verifyRes.data,
+          candidateStatus: statusRes.data,
+        },
+      });
+
+      //dispatch NDA if selected to skip springVerify
+    } else if (action === 'skip') {
+      await dispatchNdaFlow(userId, userDetails);
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'SpringVerify skipped, NDA workflow dispatched',
+      });
+    }
+
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid action type. Must be either "verify" or "skip".',
+    });
+
+  } catch (error) {
+    console.error('saveFinalUserOnboardingInfo error:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Unexpected server error during onboarding',
+      data: error.message,
+    });
+  }
+};
+
 // Fetch department details
 const getAllDepartments = async (req, res) => {
   try {
@@ -587,6 +733,7 @@ module.exports = {
   updateAllocationStatus: updateAssetAllocationStatus,
   fetchUserOnboardingInfo,
   savePartialUserOnboardingInfo,
+  saveFinalUserOnboardingInfo,
   newEmployeeSetup,
   getAllDepartments,
   getRoles

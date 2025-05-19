@@ -84,7 +84,7 @@ const userSchema = new mongoose.Schema({
         backgroundCheck: {
             status: {
                 type: String,
-                enum: ['pending', 'in_progress', 'verified', 'failed'],
+                enum: ['pending', 'in_progress', 'verified', 'failed', 'skipped'],
                 default: 'pending'
             },
             initiatedAt: { type: Date },
