@@ -1,4 +1,28 @@
-const { getGroupedTransactions, getTransactionsBySession, addNewFraction, removeFraction, addAllFractions, generateLink, filteredTransactions, getAllAmcNames, getSchemeNames, getRMNames, nfoTransactions, updateApprovalStatus, updateOrderId, getSMNames, setServiceManager, updateNote, setRelationshipManager, getTransactionsGroupByFh, getTransactionsFilterByFamilyHead, updateTransaction, exportAllTransactions } = require('../../controllers/opsDash/OpsTransactions');
+const {
+  getGroupedTransactions,
+  getTransactionsBySession,
+  addNewFraction,
+  removeFraction,
+  addAllFractions,
+  generateLink,
+  filteredTransactions,
+  getAllAmcNames,
+  getSchemeNames,
+  getRMNames,
+  nfoTransactions,
+  updateApprovalStatus,
+  updateOrderId,
+  getSMNames,
+  setServiceManager,
+  updateNote,
+  setRelationshipManager,
+  getTransactionsGroupByFh,
+  getTransactionsFilterByFamilyHead,
+  updateTransaction,
+  exportAllTransactions,
+  getAllSMNames,
+  getAllRMNames,
+} = require('../../controllers/opsDash/OpsTransactions');
 const verifyUser = require('../../middlewares/VerifyUser')
 const router = require('express').Router();
 
@@ -12,6 +36,8 @@ router.patch('/fraction/add/:id', addNewFraction);
 router.patch('/fraction/add-all/:id', verifyUser, addAllFractions);
 router.patch('/fraction/remove/:id', removeFraction);
 router.get('/filtered-transactions', filteredTransactions);
+router.get('/get-sm-names', getAllSMNames)      // FETCH ALL SM NAMES FROM TRANSACTIONS
+router.get('/get-rm-names', getAllRMNames)      // FETCH ALL RM NAMES FROM TRANSACTIONS
 router.get('/nfo-transactions', nfoTransactions);
 router.get('/amc', getAllAmcNames);
 router.get('/scheme', getSchemeNames);

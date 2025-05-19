@@ -779,6 +779,14 @@ const filteredTransactions = async (req, res) => {
   let sortBy = sortMap.get(sort || 'trxdate-desc');
 
   try {
+    // Aggregation for unique serviceManager names
+    // const uniqueSMList = await Transactions.aggregate([
+    //   { $match: filterStage1 },
+    //   { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+    //   { $match: { $or: [{ hasFractions: false, ...filterStage2 }, { hasFractions: true, ...fractionFilters }] } },
+    //   { $group: { _id: '$serviceManager' } }, // Group by serviceManager to get unique values
+    //   { $project: { _id: 0, serviceManager: '$_id' } } // Rename field to 'serviceManager'
+    // ]);
 
     const paginatedTransactions = await Transactions.aggregate([
       { $match: filterStage1 },
@@ -833,6 +841,7 @@ const filteredTransactions = async (req, res) => {
         totalCount,
         totalAmount,
         transactions: paginatedTransactions,
+        // uniqueSMList: uniqueSMList.map(item => item.serviceManager)
       },
       message: 'Transactions found'
     });
@@ -1282,6 +1291,66 @@ const exportAllTransactions = async (req, res) => {
   }
 };
 
+// Fetch unique SM Names from Transactions
+const getAllSMNames = async (_req, res) => {
+  try {
+    const uniqueSMList = await Transactions.aggregate([
+      {
+        $group: {
+          _id: '$serviceManager'
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          serviceManager: '$_id'
+        }
+      },
+      {
+        $sort: { serviceManager: 1 }
+      }
+    ]);
+
+    res.status(200).json({
+      data: uniqueSMList.map(item => item.serviceManager),
+      message: 'All unique service managers fetched'
+    });
+  } catch (error) {
+    console.log('Error fetching service managers:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Fetch Unique RM Names from Transactions {ToDo Improvements: Merge getAllSMNames and getAllRMNames into one}
+const getAllRMNames = async (_req, res) => {
+  try {
+    const uniqueRMList = await Transactions.aggregate([
+      {
+        $group: {
+          _id: '$relationshipManager'
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          relationshipManager: '$_id'
+        }
+      },
+      {
+        $sort: { relationshipManager: 1 }
+      }
+    ]);
+
+    res.status(200).json({
+      data: uniqueRMList.map(item => item.relationshipManager),
+      message: 'All unique relationship managers fetched'
+    });
+  } catch (error) {
+    console.log('Error fetching relationship managers:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getGroupedTransactions,
   getTransactionsBySession,
@@ -1304,4 +1373,6 @@ module.exports = {
   updateNote,
   setRelationshipManager, //TEMPORARY
   exportAllTransactions,
+  getAllSMNames,  // New
+  getAllRMNames,  // New
 }
