@@ -37,7 +37,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: false,
-      maxAge: 24 * 60 * 60 * 1000, 
+      maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
@@ -73,7 +73,7 @@ app.use('/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/ops-dash', opsRoutes);
 app.use('/api/mint', mintRoutes);
-app.use('/api/mnivesh/admin',AdminRoute);
+app.use('/api/mnivesh/admin', AdminRoute);
 app.use('/api/onboarding', OnboardingRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
 
@@ -92,9 +92,9 @@ app.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
   // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
-  cron.schedule("0 9 */5 * *", () => {
-  console.log("Running SpringVerify status cron...");
-  springVerifyStatusCheck();
-});
+  cron.schedule("0 11 * * *", () => {
+    console.log("Running SpringVerify daily background check status cron at 11:00 AM...");
+    springVerifyStatusCheck();
+  });
 
 });
