@@ -46,13 +46,13 @@ async function sendGotraDocument(userId) {
 }
 
 // Supporting function to check if E-mail exists & Add new Employee to Zoho
-async function zohoApiOnboarding(val, record) {
+async function zohoApiOnboarding(access_token, record) {
   const params = {
     inputData: JSON.stringify(record),
   };
 
   const headers = {
-    Authorization: `Zoho-oauthtoken ${val}`,
+    Authorization: `Zoho-oauthtoken ${access_token}`,
   };
   try {
     const resp = await axios.get(BASE_URL, { params, headers });
@@ -67,7 +67,7 @@ async function zohoApiOnboarding(val, record) {
 }
 
 // Generating Unique Email id for new Employee
-async function registerEmployeeInZohoById(id, val) {
+async function registerEmployeeInZohoById(id, access_token) {
   const user = await User.findById(id);
   var finalEmail = "";
   if (!user) throw { status: 404, message: "User not found" };
@@ -81,8 +81,8 @@ async function registerEmployeeInZohoById(id, val) {
     LastName: user.onboarding.hrFilledInfo.name.split(" ")[0],
     EmailID: email,
   };
-  var result = await zohoApiOnboarding(val, records);
-  console.log(zohoApiOnboarding(val, records));
+  var result = await zohoApiOnboarding(access_token, records);
+  console.log(zohoApiOnboarding(access_token, records));
   if (result === 1) {
     var second =
       "." +
@@ -94,7 +94,7 @@ async function registerEmployeeInZohoById(id, val) {
       LastName: user.onboarding.hrFilledInfo.name.split(" ")[0],
       EmailID: email,
     };
-    result = await zohoApiOnboarding(val, records);
+    result = await zohoApiOnboarding(access_token, records);
     if (result == 1) {
       second =
         "." + user.onboarding.hrFilledInfo.name.split(" ")[0].toLowerCase();
@@ -105,7 +105,7 @@ async function registerEmployeeInZohoById(id, val) {
         LastName: user.onboarding.hrFilledInfo.name.split(" ")[0],
         EmailID: email,
       };
-      result = await zohoApiOnboarding(val, records);
+      result = await zohoApiOnboarding(access_token, records);
       if (result == 1) {
         first = first + second;
         for (var i = 1; ; i++) {
@@ -117,7 +117,7 @@ async function registerEmployeeInZohoById(id, val) {
             LastName: user.onboarding.hrFilledInfo.name.split(" ")[0],
             EmailID: email,
           };
-          result = await zohoApiOnboarding(val, records);
+          result = await zohoApiOnboarding(access_token, records);
           if (result == 0) {
             break;
           }
@@ -136,7 +136,7 @@ async function registerEmployeeInZohoById(id, val) {
 }
 
 //To get Email ids of all employees
-async function getEmployeeRecords(val) {
+async function getEmployeeRecords(access_token) {
   const url = "https://people.zoho.com/people/api/forms/P_EmployeeView/records";
   try {
     const resp = await axios.get(url, {
@@ -146,7 +146,7 @@ async function getEmployeeRecords(val) {
         // searchValue: id
       },
       headers: {
-        Authorization: `Zoho-oauthtoken ${val}`,
+        Authorization: `Zoho-oauthtoken ${access_token}`,
       },
     });
     const emailList = resp.data
@@ -165,11 +165,11 @@ async function getEmployeeRecords(val) {
 async function newEmployeeSetup(userId) {
   try {
     // const id = "66d94d8860115997c619a5db";
-    const val =
-      "1000.b862d56b65aa76578c8ba3dbed6f4f46.b7093143009dec4159a5c4063e090833";
-    const finalEmail = await registerEmployeeInZohoById(userId, val);
+    const access_token = await getZohoAccessToken();
+
+    const finalEmail = await registerEmployeeInZohoById(userId, access_token);
     // console.log(finalEmail);
-    // await getEmployeeRecords(val);
+    // await getEmployeeRecords(access_token);
     // const gotraStatus = await sendGotraDocument(id);
     return res.status(200).json({
       success: true,
@@ -662,13 +662,13 @@ const ndaSignedWebhook = async (req, res) => {
 
         if (updated) {
           console.log(`✅ NDA marked as signed for: ${updated.email}`);
+          newEmployeeSetup(updated._id);
         } else {
           console.warn(`⚠️ No user found with requestId: ${requestId}`);
         }
       }
     }
     res.sendStatus(200); // Acknowledge receipt
-    newEmployeeSetup(requests.request_id);
 
   } catch (error) {
     console.error('❌ Error handling NDA signed webhook:', error.message);
