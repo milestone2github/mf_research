@@ -9,15 +9,14 @@ const fetchPackageAndAddCandidate = async (userId, userDetails) => {
   try {
     const user = await User.findById(userId).lean();
     if (!user) {
-      return {
-        status: 'error',
-        message: 'User not found',
-        data: null,
-      };
+      console.log(`[SpringVerify] ❌ User not found for ID: ${userId}`);
+      return { status: 'error', message: 'User not found', data: null, };
     }
 
     const { email, phone } = userDetails;
     const name = userDetails.name || `${userDetails.firstName} ${userDetails.lastName}`;
+
+    console.log(`[SpringVerify] ➡️ Fetching packages for: ${name} (${email})`);
 
     // Fetch packages
     const packageResponse = await axios.get(`${SPRINGVERIFY_BASE}/candidate/packages`, {
@@ -29,12 +28,11 @@ const fetchPackageAndAddCandidate = async (userId, userDetails) => {
 
     const selectedPackage = packageResponse.data?.packages?.[0];
     if (!selectedPackage) {
-      return {
-        status: 'error',
-        message: 'No SpringVerify packages found',
-        data: null,
-      };
+      console.log(`[SpringVerify] ❌ No packages found in response`);
+      return { status: 'error', message: 'No SpringVerify packages found', data: null, };
     }
+
+    console.log(`[SpringVerify] Selected package: ${selectedPackage.package_id}`);
 
     const packageId = selectedPackage.package_id;
     const subtypeId = selectedPackage.subtypes?.[0]?.subtype_id;
@@ -63,6 +61,8 @@ const fetchPackageAndAddCandidate = async (userId, userDetails) => {
       },
     };
 
+    console.log(`[SpringVerify] 📤 Sending candidate add request for ${email}`);
+
     const addCandidateRes = await axios.post(`${SPRINGVERIFY_BASE}/candidate/add`, candidatePayload, {
       headers: {
         Authorization: `Bearer ${SPRINGVERIFY_TOKEN}`,
@@ -86,11 +86,10 @@ const fetchPackageAndAddCandidate = async (userId, userDetails) => {
       data: addCandidateRes.data,
     };
   } catch (error) {
-    return {
-      status: 'error',
-      message: 'Failed to fetch package or add candidate',
-      data: error?.response?.data || error.message,
-    };
+        console.log(`[SpringVerify] Line 89 fetchPackageAndAddCandidate error:`, error?.response?.data || error.message);
+
+    return { status: 'error', message: 'Failed to fetch package or add candidate', 
+      data: error?.response?.data || error.message,};
   }
 };
 
@@ -98,6 +97,7 @@ const fetchPackageAndAddCandidate = async (userId, userDetails) => {
 // === Step 3: Get Candidate Status ===
 const getCandidateStatus = async (userId, email) => {
   try {
+    console.log(`[SpringVerify] 🔍 Fetching status for candidate: ${email}`);
     const statusRes = await axios.get(`${SPRINGVERIFY_BASE}/candidate/details?email=${email}`, {
       headers: {
         Authorization: `Bearer ${SPRINGVERIFY_TOKEN}`,
@@ -106,6 +106,8 @@ const getCandidateStatus = async (userId, email) => {
 
     const candidateData = statusRes.data; //full response of candidate from springVerify
     const springStatus = candidateData?.overall_status; //verification status
+
+    console.log(`[SpringVerify] 📄 Spring status for ${email}: ${springStatus}`);
 
     // Map SpringVerify status to DB enum
     let backgroundStatus = 'pending';
@@ -125,9 +127,10 @@ const getCandidateStatus = async (userId, email) => {
       },
     });
 
+    console.log(`[SpringVerify] ✅ Status updated for user ${userId}: ${backgroundStatus}`);
+
     return {
-      status: 'success',
-      message: 'Candidate status fetched and saved successfully',
+      status: 'success', message: 'Candidate status fetched and saved successfully',
       data: {
         springStatus,
         mappedStatus: backgroundStatus,

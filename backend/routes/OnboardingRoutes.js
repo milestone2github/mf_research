@@ -7,9 +7,9 @@ const {
   fetchUserOnboardingInfo,
   savePartialUserOnboardingInfo,
   newEmployeeSetup,
-  
   getAllDepartments,
   getRoles,
+  ndaSignedWebhook,
    
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
 
@@ -44,6 +44,8 @@ router.patch('/onboarding-form', verifyToken, savePartialUserOnboardingInfo);
 
 router.get('/department', getAllDepartments);
 router.get('/roles', getRoles);
+
+router.post('/nda-sign-webhook', ndaSignedWebhook)
 
 
 

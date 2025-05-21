@@ -14,7 +14,7 @@ const mintRoutes = require('./routes/Mint');
 const OnboardingRoutes = require('./routes/OnboardingRoutes');
 const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
-const { pendingTransactionsNotification } = require("./utils/scheduledTasks");
+const { pendingTransactionsNotification, springVerifyStatusCheck } = require("./utils/scheduledTasks");
 const MongoStore = require("connect-mongo");
 const AdminRoute = require("./routes/mniveshAdminRoutes/mniveshAdminRoutes");
 const router = require("./routes");
@@ -92,9 +92,11 @@ app.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
   // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
+  /*
   cron.schedule("0 11 * * *", () => {
     console.log("Running SpringVerify daily background check status cron at 11:00 AM...");
     springVerifyStatusCheck();
   });
+  */
 
 });

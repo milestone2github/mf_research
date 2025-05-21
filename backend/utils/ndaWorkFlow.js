@@ -1,10 +1,13 @@
 const axios = require("axios");
-const { getZohoAccessToken } = require("./getZohoAccessToken");
+const { getZohoAccessToken } = require("../utils/getZohoAccessToken");
+const sendEmail = require("./sendEmail");
 
 // === Step 1: Create NDA Document ===
 async function createNdaDocument(employeeName, employeeEmail, oauth) {
   const url = "https://sign.zoho.in/api/v1/templates/70669000000031001/createdocument";
-  const headers = { Authorization: Zoho-oauthtoken `${oauth}` };
+  const headers = { 
+    Authorization: `Zoho-oauthtoken ${oauth}` 
+  };
 
   const data = {
     templates: {
@@ -52,24 +55,29 @@ async function createNdaDocument(employeeName, employeeEmail, oauth) {
   form.append("data", JSON.stringify(data));
   form.append("is_quicksend", "false");
 
-  const response = await axios.post(url, form, {
-    headers: {
-      ...headers,
-      ...form.getHeaders()
-    }
-  });
+  try {
+    const response = await axios.post(url, form, {
+      headers: {
+        ...headers,
+        ...form.getHeaders(),
+      },
+    });
 
-  const { document_ids, request_id } = response.data.requests;
-  return {
-    documentId: document_ids[0].document_id,
-    requestId: request_id
-  };
+    const documentId = response.data.requests.document_ids[0].document_id;
+    const requestId = response.data.requests.request_id;
+    return { documentId, requestId };
+  } catch (error) {
+    console.error('Failed to create document:', error.response?.data || error);
+    throw error;
+  }
 }
 
 // === Step 2: Generate E-Stamp ===
 async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
-  const url = 'https://sign.zoho.in/api/v1/requests/${requestId}';
-  const headers = { Authorization: Zoho-oauthtoken `${oauth}` };
+  const url = `https://sign.zoho.in/api/v1/requests/${requestId}`;
+  const headers = { 
+    Authorization: `Zoho-oauthtoken ${oauth}` 
+  };
 
   const payload = {
     requests: {
@@ -103,34 +111,75 @@ async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
               pincode: "110085",
               country: "India"
             },
-            second_party_address: employeeDetails.address
+            second_party_address: {
+              street_address: employeeDetails.address.streetAddress,
+              city: employeeDetails.address.city,
+              state: employeeDetails.address.state,
+              pincode: employeeDetails.address.pincode,
+              country: employeeDetails.address.country,
+            }
           }
         }
       ]
     }
   };
 
-  await axios.put(url, payload, { headers });
+    try {
+    await axios.put(url, payload, { headers });
+    console.log('E-stamp paper generated successfully.');
+    return 200;
+  } catch (error) {
+    console.error('Failed to generate e-stamp paper:', error.response?.data || error);
+    throw error;
+  }
 }
 
 // === Step 3: Send for Signature ===
 async function sendForSignature(requestId, oauth) {
-  const url = 'https://sign.zoho.in/api/v1/requests/${requestId}/submit';
-  const headers = { Authorization: Zoho-oauthtoken `${oauth}` };
-  await axios.post(url, {}, { headers });
+  const url = `https://sign.zoho.in/api/v1/requests/${requestId}/submit`;
+  const headers = { Authorization: `Zoho-oauthtoken ${oauth}` };
+
+  try {
+    await axios.post(url, null, { headers });
+    console.log('Document sent for signature successfully.');
+  } catch (error) {
+    console.error('Failed to send document for signature:', error.response?.data || error);
+    throw error;
+ }
 }
 
 // === Master Orchestration ===
 async function dispatchNdaFlow(employeeDetails, stampRequired = true) {
   const { name, email, pan, address } = employeeDetails;
-  const oauth = await getZohoAccessToken();
-  const { documentId, requestId } = await createNdaDocument(name, email, oauth);
+  try {
+    const oauth = await getZohoAccessToken();
+    const { documentId, requestId } = await createNdaDocument(name, email, oauth);
+  
+    if (stampRequired) {
+      await generateEstamp(requestId, documentId, employeeDetails, oauth);
+    }
+  
+    await sendForSignature(requestId, oauth);
 
-  if (stampRequired) {
-    await generateEstamp(requestId, documentId, employeeDetails, oauth);
+    // update NDA status in DB
+    await User.findByIdAndUpdate(_id, {
+      $set: {
+        'onboarding.nda.sent': true,
+        'onboarding.nda.sentAt': new Date(),
+        'onboarding.nda.requestId': requestId
+      }
+    });
+  } catch (error) {
+
+    // send error via email notification
+    await sendEmail({
+      toAddress: 'error@niveshonline.com',
+      subject: 'Error in Dispatching NDA',
+      body: `<p>Error occurred in dispatchNdaFlow for user ${email}</p><pre>${error.stack}</pre>`
+    });
+
+    console.log('Error dispatchNda main function');
   }
-
-  await sendForSignature(requestId, oauth);
 }
 
 module.exports = {

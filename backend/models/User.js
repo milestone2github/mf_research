@@ -96,7 +96,8 @@ const userSchema = new mongoose.Schema({
             sentAt: { type: Date },
             signed: { type: Boolean, default: false },
             signedAt: { type: Date },
-            fileUrl: { type: String }
+            fileUrl: { type: String },
+            requestId: { type: String }
         },
         zohoSetup: {
             userCreated: { type: Boolean, default: false },

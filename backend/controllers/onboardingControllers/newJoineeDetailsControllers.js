@@ -4,16 +4,15 @@ const nodemailer = require("nodemailer");
 const axios = require("axios");
 const Department = require("../../models/Department");
 const Role = require("../../models/Role");
-const User = require('../models/User');
-const { fetchPackageAndAddCandidate, getCandidateStatus } = require('./springVerifyController');
-const { dispatchNdaFlow } = require('../../utils/ndaWorkFlow'); 
+const { fetchPackageAndAddCandidate, getCandidateStatus } = require('./springVerifyControllers');
+const { dispatchNdaFlow } = require('../../utils/ndaWorkFlow');
 
 
 // zoho setup
 const BASE_URL =
   "https://people.zoho.com/people/api/forms/json/employee/insertRecord";
 
-  // Sending Gotra to new employees Via Mail
+// Sending Gotra to new employees Via Mail
 async function sendGotraDocument(userId) {
   // 1. Load the user
   const user = await User.findById(userId);
@@ -163,12 +162,12 @@ async function getEmployeeRecords(val) {
 }
 
 // Main function to Add new Employee in Zoho
-async function newEmployeeSetup(req, res) {
+async function newEmployeeSetup(userId) {
   try {
-    const id = "66d94d8860115997c619a5db";
+    // const id = "66d94d8860115997c619a5db";
     const val =
       "1000.b862d56b65aa76578c8ba3dbed6f4f46.b7093143009dec4159a5c4063e090833";
-    const finalEmail = await registerEmployeeInZohoById(id, val);
+    const finalEmail = await registerEmployeeInZohoById(userId, val);
     // console.log(finalEmail);
     // await getEmployeeRecords(val);
     // const gotraStatus = await sendGotraDocument(id);
@@ -359,7 +358,7 @@ async function statusDetailsAllJoinee(req, res) {
 async function statusDetails(req, res) {
   try {
     const users = await User.find({
-      status: { $in: ["pending", "onboarding"] }, 
+      status: { $in: ["pending", "onboarding"] },
     }).lean();
     return res.status(200).json({
       success: true,
@@ -478,113 +477,6 @@ const savePartialUserOnboardingInfo = async (req, res) => {
     res.status(500).json({ error: "Failed to save onboarding data" });
   }
 };
-
-
-// ========== [3] Save Final Onboarding Info + Trigger SpringVerify ==========
-// const saveFinalUserOnboardingInfo = async (req, res) => {
-//   try {
-//     const userId = req.user.userId;
-//     const user = await User.findById(userId).lean();
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found', error: 'Invalid userId or user does not exist in DB',
-//       });
-//     }
-
-//     const userDetails = req.body;
-//     const { email, phone } = userDetails;
-//     const name = userDetails.name || `${userDetails.firstName} ${userDetails.lastName}`;
-
-//     // ---------- Step 1: Fetch Packages ----------
-//     const packageResponse = await axios.get(`${SPRINGVERIFY_BASE}/candidate/packages`, {
-//       headers: {
-//         Authorization: `Bearer ${SPRINGVERIFY_TOKEN}`,
-//         Accept: 'application/json',
-//       },
-//     });
-
-//     const selectedPackage = packageResponse.data?.packages?.[0];
-//     if (!selectedPackage) {
-//       return res.status(400).json({
-//         message: 'No SpringVerify packages available',
-//         error: 'Received empty package list from SpringVerify',
-//       });
-//     }
-
-//     const packageId = selectedPackage.package_id;
-//     const subtypeId = selectedPackage.subtypes?.[0]?.subtype_id;
-
-//     // ---------- Step 2: Add Candidate ----------
-//     const candidatePayload = {
-//       candidate: {
-//         name,
-//         email,
-//         alternate_email: '',
-//         phone,
-//         alternate_phone: '',
-//         employee_id: userDetails.employeeId || '',
-//         uan_number: '',
-//         tags: [{ id: 100 }],
-//         resume: '',
-//         invite: true,
-//         is_consent_undertaking_letter: false,
-//         category_id: 200,
-//         meta_data: { uuid: user._id.toString() },
-//       },
-//       package: {
-//         package_id: packageId,
-//         subtype_id: subtypeId,
-//         config: {},
-//       },
-//     };
-
-//     const addCandidateRes = await axios.post(`${SPRINGVERIFY_BASE}/candidate/add`, candidatePayload, {
-//       headers: {
-//         Authorization: `Bearer ${SPRINGVERIFY_TOKEN}`,
-//         'Content-Type': 'application/json',
-//       },
-//     });
-
-//     const springCandidateData = addCandidateRes.data;
-
-//     // ---------- Step 3: Fetch Candidate Status ----------
-//     const statusRes = await axios.get(`${SPRINGVERIFY_BASE}/candidate/details?email=${email}`, {
-//       headers: {
-//         Authorization: `Bearer ${SPRINGVERIFY_TOKEN}`,
-//       },
-//     });
-
-//     const candidateStatus = statusRes.data;
-
-//     // ---------- Step 4: Save to DB ----------
-//     const update = {
-//       $set: {
-//         'onboarding.userFilledInfo': userDetails,
-//         'onboarding.springVerify': {
-//           packageId,
-//           subtypeId,
-//           springCandidateData,
-//           candidateStatus,
-//           verified: true,
-//           initiatedAt: new Date(),
-//         },
-//       },
-//     };
-
-//     await User.findByIdAndUpdate(userId, update);
-
-//     res.status(200).json({
-//       message: 'Final onboarding completed and SpringVerify process triggered successfully.',
-//       springVerifyStatus: candidateStatus,
-//     });
-
-//   } catch (error) {
-//     console.error('Final onboarding error:', error?.response?.data || error.message);
-//     res.status(500).json({
-//       message: 'Final onboarding failed during SpringVerify integration.',
-//       error: error?.response?.data || error.message || 'Unexpected server error',
-//     });
-//   }
-// };
 
 
 const processSpringVerifyOrNda = async (req, res) => {
@@ -743,7 +635,46 @@ const getRoles = async (req, res) => {
   }
 };
 
+const ndaSignedWebhook = async (req, res) => {
+  const payload = req.body;
+  console.log("Webhook Received:", JSON.stringify(payload));
 
+  const { requests } = payload;
+  try {
+    if (requests?.actions[0].action_status === 'SIGNED') {
+
+      const employee = requests.actions.find(a => a.action_type === 'SIGN');
+      if (employee?.action_status === 'SIGNED') {
+        // ✅ Employee has signed — perform next step
+        const requestId = requests.request_id;
+        const signedAt = new Date();
+
+        // ✅ Update the user's NDA status using requestId
+        const updated = await User.findOneAndUpdate(
+          { 'onboarding.nda.requestId': requestId },
+          {
+            $set: {
+              'onboarding.nda.signed': true,
+              'onboarding.nda.signedAt': signedAt,
+            }
+          }, { new: true }
+        );
+
+        if (updated) {
+          console.log(`✅ NDA marked as signed for: ${updated.email}`);
+        } else {
+          console.warn(`⚠️ No user found with requestId: ${requestId}`);
+        }
+      }
+    }
+    res.sendStatus(200); // Acknowledge receipt
+    newEmployeeSetup(requests.request_id);
+
+  } catch (error) {
+    console.error('❌ Error handling NDA signed webhook:', error.message);
+    res.sendStatus(500);
+  }
+}
 
 
 // ======= EXPORT ==========
@@ -760,5 +691,6 @@ module.exports = {
   processSpringVerifyOrNda,
   newEmployeeSetup,
   getAllDepartments,
-  getRoles
+  getRoles,
+  ndaSignedWebhook
 };
