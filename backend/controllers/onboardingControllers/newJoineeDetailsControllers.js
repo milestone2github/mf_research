@@ -6,6 +6,7 @@ const Department = require("../../models/Department");
 const Role = require("../../models/Role");
 const { fetchPackageAndAddCandidate, getCandidateStatus } = require('./springVerifyControllers');
 const { dispatchNdaFlow } = require('../../utils/ndaWorkFlow');
+const { getZohoAccessToken } = require("../../utils/getZohoAccessToken");
 
 
 // zoho setup
@@ -481,8 +482,12 @@ const savePartialUserOnboardingInfo = async (req, res) => {
 
 const processSpringVerifyOrNda = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    console.log("🔍 Incoming body:", req.body);
+    const userId = req.body.userId;
     const user = await User.findById(userId).lean();
+
+console.log("Received userId:", userId);
+
 
     if (!user) {
       return res.status(404).json({
@@ -490,17 +495,17 @@ const processSpringVerifyOrNda = async (req, res) => {
         message: 'User not found',
       });
     }
-
-    const userDetails = req.body;
-    const { email } = userDetails;
+    
+    // const userDetails = req.body;
+    const email = user.onboarding.hrFilledInfo.personalEmail;
     const action = req.body.action; // 'verify' or 'skip'
 
     // Save user-filled onboarding info
-    await User.findByIdAndUpdate(userId, {
-      $set: {
-        'onboarding.userFilledInfo': userDetails,
-      },
-    });
+    // await User.findByIdAndUpdate(userId, {
+    //   $set: {
+    //     'onboarding.userFilledInfo': userDetails,
+    //   },
+    // });
 
     if (action === 'verify') {
       // Step 1: Fetch SpringVerify package & add candidate
@@ -544,8 +549,29 @@ const processSpringVerifyOrNda = async (req, res) => {
           'onboarding.backgroundCheck.status': 'skipped',
         },
       });
+      const onboardingData = user.onboarding;
+      console.log("Line 554",onboardingData);
+      const onboardingPersonalData = onboardingData.userFilledInfo.personalDetails;
 
-      await dispatchNdaFlow(userId, userDetails);
+      const userDetails = {
+        name: onboardingData.hrFilledInfo.name,
+        email: onboardingData.hrFilledInfo.personalEmail,
+        pan: onboardingPersonalData.panNumber,
+        address: {
+          street_address: onboardingPersonalData.streetAddress,
+          city: onboardingPersonalData.city,
+          state: onboardingPersonalData.stateRegionProvince,
+          pincode: onboardingPersonalData.postalZipCode,
+          country: onboardingPersonalData.country,
+        }
+      }
+      console.log("Line 569", userDetails);
+
+      const authToken = await getZohoAccessToken();
+      console.log("AuthToken is ",authToken);
+      
+      // const authToken = '1000.307794b3c011921e299b4d0acd359eb5.88738d4c43f9d4e9366cc6217bbb30b3'
+      await dispatchNdaFlow(userId, authToken, userDetails);
 
       return res.status(200).json({
         status: 'success',
