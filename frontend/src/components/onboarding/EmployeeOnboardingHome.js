@@ -56,6 +56,31 @@ const EmployeeOnboardingHome = () => {
   );
 };
 
+const handleSpringVerifyAction = async (action) => {
+  try {
+    const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/spring-verify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`, // assuming you're storing the token
+      },
+      body: JSON.stringify({ action }),
+    });
+
+    const result = await res.json();
+
+    if (res.ok) {
+      alert(result.message);
+      window.location.reload(); // or refetch users list
+    } else {
+      alert(result.message || "Failed to process action");
+    }
+  } catch (err) {
+    console.error("Spring Verify Error:", err);
+    alert("Unexpected error");
+  }
+};
+
 
 
   return (
@@ -125,17 +150,33 @@ const EmployeeOnboardingHome = () => {
 
         <td className="px-4 py-2">{renderStatus(offerGenerated ? 'Completed' : 'Pending')}</td>
         <td className="px-4 py-2">{renderStatus(formStatus)}</td>
-        <td className="px-4 py-2">{renderStatus(onboarding?.backgroundCheck?.status || 'pending')}</td>
+        <td className="px-6 py-2 w-40">
+  {offerGenerated &&
+  formStatus === 'Submitted' &&
+  onboarding?.backgroundCheck?.status === 'pending' ? (
+    <div className="flex border border-gray-300 rounded overflow-hidden">
+      <button
+        onClick={() => handleSpringVerifyAction(user._id, 'verify')}
+        className="px-3 py-1 text-sm text-green-600 hover:bg-green-50 w-full border-r border-gray-300"
+      >
+        Verify
+      </button>
+      <button
+        onClick={() => handleSpringVerifyAction(user._id, 'skip')}
+        className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 w-full"
+      >
+        Skip
+      </button>
+    </div>
+  ) : (
+    renderStatus(onboarding?.backgroundCheck?.status || 'pending')
+  )}
+</td>
+       
 
-        <td className="px-4 py-2">
-          {renderStatus(
-            onboarding?.nda?.signed
-              ? 'Signed'
-              : onboarding?.nda?.sent
-              ? 'Sent'
-              : 'Pending'
-          )}
-        </td>
+
+
+
 
         <td className="px-4 py-2">
           {renderStatus(zohoCreated ? 'Completed' : 'Pending')}
