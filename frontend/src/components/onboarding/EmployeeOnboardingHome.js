@@ -56,7 +56,7 @@ const EmployeeOnboardingHome = () => {
   );
 };
 
-const handleSpringVerifyAction = async (action) => {
+const handleSpringVerifyAction = async (userId, action) => {
   try {
     const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/spring-verify`, {
       method: "POST",
@@ -64,7 +64,7 @@ const handleSpringVerifyAction = async (action) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`, // assuming you're storing the token
       },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ userId, action }),
     });
 
     const result = await res.json();

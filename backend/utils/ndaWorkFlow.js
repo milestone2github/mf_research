@@ -32,7 +32,7 @@ async function createNdaDocument(employeeName, employeeEmail, oauth) {
         },
         {
           recipient_name: "Vilakshan Bhutani",
-          recipient_email: "kishan@niveshonline.com",
+          recipient_email: "vilakshan@niveshonline.com",
           action_id: "70669000000031022",
           signing_order: 2,
           role: "Director",
@@ -41,7 +41,7 @@ async function createNdaDocument(employeeName, employeeEmail, oauth) {
         },
         {
           recipient_name: "Human Resource",
-          recipient_email: "mayank@niveshonline.com",
+          recipient_email: "hr@niveshonline.com",
           action_id: "70669000000041700",
           signing_order: 3,
           role: "Human Resource",
@@ -125,13 +125,6 @@ async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
               state: employeeDetails.address.state,
               pincode: employeeDetails.address.postalZipCode,
               country: employeeDetails.address.country,
-              
-              // street_address: "employeeDetails",
-              // city: "employeeDetails",
-              // state: "employeeDetails",
-              // pincode: 244715,
-              // country: "India",
-
             }
           }
         }
@@ -178,9 +171,6 @@ async function dispatchNdaFlow(userId, oauth, employeeDetails, stampRequired = t
       await generateEstamp(requestId, documentId, employeeDetails, oauth);
     }
 
-    // await new Promise(resolve => setTimeout(resolve, 5000));
-
-  // const requestId = "70669000000120113"
     await sendForSignature(requestId, oauth);
 
     // update NDA status in DB
@@ -196,14 +186,14 @@ async function dispatchNdaFlow(userId, oauth, employeeDetails, stampRequired = t
   } catch (error) {
 
     // send error via email notification
-    // await sendEmail({
-    //   toAddress: 'kishan@niveshonline.com',
-    //   subject: 'Error in Dispatching NDA',
-    //   ccAddress: 'mayank@niveshonline.com',
-    //   body: `<p>Error occurred in dispatchNdaFlow for user ${email}</p><pre>${error.stack}</pre>`
-    // });
+    await sendEmail({
+      toAddress: 'error@niveshonline.com',
+      subject: 'Error in Dispatching NDA',
+      body: `<p>Error occurred in dispatchNdaFlow for user ${email}</p><pre>${error.stack}</pre>`
+    });
 
     console.log('Error dispatchNda main function');
+    throw new Error("Error dispatchNda main function");
   }
 }
 

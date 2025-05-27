@@ -3,15 +3,12 @@ const {
   statusDetailsAllJoinee,
   statusDetails,
   statusDetailsById,
-  updateAllocationStatus,
   fetchUserOnboardingInfo,
   savePartialUserOnboardingInfo,
-  newEmployeeSetup,
   getAllDepartments,
   getRoles,
   processSpringVerifyOrNda,
-  ndaSignedWebhook,
-  processSpringVerifyOrNda,
+  updateAssetAllocationStatus,
    
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
 
@@ -20,6 +17,8 @@ const verifyToken = require('../middlewares/verifyToken');
 
 
 const { sendOtpSms, verifyOtp, otpVerifiedStatus } = require('../controllers/onboardingControllers/otpController');
+const { getCandidateStatus } = require('../controllers/onboardingControllers/springVerifyControllers');
+const { ndaSignedWebhook, newEmployeeSetup } = require('../controllers/onboardingControllers/zohoEmployeeSetUp');
 
 const router = require('express').Router(); 
 
@@ -49,7 +48,25 @@ router.get('/roles', getRoles);
 router.post('/spring-verify', processSpringVerifyOrNda);
 router.post('/nda-sign-webhook', ndaSignedWebhook)
 
+// just included this route for testing purpose 
 
+// router.get('/springStatus',  async (req, res) => {
+//   try {
+//     const userId = "682ed10db8aec0bd6663f73f";
+//     const email = "mbelwal05@gmail.com";
+
+//     const result = await getCandidateStatus(userId, email);
+
+//     // ✅ Always return the response
+//     return res.status(200).json(result);
+//   } catch (err) {
+//     console.error('[TEST-ROUTE] Error:', err);
+//     return res.status(500).json({
+//       status: 'error',
+//       message: 'Internal server error',
+//     });
+//   }
+// });
 
 
 

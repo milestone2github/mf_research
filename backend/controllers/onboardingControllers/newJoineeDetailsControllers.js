@@ -1,141 +1,101 @@
 const User = require("../../models/User");
 const PDFDocument = require("pdfkit");
-const nodemailer = require("nodemailer");
 const axios = require("axios");
 const Department = require("../../models/Department");
 const Role = require("../../models/Role");
 const { fetchPackageAndAddCandidate, getCandidateStatus } = require('./springVerifyControllers');
 const { dispatchNdaFlow } = require('../../utils/ndaWorkFlow');
 const { getZohoAccessToken } = require("../../utils/getZohoAccessToken");
+const { getwebHookAccessToken } = require("../../utils/webHookAccessToken");
+const { getNewJoineeMailBody } = require("../../utils/newJoineeMailTemplate");
+const sendEmail = require("../../utils/sendEmail");
 
 
-// zoho setup
-const BASE_URL =
-  "https://people.zoho.com/people/api/forms/json/employee/insertRecord";
 
 // Sending Gotra to new employees Via Mail
-async function sendGotraDocument(userId) {
-  // 1. Load the user
-  const user = await User.findById(userId);
-  if (!user) throw { status: 404, message: "User not found" };
-
-  // 2. Fetch the PDF from blob storage
-  const gotraUrl =
-    "https://mfdatafeed.blob.core.windows.net/onboarding/Gotraka_-_HR_guideline_2023_.pdf";
-  const response = await axios.get(gotraUrl, { responseType: "arraybuffer" });
-  const pdfBuffer = Buffer.from(response.data, "binary");
-
-  // 3. Send email
-  const to = user.email;
-  const name = user.onboarding.hrFilledInfo.name;
-  await sendEmail(
-    "Your Gotra Guideline Document",
-    `<p>Dear ${name},</p>
-     <p>Please find attached the Gotra guideline document for your reference.</p>
-     <p>Regards,<br/>HR Team</p>`,
-    to,
-    "",
-    { "Gotra_Guideline.pdf": pdfBuffer }
-  );
-
-  // 4. Update and save
-  user.onboarding.gotra.sent = true;
-  user.onboarding.gotra.sentAt = new Date();
-  await user.save();
-
-  return user.onboarding.gotra;
-}
-
-// Supporting function to check if E-mail exists & Add new Employee to Zoho
-async function zohoApiOnboarding(access_token, record) {
-  const params = {
-    inputData: JSON.stringify(record),
-  };
-
-  const headers = {
-    Authorization: `Zoho-oauthtoken ${access_token}`,
-  };
+async function sendGotraDocument(user) {
   try {
-    const resp = await axios.get(BASE_URL, { params, headers });
-    const errors = resp.data.response?.errors.code;
-    if (errors === 7006) return 1;
+    
+    // 1. Fetch the PDF from blob storage
+    const gotraUrl =
+      "https://mfdatafeed.blob.core.windows.net/onboarding/Gotraka_-_HR_guideline_2023_.pdf";
+    const response = await axios.get(gotraUrl, { responseType: "arraybuffer" });
+    const pdfBuffer = Buffer.from(response.data, "binary");
 
-    return 0;
-  } catch (err) {
-    console.error("Request failed:", err.response?.data || err.message);
-    return -1;
-  }
-}
+    // 2. Send email
+    const to = user.email;
+    const name = user.onboarding.hrFilledInfo.name;
 
-// Generating Unique Email id for new Employee
-async function registerEmployeeInZohoById(id, access_token) {
-  const user = await User.findById(id);
-  var finalEmail = "";
-  if (!user) throw { status: 404, message: "User not found" };
-  const domain = "@niveshonline.com";
-  var first = user.onboarding.hrFilledInfo.name.split(" ")[0];
-  // first = "abhishek";
-  var email = first + domain;
-  var records = {
-    EmployeeID: id.toString(),
-    FirstName: user.onboarding.hrFilledInfo.name.split(" ")[0],
-    LastName: user.onboarding.hrFilledInfo.name.split(" ")[0],
-    EmailID: email,
-  };
-  var result = await zohoApiOnboarding(access_token, records);
-  console.log(zohoApiOnboarding(access_token, records));
-  if (result === 1) {
-    var second =
-      "." +
-      user.onboarding.hrFilledInfo.name.split(" ")[0].charAt(0).toLowerCase();
-    email = first + second + domain;
-    records = {
-      EmployeeID: id.toString(),
-      FirstName: user.onboarding.hrFilledInfo.name.split(" ")[0],
-      LastName: user.onboarding.hrFilledInfo.name.split(" ")[0],
-      EmailID: email,
-    };
-    result = await zohoApiOnboarding(access_token, records);
-    if (result == 1) {
-      second =
-        "." + user.onboarding.hrFilledInfo.name.split(" ")[0].toLowerCase();
-      email = first + second + domain;
-      records = {
-        EmployeeID: id.toString(),
-        FirstName: user.onboarding.hrFilledInfo.name.split(" ")[0],
-        LastName: user.onboarding.hrFilledInfo.name.split(" ")[0],
-        EmailID: email,
-      };
-      result = await zohoApiOnboarding(access_token, records);
-      if (result == 1) {
-        first = first + second;
-        for (var i = 1; ; i++) {
-          second = i;
-          email = first + second + domain;
-          records = {
-            EmployeeID: id.toString(),
-            FirstName: user.onboarding.hrFilledInfo.name.split(" ")[0],
-            LastName: user.onboarding.hrFilledInfo.name.split(" ")[0],
-            EmailID: email,
-          };
-          result = await zohoApiOnboarding(access_token, records);
-          if (result == 0) {
-            break;
-          }
-        }
-        finalEmail = email;
-      } else {
-        finalEmail = email;
-      }
-    } else {
-      finalEmail = email;
+    const mailResult = await sendEmail({
+      toAddress: to,
+      subject: 'Milestone Gotra Guidelines',
+      body: `
+       Your Gotra Guideline Document,
+      <p>Dear ${name},</p>
+      <p>Please find attached the Gotra guideline document for your reference.</p>
+      <p>Regards,<br/>HR Team</p>`,
+      attachments: { "Gotra_Guideline.pdf": pdfBuffer }
     }
-  } else {
-    finalEmail = email;
+    );
+
+    if (mailResult) {
+      // 4. Update and save
+      user.onboarding.gotra.sent = true;
+      user.onboarding.gotra.sentAt = new Date();
+      await user.save();
+    }
+
+    return true;
+
+  } catch (error) {
+    console.error("❌ Failed to send Gotra document:", error.message);
+    throw new Error("Gotra document email dispatch failed");
   }
-  return finalEmail;
 }
 
+// Sent new Joinee notification Mail to all Employees
+async function sentNewJoineeMailNotification(user) {
+  try {
+    const accessToken = await getwebHookAccessToken();
+
+    const allEmployeeMailIds = await getEmployeeRecords(accessToken);
+
+    // const allEmployeeMailIds = ['mayank@niveshonline.com', 'kishan@niveshonline.com'];
+
+    const hrInfo = user.onboarding.hrFilledInfo;
+    const userInfo = user.onboarding.userFilledInfo.personalDetails;
+
+    const mailBody = getNewJoineeMailBody({
+      fullName: hrInfo.name,
+      firstName: hrInfo.name.split(" ")[0],
+      designation: hrInfo.role || "Team Member",
+      department: hrInfo.department || "Department",
+      joiningDate: hrInfo.doj
+        ? new Date(hrInfo.doj).toLocaleDateString("en-IN")
+        : "TBD",
+      email: user.email,
+    });
+
+    // Remove duplicates or filter invalid emails
+    const toAddresses = [...new Set(allEmployeeMailIds.filter(Boolean))].join(',');
+
+    const mailResult = await sendEmail({
+      subject: ` Meet Our New Team Member - ${hrInfo.name}!`,
+      body: mailBody,
+      toAddress: toAddresses,
+    });
+
+    if (mailResult) {
+      console.log("✅ New joinee notification sent to all employees.");
+
+      user.onboarding.hasNotifiedToAll = true;
+      await user.save();
+    }
+
+  } catch (err) {
+    console.error("❌ Failed to send new joinee notification:", err.message);
+  }
+}
 //To get Email ids of all employees
 async function getEmployeeRecords(access_token) {
   const url = "https://people.zoho.com/people/api/forms/P_EmployeeView/records";
@@ -154,34 +114,13 @@ async function getEmployeeRecords(access_token) {
       .map((r) => r["Email ID"]) // pick the “Email ID” property
       .filter((e) => e && e.trim());
     console.log("Data:", emailList);
+
+    return emailList;
+
   } catch (err) {
-    console.error(
-      "Error fetching records:",
+    console.error("Error while fetching Email Ids of employees",
       err.response ? err.response.data : err.message
     );
-  }
-}
-
-// Main function to Add new Employee in Zoho
-async function newEmployeeSetup(userId) {
-  try {
-    // const id = "66d94d8860115997c619a5db";
-    const access_token = await getZohoAccessToken();
-
-    const finalEmail = await registerEmployeeInZohoById(userId, access_token);
-    // console.log(finalEmail);
-    // await getEmployeeRecords(access_token);
-    // const gotraStatus = await sendGotraDocument(id);
-    return res.status(200).json({
-      success: true,
-      message: "add employee successfully",
-      email: finalEmail,
-      // gotra: gotraStatus
-    });
-  } catch (err) {
-    return res
-      .status(500)
-      .json({ success: false, message: `error ${err.message}` });
   }
 }
 
@@ -246,6 +185,7 @@ async function saveJoineeDetails(req, res) {
       department,
       role,
       isPfApplicable,
+      isExperienced,
       doj,
     } = req.body;
     const filter = { email: personalEmail };
@@ -415,18 +355,24 @@ async function updateAssetAllocationStatus(req, res) {
     );
 
     if (!user) {
-      return res
-        .status(404)
+      return res.status(404)
         .json({ success: false, message: "User not found" });
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Allocation status updated successfully",
-        data: user,
-      });
+    // Sending Gotra Document 
+    const hasGotraSent = await sendGotraDocument(user);
+
+    if (!hasGotraSent) {
+      throw new Error('Unable to Send Gotra Document.')
+    }
+    //sending New joinee Mail to all Employees
+    await sentNewJoineeMailNotification(user);
+
+    res.status(200).json({
+      success: true,
+      message: "Allocation status updated successfully",
+      data: user,
+    });
   } catch (error) {
     console.error("Error updating allocation status:", error);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -479,6 +425,27 @@ const savePartialUserOnboardingInfo = async (req, res) => {
   }
 };
 
+//Supporting function for below processSpringVerifyOrNda
+const extractUserDetails = (user) => {
+  const onboardingData = user.onboarding;
+  const personal = onboardingData.userFilledInfo.personalDetails;
+  const hrFilled = onboardingData.hrFilledInfo
+
+  return {
+    name: hrFilled.name,
+    email: hrFilled.personalEmail,
+    pan: personal.panNumber,
+    phone: personal.phone,
+    isExperienced: hrFilled.isExperienced,
+    address: {
+      street_address: personal.streetAddress,
+      city: personal.city,
+      state: personal.stateRegionProvince,
+      pincode: personal.postalZipCode,
+      country: personal.country,
+    },
+  };
+};
 
 const processSpringVerifyOrNda = async (req, res) => {
   try {
@@ -486,7 +453,7 @@ const processSpringVerifyOrNda = async (req, res) => {
     const userId = req.body.userId;
     const user = await User.findById(userId).lean();
 
-console.log("Received userId:", userId);
+    console.log("Received userId:", userId);
 
 
     if (!user) {
@@ -495,33 +462,31 @@ console.log("Received userId:", userId);
         message: 'User not found',
       });
     }
-    
     // const userDetails = req.body;
     const email = user.onboarding.hrFilledInfo.personalEmail;
     const action = req.body.action; // 'verify' or 'skip'
-
-    // Save user-filled onboarding info
-    // await User.findByIdAndUpdate(userId, {
-    //   $set: {
-    //     'onboarding.userFilledInfo': userDetails,
-    //   },
-    // });
+    const userDetails = extractUserDetails(user);
 
     if (action === 'verify') {
+
+      console.log("Line 410", userDetails);
+
       // Step 1: Fetch SpringVerify package & add candidate
       const verifyRes = await fetchPackageAndAddCandidate(userId, userDetails);
       if (verifyRes.status === 'error') {
+        console.error('❌ Error in fetchPackageAndAddCandidate:', verifyRes.message);
         return res.status(500).json(verifyRes);
       }
 
       // Step 2: Get candidate status
       const statusRes = await getCandidateStatus(userId, email);
       if (statusRes.status === 'error') {
+        console.error('❌ Error in getCandidateStatus:', statusRes.message);
         return res.status(500).json(statusRes);
       }
 
       // Step 3: If background check is completed, mark it as verified
-      if (statusRes.data === 'Completed') {
+      if (statusRes.data?.springStatus === 'Completed') {
         await User.findByIdAndUpdate(userId, {
           $set: {
             'onboarding.backgroundCheck.status': 'verified',
@@ -549,51 +514,30 @@ console.log("Received userId:", userId);
           'onboarding.backgroundCheck.status': 'skipped',
         },
       });
-      const onboardingData = user.onboarding;
-      console.log("Line 554",onboardingData);
-      const onboardingPersonalData = onboardingData.userFilledInfo.personalDetails;
 
-      const userDetails = {
-        name: onboardingData.hrFilledInfo.name,
-        email: onboardingData.hrFilledInfo.personalEmail,
-        pan: onboardingPersonalData.panNumber,
-        address: {
-          street_address: onboardingPersonalData.streetAddress,
-          city: onboardingPersonalData.city,
-          state: onboardingPersonalData.stateRegionProvince,
-          pincode: onboardingPersonalData.postalZipCode,
-          country: onboardingPersonalData.country,
-        }
-      }
-      console.log("Line 569", userDetails);
+      console.log("Line 454", userDetails);
 
       const authToken = await getZohoAccessToken();
-      console.log("AuthToken is ",authToken);
-      
-      // const authToken = '1000.307794b3c011921e299b4d0acd359eb5.88738d4c43f9d4e9366cc6217bbb30b3'
+      console.log("AuthToken is ", authToken);
+
       await dispatchNdaFlow(userId, authToken, userDetails);
 
       return res.status(200).json({
-        status: 'success',
-        message: 'SpringVerify skipped, NDA workflow dispatched',
+        status: 'success', message: 'SpringVerify skipped, NDA workflow dispatched',
       });
     }
 
     return res.status(400).json({
-      status: 'error',
-      message: 'Invalid action type. Must be either "verify" or "skip".',
+      status: 'error', message: 'Invalid action type. Must be either "verify" or "skip".',
     });
 
   } catch (error) {
     console.error('processSpringVerifyOrNda error:', error);
     return res.status(500).json({
-      status: 'error',
-      message: 'Unexpected server error during onboarding',
-      data: error.message,
+      status: 'error', message: 'Unexpected server error during onboarding', data: error.message,
     });
   }
 };
-
 
 // Fetch department details
 const getAllDepartments = async (req, res) => {
@@ -661,46 +605,7 @@ const getRoles = async (req, res) => {
   }
 };
 
-const ndaSignedWebhook = async (req, res) => {
-  const payload = req.body;
-  console.log("Webhook Received:", JSON.stringify(payload));
 
-  const { requests } = payload;
-  try {
-    if (requests?.actions[0].action_status === 'SIGNED') {
-
-      const employee = requests.actions.find(a => a.action_type === 'SIGN');
-      if (employee?.action_status === 'SIGNED') {
-        // ✅ Employee has signed — perform next step
-        const requestId = requests.request_id;
-        const signedAt = new Date();
-
-        // ✅ Update the user's NDA status using requestId
-        const updated = await User.findOneAndUpdate(
-          { 'onboarding.nda.requestId': requestId },
-          {
-            $set: {
-              'onboarding.nda.signed': true,
-              'onboarding.nda.signedAt': signedAt,
-            }
-          }, { new: true }
-        );
-
-        if (updated) {
-          console.log(`✅ NDA marked as signed for: ${updated.email}`);
-          newEmployeeSetup(updated._id);
-        } else {
-          console.warn(`⚠️ No user found with requestId: ${requestId}`);
-        }
-      }
-    }
-    res.sendStatus(200); // Acknowledge receipt
-
-  } catch (error) {
-    console.error('❌ Error handling NDA signed webhook:', error.message);
-    res.sendStatus(500);
-  }
-}
 
 
 // ======= EXPORT ==========
@@ -711,12 +616,10 @@ module.exports = {
   statusDetailsAllJoinee,
   statusDetails,
   statusDetailsById,
-  updateAllocationStatus: updateAssetAllocationStatus,
+  updateAssetAllocationStatus,
   fetchUserOnboardingInfo,
   savePartialUserOnboardingInfo,
   processSpringVerifyOrNda,
-  newEmployeeSetup,
   getAllDepartments,
   getRoles,
-  ndaSignedWebhook
 };

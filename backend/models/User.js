@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema({
             department: { type: String },
             role: { type: String },
             isPfApplicable: { type: Boolean },
+            isExperienced : { type:Boolean, default: false},
             doj: { type: Date },
             initiatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
             initiatedAt: { type: Date }
@@ -65,7 +66,7 @@ const userSchema = new mongoose.Schema({
                 panNumber: { type: String , default: ""},
                 dob: { type: Date , default: ""},
                 gender: { type: String , default: ""},
-                maritalStatus: { type: String, enum: ["single", "married", "divorced", "widowed"] , default: ""},
+                maritalStatus: { type: String, enum: ["single", "married", "divorced", "widowed", ""] , default: ""},
                 streetAddress: { type: String, default: "" },
                 addressLine2: { type: String, default: "" },
                 city: { type: String, default: "" },
@@ -101,7 +102,7 @@ const userSchema = new mongoose.Schema({
         },
         zohoSetup: {
             userCreated: { type: Boolean, default: false },
-            zohoUserId: { type: String },
+            zohoEmployeeId: { type: String },
             email: { type: String },
             assignedAt: { type: Date }
         },

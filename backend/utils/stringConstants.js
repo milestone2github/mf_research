@@ -49,8 +49,5 @@ exports.ASSET_TYPE_FETCH_SUCCESS = "All assets fetched successfully.";
 exports.ASSET_TYPE_FIELDS_REQUIRED = "There are missing fields required to create an Asset Type.";
 exports.ASSET_TYPE_CREATE_SUCCESS = "Asset Type created successfully.";
 
-//onBoardingController
 
-exports.SPRINGVERIFY_BASE = 'https://api-sa.in.springverify.com/external/v1';
-exports.SPRINGVERIFY_TOKEN = process.env.SPRINGVERIFY_TOKEN;
 
