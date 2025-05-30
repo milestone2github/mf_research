@@ -28,7 +28,7 @@ router.get('/onboarding-status', statusDetailsAllJoinee);
 router.get('/onboarding-details', statusDetails);
 router.get('/onboarding-details/:id', statusDetailsById);
 router.put('/zohosetup', newEmployeeSetup);
-router.patch('/update-allocation-status/:userId', verifyUser, updateAllocationStatus);
+router.patch('/update-allocation-status/:userId', verifyUser, updateAssetAllocationStatus);
 
 
 router.post('/otp/send', (req, res) => {
