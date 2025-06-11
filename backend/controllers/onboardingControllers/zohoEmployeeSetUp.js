@@ -111,7 +111,7 @@ async function registerEmployeeInZohoById(userId, access_token) {
             employeeId
         };
     }
-     console.warn(`[Zoho Setup] ❌ Failed to register employee in Zoho after retries. Last attempted email: ${email}`);
+    console.warn(`[Zoho Setup] ❌ Failed to register employee in Zoho after retries. Last attempted email: ${email}`);
     return {
         success: false,
         message: "Failed to register employee in Zoho after all retries",
@@ -193,6 +193,7 @@ const ndaSignedWebhook = async (req, res) => {
         }
 
         const expectedEmail = user?.onboarding?.hrFilledInfo?.personalEmail;
+        console.log("[WebHook] expected email is:", expectedEmail);
 
         //  action that matches the user's email
         const matchedAction = requests?.actions?.find(

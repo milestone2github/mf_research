@@ -6,16 +6,40 @@ const userSchema = new mongoose.Schema({
     email: {
         type: String,
         require: true,
-        unique:true
+        unique: true
     },
-    nameAsRM: {type: String, trim: true},
+    nameAsRM: { type: String, trim: true },
+    department: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "DEPARTMENTS",
+        required: true
+    },
     role: {
         type: mongoose.Schema.Types.ObjectId,
         require: true,
-        ref:"ROLES"
+        ref: "ROLES"
     },
+    customRole: { type: String, trim: true },
     mintUsername: { type: String, trim: true },
     insuranceDashboardId: { type: String, trim: true },
+    permissions: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PERMISSIONS"
+    }],
+    emp_status: {
+        type: String,
+        enum: ["Active", "Inactive"],
+        required: true,
+        default: "Active"
+    },
+    internalDashboardRole: {
+        type: String,
+        enum: ["Admin", "Super Admin", ""],
+        default: ""
+    }, lastSyncedWithZoho: {
+        type: Date,
+        default: Date.now
+    },
     folderId: { type: String, trim: true },
     onboarding: {
         hrFilledInfo: {
@@ -27,53 +51,53 @@ const userSchema = new mongoose.Schema({
             department: { type: String },
             role: { type: String },
             isPfApplicable: { type: Boolean },
-            isExperienced : { type:Boolean, default: false},
+            isExperienced: { type: Boolean, default: false },
             doj: { type: Date },
             initiatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
             initiatedAt: { type: Date }
         },
         userFilledInfo: {
             educationalCertificatesAndDegree: {
-                tenthMarksheet: { type: String , default: ""},
-                lastEducationFile: { type: String , default: ""},
+                tenthMarksheet: { type: String, default: "" },
+                lastEducationFile: { type: String, default: "" },
                 latestUpdateCv: { type: String, default: "" }
             },
             referenceDetails: {
-                reference1Name: { type: String , default: ""},
-                reference1Phone: { type: String , default: ""},
-                relationshipWithReference1: { type: String , default: ""},
-                reference2Name: { type: String , default: ""},
-                reference2Phone: { type: String , default: ""},
+                reference1Name: { type: String, default: "" },
+                reference1Phone: { type: String, default: "" },
+                relationshipWithReference1: { type: String, default: "" },
+                reference2Name: { type: String, default: "" },
+                reference2Phone: { type: String, default: "" },
                 relationshipWithReference2: { type: String, default: "" },
-                emergencyContactName: { type: String , default: ""},
-                emergencyContactPhone: { type: String , default: ""},
-                relationshipWithEmergencyContact: { type: String , default: ""}
+                emergencyContactName: { type: String, default: "" },
+                emergencyContactPhone: { type: String, default: "" },
+                relationshipWithEmergencyContact: { type: String, default: "" }
             },
             bankDetails: {
-                beneficiaryName: { type: String , default: ""},
-                accountNumber: { type: String , default: ""},
-                ifscCode: { type: String , default: ""},
-                bankName: { type: String , default: ""},
-                bankVerificationDoc: { type: String , default: ""}
+                beneficiaryName: { type: String, default: "" },
+                accountNumber: { type: String, default: "" },
+                ifscCode: { type: String, default: "" },
+                bankName: { type: String, default: "" },
+                bankVerificationDoc: { type: String, default: "" }
             },
             personalDetails: {
-                firstName: { type: String , default: ""},
-                lastName: { type: String , default: ""},
-                email: { type: String , default: ""},
-                phone: { type: String , default: ""},
+                firstName: { type: String, default: "" },
+                lastName: { type: String, default: "" },
+                email: { type: String, default: "" },
+                phone: { type: String, default: "" },
                 fatherName: { type: String, default: "" },
                 motherName: { type: String, default: "" },
-                panNumber: { type: String , default: ""},
-                dob: { type: Date , default: ""},
-                gender: { type: String , default: ""},
-                maritalStatus: { type: String, enum: ["single", "married", "divorced", "widowed", ""] , default: ""},
+                panNumber: { type: String, default: "" },
+                dob: { type: Date, default: "" },
+                gender: { type: String, default: "" },
+                maritalStatus: { type: String, enum: ["single", "married", "divorced", "widowed", ""], default: "" },
                 streetAddress: { type: String, default: "" },
                 addressLine2: { type: String, default: "" },
                 city: { type: String, default: "" },
                 postalZipCode: { type: String, default: "" },
-                stateRegionProvince: { type: String , default: ""},
+                stateRegionProvince: { type: String, default: "" },
                 country: { type: String, default: "" },
-                photo: { type: String , default: ""}
+                photo: { type: String, default: "" }
             },
             submittedAt: Date
         },
@@ -120,19 +144,19 @@ const userSchema = new mongoose.Schema({
     },
     assets: [
         {
-          asset: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Asset'
-          },
-          allocatedAt: { type: Date, default: Date.now },
-          returnedAt: { type: Date },
-          status: {
-            type: String,
-            enum: ['allocated', 'returned', 'lost', 'replaced'],
-            default: 'allocated'
-          }
+            asset: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Asset'
+            },
+            allocatedAt: { type: Date, default: Date.now },
+            returnedAt: { type: Date },
+            status: {
+                type: String,
+                enum: ['allocated', 'returned', 'lost', 'replaced'],
+                default: 'allocated'
+            }
         }
-      ] 
+    ]
 });
 
 const User = mongoose.model("USERS", userSchema);

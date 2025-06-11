@@ -7,8 +7,8 @@ const User = require("../models/User");
 // === Step 1: Create NDA Document ===
 async function createNdaDocument(employeeName, employeeEmail, oauth) {
   const url = "https://sign.zoho.in/api/v1/templates/70669000000031001/createdocument";
-  const headers = { 
-    Authorization: `Zoho-oauthtoken ${oauth}` 
+  const headers = {
+    Authorization: `Zoho-oauthtoken ${oauth}`
   };
 
   const data = {
@@ -68,10 +68,13 @@ async function createNdaDocument(employeeName, employeeEmail, oauth) {
     const documentId = response.data.requests.document_ids[0].document_id;
     const requestId = response.data.requests.request_id;
     if (!requestId || !documentId) {
-  throw new Error("Missing requestId or documentId in Zoho response.");
-}
+      throw new Error("Missing requestId or documentId in Zoho response.");
+    }
 
     console.log("Request id is ", requestId);
+    console.log("[createNdaDocument] Line 75 and its type is", typeof requestId);
+
+
     return { documentId, requestId };
   } catch (error) {
     console.error('Failed to create document:', error.response?.data || error);
@@ -83,8 +86,8 @@ async function createNdaDocument(employeeName, employeeEmail, oauth) {
 async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
 
   const url = `https://sign.zoho.in/api/v1/requests/${requestId}`;
-  const headers = { 
-    Authorization: `Zoho-oauthtoken ${oauth}` 
+  const headers = {
+    Authorization: `Zoho-oauthtoken ${oauth}`
   };
 
   const payload = {
@@ -132,7 +135,7 @@ async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
     }
   };
 
-    try {
+  try {
     await axios.put(url, payload, { headers });
     console.log("eStamp address:", employeeDetails.address);
 
@@ -145,7 +148,7 @@ async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
 }
 
 // === Step 3: Send for Signature ===
-async function sendForSignature(requestId, oauth) {
+async function sendForSignature(requestId, oauth, userEmail) {
   console.log("Request id at 142 is ", requestId);
   const url = `https://sign.zoho.in/api/v1/requests/${requestId}/submit`;
   const headers = { Authorization: `Zoho-oauthtoken ${oauth}` };
@@ -154,9 +157,31 @@ async function sendForSignature(requestId, oauth) {
     await axios.post(url, null, { headers });
     console.log('Document sent for signature successfully.');
   } catch (error) {
-    console.error('Failed to send document for signature:', error.response?.data || error);
+    const errRes = error.response?.data;
+    console.log(errRes?.code);
+    console.error('❌ Failed to send document for signature:', errRes || error);
+
+    // 🚨 Handle specific "insufficient credit" case
+    if (errRes?.code === 13001) {
+      await sendEmail({
+        toAddress: 'hr@niveshonline.com, accounts@niveshonline.com',
+        subject: '🚨 Automated Alert: Zoho Sign Credits Depleted',
+        body: `
+          <p>Hello Accounts & HR team,</p>
+          <p>Our <strong>Zoho Sign credits</strong> for NDA signing, document generation, and e-stamping have run out.</p>
+          <p><strong>User affected:</strong> ${userEmail || 'Unknown'}</p>
+          <p><strong>Request ID:</strong> ${requestId}</p>
+          <p>Pending agreements and documents cannot be processed until new credits are added.</p>
+          <p>Please allocate credits as soon as possible to restore onboarding functionality.</p>
+          <br/>
+          <p>Thank you.<br/>—<em>IT Team</em></p>
+        `
+      });
+
+      console.log("📧 Alert email sent to HR & Accounts due to insufficient credits.");
+    }
     throw error;
- }
+  }
 }
 
 // === Master Orchestration ===
@@ -166,12 +191,12 @@ async function dispatchNdaFlow(userId, oauth, employeeDetails, stampRequired = t
   try {
     // const oauth = await getZohoAccessToken();
     const { documentId, requestId } = await createNdaDocument(name, email, oauth);
-  
+
     if (stampRequired) {
       await generateEstamp(requestId, documentId, employeeDetails, oauth);
     }
 
-    await sendForSignature(requestId, oauth);
+    await sendForSignature(requestId, oauth, employeeDetails?.email );
 
     // update NDA status in DB
     console.log('Updating NDA status for user:', userId);
@@ -189,8 +214,10 @@ async function dispatchNdaFlow(userId, oauth, employeeDetails, stampRequired = t
     await sendEmail({
       toAddress: 'error@niveshonline.com',
       subject: 'Error in Dispatching NDA',
-      body: `<p>Error occurred in dispatchNdaFlow for user ${email}</p><pre>${error.stack}</pre>`
+      body: `<p>Error occurred in dispatchNdaFlow for user ${employeeDetails?.email}</p><pre>${error.stack}</pre>`
     });
+
+    console.log("[dispatchNdaFlow] Mail sent Line 220");
 
     console.log('Error dispatchNda main function');
     throw new Error("Error dispatchNda main function");
