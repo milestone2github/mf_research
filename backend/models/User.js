@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema({
     },
     customRole: { type: String, trim: true },
     mintUsername: { type: String, trim: true },
-    insuranceDashboardId: { type: String, trim: true },
+    insuranceDashboardID: { type: String, trim: true },
     permissions: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "PERMISSIONS"

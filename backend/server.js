@@ -21,6 +21,7 @@ const router = require("./routes");
 const { getwebHookAccessToken } = require("./utils/webHookAccessToken");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
+const routes = require("./routes/centralRbacRoutes");
 
 
 
@@ -77,6 +78,8 @@ app.use('/api/mint', mintRoutes);
 app.use('/api/mnivesh/admin', AdminRoute);
 app.use('/api/onboarding', OnboardingRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
+// central RBAC
+app.use('/api/rbac/', routes);
 
 
 
