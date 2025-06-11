@@ -195,6 +195,21 @@ const postTransForm = async (req, res) => {
 
     // modify transaction preference from string to Date 
     const { transactionPreference, relationshipManager } = formData.commonData;
+
+// ✅ Check and insert new RM if needed
+if (relationshipManager && typeof relationshipManager === 'string') {
+  const existingEmployee = await Employee.findOne({ name: relationshipManager.trim() }).lean();
+
+  if (!existingEmployee) {
+    await Employee.create({
+      name: relationshipManager.trim(),
+      department: 'Sales',
+      role: 'relationship manager',
+    });
+    console.log(`New Relationship Manager '${relationshipManager}' added to Employee list.`);
+  }
+}
+
     if (transactionPreference === 'ASAP') {
       formData.commonData.transactionPreference = new Date()
     }
