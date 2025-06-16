@@ -216,7 +216,7 @@ function UserManagementDashboard() {
                     <FaArrowLeft size={20} />
                 </button>
 
-                <h1 className="text-3xl font-semibold text-white">
+                <h1 className="text-3xl font-semibold text-white m-0">
                     Users Management Dashboard
                 </h1>
             </div>

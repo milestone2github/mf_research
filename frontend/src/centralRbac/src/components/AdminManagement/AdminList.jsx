@@ -140,7 +140,7 @@ function AdminList() {
                 >
                     <FaArrowLeft size={20} />
                 </button>
-                <h1 className="text-3xl font-semibold text-white">Manage Admins</h1>
+                <h1 className="text-3xl font-semibold text-white m-0">Manage Admins</h1>
             </div>
 
             <div className="flex justify-between items-center mb-6 bg-gray-800 p-4 rounded-lg shadow-md text-gray-200">
