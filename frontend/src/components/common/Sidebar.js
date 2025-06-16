@@ -6,14 +6,17 @@ import { appRoutes } from '../../routes/RouteConfig'
 const Sidebar = () => {
     const { isLoggedIn, userData } = useSelector((state) => state.user)
     const permissions = userData?.permissions;
+    const internalRole = userData?.internalDashboardRole;
     console.log(userData);
 
     if (!isLoggedIn) return null;
 
     const isTabAllowed = (route) => {
         if (!route.showInSidebar) return false;
+        if (route.requiredInternalRole && !route.requiredInternalRole.includes(internalRole)) return false;
         if (!route.protected) return true;
         if (!route.requiredPermission) return true;
+
 
         // If permission is required, check if user has it
         return permissions.includes(route.requiredPermission);

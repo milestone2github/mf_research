@@ -26,6 +26,8 @@ import Assets from '../components/pages/Assets'
 import OnboardingLayout from '../components/onboarding/OnboardingLayout';
 
 import onboardingRoutes from './onboarding'
+import RbacLayout from '../centralRbac/src/pages/RbacLayout'
+import { centralRbacRoutes } from './centralRbacRoutes'
 
 
 
@@ -38,7 +40,8 @@ export const appRoutes = [
   { requiredPermission: 'existing_portfolio', to: '/existing-portfolio', label: 'Existing Portfolio', element: <ExistingPortfolio />, protected: true, showInSidebar: true },
   { requiredPermission: 'import_cas', to: '/import-cas', label: 'Import CAS', element: <CasImport />, protected: true, showInSidebar: false },
   { requiredPermission: 'model_portfolio', to: '/model-portfolio', label: 'Model Portfolio', element: <ModelPortfolio />, protected: true, showInSidebar: false },
-  { requiredPermission: 'calculator', to: '/calculator', label: 'Calculator', element: <Calculators />, protected: true, showInSidebar: true,
+  {
+    requiredPermission: 'calculator', to: '/calculator', label: 'Calculator', element: <Calculators />, protected: true, showInSidebar: true,
     nestedRoutes: calculatorRoutes
   },
   { requiredPermission: 'mf_trans_request', to: '/mf-trans-request', label: 'MF Trans Request', element: <MFTransRequest />, protected: true, showInSidebar: true },
@@ -49,7 +52,8 @@ export const appRoutes = [
   { requiredPermission: 'mf_transaction', to: '/mf-trans-form', label: 'MF Transaction', element: <MfTransForm />, protected: true, showInSidebar: true },
   { requiredPermission: 'nfo', to: '/nfo-form', label: 'NFO Transaction', element: <NfoForm />, protected: true, showInSidebar: true },
   { requiredPermission: 'operations_dashboard', to: 'https://ops.mnivesh.com', label: 'OPS Dashboard', external: true, showInSidebar: true },
-  { requiredPermission: 'links', to: '/links', label: 'Links', element: <InternalLink />, protected: true, showInSidebar: true,
+  {
+    requiredPermission: 'links', to: '/links', label: 'Links', element: <InternalLink />, protected: true, showInSidebar: true,
     nestedRoutes: internalLinkRoutes
   },
   { requiredPermission: 'marketing_templates', to: '/marketing-templates', label: 'Marketing Templates', element: <MarketingTemplates />, protected: true, showInSidebar: true },
@@ -64,12 +68,19 @@ export const appRoutes = [
     protected: true,
     showInSidebar: true,
     nestedRoutes: onboardingRoutes
-  }
-  
-  
-,
+  },
+  {
+    to: '/rbac',
+    label: 'RBAC Management',
+    element: <RbacLayout />,
+    protected: true,
+    showInSidebar: true,
+    requiredInternalRole: ['Admin', 'Super Admin'], // custom condition
+    nestedRoutes: centralRbacRoutes
+  },
 
-  { requiredPermission: 'employee_onboarding', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
+  {
+    requiredPermission: 'mnivesh_admin', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
   },
   // { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,

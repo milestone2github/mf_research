@@ -249,7 +249,7 @@ const verifyGoogleUser = async (req, res) => {
 
     if (userExist) {
       req.session.user = {
-        name: userExist.nameAsRM || req.body.fullname,
+        name: userExist.name || req.body.fullname,
         email: userExist.email,
         insuranceDashboardID: userExist.insuranceDashboardID,
         role: userExist.role

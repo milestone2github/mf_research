@@ -1,6 +1,7 @@
 const User = require('../models/User');
 
 const verifyAdmin = async (req, res, next) => {
+    console.log("Enterend the verifyAdmin" )
     try {
         if (!req.session || !req.session.user) {
             return res.status(401).json({ message: 'Not authorized, session not found' });

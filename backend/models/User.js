@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
         require: true,
         unique: true
     },
-    nameAsRM: { type: String, trim: true },
+    name: { type: String, trim: true },
     department: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "DEPARTMENTS",

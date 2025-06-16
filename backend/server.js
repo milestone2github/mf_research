@@ -79,7 +79,7 @@ app.use('/api/mnivesh/admin', AdminRoute);
 app.use('/api/onboarding', OnboardingRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
 // central RBAC
-app.use('/api/rbac/', routes);
+app.use('/api/rbac', routes);
 
 
 
