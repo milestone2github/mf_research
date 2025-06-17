@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { setLoading, setLoggedIn, setUser } from '../../reducers/UserSlice';
 import AccessDenied from '../pages/AccessDenied';
 
-function Protected({ children, requiredPermission }) {
+function Protected({ children, requiredPermission, requiredInternalRole }) {
   const { isLoggedIn, isLoading, userData } = useSelector(state => state.user);
   const permissions = userData?.permissions || [];
+  const internalRole = userData?.internalDashboardRole;
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -47,10 +48,16 @@ function Protected({ children, requiredPermission }) {
 
   if (!isLoggedIn) return null;
 
+// 🔐 Permission check
   if (requiredPermission && !permissions.includes(requiredPermission)) {
     return <AccessDenied />;
   }
+console.log(requiredInternalRole,internalRole);
 
+  // 🔐 Internal Dashboard Role check
+  if (requiredInternalRole && !requiredInternalRole.includes(internalRole)) {
+    return <AccessDenied />;
+  }
   return children;
 }
 

@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { Outlet, useNavigate } from "react-router-dom";
 import {
   UsersIcon, ShieldCheckIcon, BuildingOfficeIcon, KeyIcon, LinkIcon, ComputerDesktopIcon
 } from "@heroicons/react/24/outline";
 import { getUserRole } from '../utils/auth';
-import { useAuth } from '../pages/ProtectedRoute/AuthContext'; // Adjust the path if needed
+
 
 const cards = [
   { id: 1, name: "User Management Dashboard", link: "/rbac/users", icon: "users" },
@@ -17,7 +18,7 @@ const cards = [
 
 function Homepage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const user = useSelector((state) => state.user.userData);
 
   useEffect(() => {
     console.log('Homepage mounted - checking auth state');
