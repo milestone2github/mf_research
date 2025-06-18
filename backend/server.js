@@ -10,9 +10,10 @@ const { connectToMilestoneDB, connetToTransactionsDb } = require("./dbConfig/con
 const authRoutes = require('./routes/Auth');
 const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
-const { pendingTransactionsNotification } = require("./utils/scheduledTasks");
+const { pendingTransactionsNotification, springVerifyStatusCheck } = require("./utils/scheduledTasks");
 const MongoStore = require("connect-mongo");
 const router = require("./routes");
+const { getwebHookAccessToken } = require("./utils/webHookAccessToken");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
 
@@ -28,8 +29,9 @@ app.use(
       ttl: 24 * 60 * 60, // 1-day session expiration
     }),
     cookie: {
+      httpOnly: true,
       secure: false,
-      maxAge: 24 * 60 * 60 * 1000, 
+      maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
@@ -77,4 +79,11 @@ app.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
   // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
+  /*
+  cron.schedule("0 11 * * *", () => {
+    console.log("Running SpringVerify daily background check status cron at 11:00 AM...");
+    springVerifyStatusCheck();
+  });
+  */
+
 });
