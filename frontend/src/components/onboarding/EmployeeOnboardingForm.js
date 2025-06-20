@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CgSpinner } from "react-icons/cg";
+
 
 const LOCAL_API_BASE = `${process.env.REACT_APP_API_BASE_URL}/api/onboarding`;
 
@@ -15,6 +17,7 @@ const EmployeeOnboardingForm = () => {
     annualCtc: '',
     baseSalary: '',
     isPfApplicable: false,
+    isExperienced: false,
     doj: '',
   });
 
@@ -165,6 +168,62 @@ const EmployeeOnboardingForm = () => {
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900" required />
         </div>
 
+        {/* Fresher / Experienced */}
+<div className="flex flex-col col-span-2">
+  <label className="mb-2 text-sm font-medium text-gray-700">Candidate Type</label>
+  <div className="flex gap-4">
+    <div>
+      <input
+        type="radio"
+        id="fresher"
+        name="isExperienced"
+        value="false"
+        checked={!formData.isExperienced}
+        onChange={() => setFormData((prev) => ({ ...prev, isExperienced: false }))}
+        className="hidden"
+      />
+      <label
+        htmlFor="fresher"
+        className={`px-4 py-2 rounded-md cursor-pointer border block text-center ${
+          !formData.isExperienced
+            ? 'bg-blue-600 text-white border-blue-600'
+            : 'bg-white text-gray-700 border-gray-300'
+        }`}
+      >
+        Fresher
+      </label>
+    </div>
+
+    <div>
+      <input
+        type="radio"
+        id="experienced"
+        name="isExperienced"
+        value="true"
+        checked={formData.isExperienced}
+        onChange={() => setFormData((prev) => ({ ...prev, isExperienced: true }))}
+        className="hidden"
+      />
+      <label
+        htmlFor="experienced"
+        className={`px-4 py-2 rounded-md cursor-pointer border block text-center ${
+          formData.isExperienced
+            ? 'bg-blue-600 text-white border-blue-600'
+            : 'bg-white text-gray-700 border-gray-300'
+        }`}
+      >
+        Experienced
+      </label>
+    </div>
+  </div>
+
+  {/* Small grey info line */}
+  <p className="text-xs text-gray-500 mt-1">
+    Used only for internal purpose during the Spring Verification setup
+  </p>
+</div>
+
+
         {/* Submit */}
         <div className="col-span-2">
           <button type="submit" disabled={loading}
@@ -172,11 +231,8 @@ const EmployeeOnboardingForm = () => {
               }`}>
             {loading ? (
               <span className="flex justify-center items-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 00-8 8h4z"></path>
-                </svg>
+                <CgSpinner className="animate-spin h-5 w-5 text-white" />
+
                 Submitting...
               </span>
             ) : (
