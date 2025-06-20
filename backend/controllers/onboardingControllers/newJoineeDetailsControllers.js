@@ -191,27 +191,31 @@ async function saveJoineeDetails(req, res) {
     const filter = { email: personalEmail };
 
     const update = {
-      role: "664ecd97efdcf936376851d2",
-      onboarding: {
-        hrFilledInfo: {
-          name,
-          personalEmail,
-          phone,
-          baseSalary,
-          annualCtc,
-          department,
-          role,
-          isPfApplicable,
-          doj,
-          initiatedBy: req.user ? req.user._id : null,
-          initiatedAt: new Date(),
-        },
-      },
-    };
+  email: personalEmail, // Set this at the top level
+  department,            // required at top-level
+  role, // or use `role` from req.body if dynamic
 
-    const options = { new: true, upsert: true, setDefaultsOnInsert: true };
+  onboarding: {
+    hrFilledInfo: {
+      name,
+      personalEmail,
+      phone,
+      baseSalary,
+      annualCtc,
+      department,
+      role,
+      isPfApplicable,
+      isExperienced, // <- make sure this is passed from frontend
+      doj,
+      initiatedBy: req.user ? req.user._id : null,
+      initiatedAt: new Date(),
+    },
+  },
+};
 
-    const savedUser = await User.findOneAndUpdate(filter, update, options);
+
+
+    const savedUser = await User.create( update);
 
     const pdfBuffer = await generateOfferLetterPDF({
       name,
@@ -233,9 +237,20 @@ async function saveJoineeDetails(req, res) {
     const toAddress = personalEmail;
     const ccAddress = "";
 
-    await sendEmail(subject, body, toAddress, ccAddress, {
-      "offerLetter.pdf": pdfBuffer,
-    });
+    await sendEmail({
+  subject,
+  body,
+  toAddress,    // not 'to'
+  ccAddress,    // not 'cc'
+  attachments: [
+    {
+      filename: "offerLetter.pdf",
+      content: pdfBuffer
+    }
+  ]
+});
+
+
 
     const userId = savedUser._id;
     const updateData = {
