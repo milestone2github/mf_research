@@ -15,7 +15,7 @@ const sendEmail = require("../../utils/sendEmail");
 // Sending Gotra to new employees Via Mail
 async function sendGotraDocument(user) {
   try {
-    
+
     // 1. Fetch the PDF from blob storage
     const gotraUrl =
       "https://mfdatafeed.blob.core.windows.net/onboarding/Gotraka_-_HR_guideline_2023_.pdf";
@@ -191,31 +191,31 @@ async function saveJoineeDetails(req, res) {
     const filter = { email: personalEmail };
 
     const update = {
-  email: personalEmail, // Set this at the top level
-  department,            // required at top-level
-  role, // or use `role` from req.body if dynamic
-
-  onboarding: {
-    hrFilledInfo: {
-      name,
-      personalEmail,
-      phone,
-      baseSalary,
-      annualCtc,
+      email: personalEmail, // Set personalEmail to top-level email also as this field is required
       department,
       role,
-      isPfApplicable,
-      isExperienced, // <- make sure this is passed from frontend
-      doj,
-      initiatedBy: req.user ? req.user._id : null,
-      initiatedAt: new Date(),
-    },
-  },
-};
+
+      onboarding: {
+        hrFilledInfo: {
+          name,
+          personalEmail,
+          phone,
+          baseSalary,
+          annualCtc,
+          department,
+          role,
+          isPfApplicable,
+          isExperienced,
+          doj,
+          initiatedBy: req.user ? req.user._id : null,
+          initiatedAt: new Date(),
+        },
+      },
+    };
 
 
 
-    const savedUser = await User.create( update);
+    const savedUser = await User.create(update);
 
     const pdfBuffer = await generateOfferLetterPDF({
       name,
@@ -238,17 +238,17 @@ async function saveJoineeDetails(req, res) {
     const ccAddress = "";
 
     await sendEmail({
-  subject,
-  body,
-  toAddress,    // not 'to'
-  ccAddress,    // not 'cc'
-  attachments: [
-    {
-      filename: "offerLetter.pdf",
-      content: pdfBuffer
-    }
-  ]
-});
+      subject,
+      body,
+      toAddress,
+      ccAddress,
+      attachments: [
+        {
+          filename: "offerLetter.pdf",
+          content: pdfBuffer
+        }
+      ]
+    });
 
 
 
