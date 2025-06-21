@@ -3,6 +3,7 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/centralRbac/**/*.{js,ts,jsx,tsx}"  // 👈 Added RBAC paths
   ],
   theme: {
     extend: {
