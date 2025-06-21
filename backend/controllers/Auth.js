@@ -19,7 +19,6 @@ const loginWithZoho = (req, res) => {
 }
 
 // Handles Zoho OAuth callback
-
 const zohoCallback = async (req, res) => {
   const code = req.query.code;
   const state = req.query.state ? JSON.parse(decodeURIComponent(req.query.state)) : {};
@@ -45,16 +44,11 @@ const zohoCallback = async (req, res) => {
     const { access_token, refresh_token } = tokenResponse.data;
     let id_token = tokenResponse.data.id_token;
     const decode = jwt.decode(id_token);
-    
-    console.log("decode", decode)
-    // console.log("Line 42 token response", tokenResponse);
 
     const accessToken = tokenResponse.data.access_token;
-    console.log("Line 44 access token", accessToken);
 
     // Step 2: Fetch user details from Zoho People API by email
     const userEmail = decode.email
-    console.log("useremail", userEmail)
     const peopleApiUrl = `https://people.zoho.com/people/api/forms/P_EmployeeView/records`;
 
     const peopleResponse = await axios.get(peopleApiUrl, {
@@ -66,8 +60,6 @@ const zohoCallback = async (req, res) => {
         searchValue: userEmail
       }
     });
-
-    console.log("this is people response", peopleResponse.data)
 
     if (!peopleResponse.data || !Array.isArray(peopleResponse.data) || peopleResponse.data.length === 0) {
       throw new Error(`Failed to fetch user details from Zoho People API for email: ${userEmail}`);
@@ -81,7 +73,7 @@ const zohoCallback = async (req, res) => {
     }
 
     // Step 3: Check if user exists in our database
-    let userExist = await User.findOne({ email }).populate("role");
+    let userExist = await User.findOne({ email }).populate({path: "role", select: "name"});
     let combinedPermissions;
     let internalDashboardRole;
 
@@ -91,7 +83,7 @@ const zohoCallback = async (req, res) => {
         email: user.email,
         mintUsername: user.mintUsername,
         insuranceDashboardID: user.insuranceDashboardID,
-        role: { _id: user.role._id, name: user.role ? user.role.name : null }, // Include role name if available
+        role: { _id: user?.role?._id, name: user.role ? user.role.name : null }, // Include role name if available
         permissions: combinedPermissions,
         internalDashboardRole: internalDashboardRole,
         access_token,
@@ -100,7 +92,6 @@ const zohoCallback = async (req, res) => {
     };
 
     if (userExist) {
-      console.log("Line 82 userExist", userExist)
 
      // Latest Sync with Zoho for Updated Role and Depaertment
       const currDate = new Date();
@@ -154,7 +145,6 @@ const zohoCallback = async (req, res) => {
       combinedPermissions = await getCombinedPermissions(userExist);
       internalDashboardRole = userExist.internalDashboardRole;
 
-      await userExist.populate('role'); //role populated navbar purpose
       setUserSession(userExist);
 
       console.log("Session Set (Existing User):", req.session);
@@ -189,8 +179,6 @@ const zohoCallback = async (req, res) => {
       lastSyncedWithZoho: new Date()
     });
 
-    console.log("Line113 new user created", newUser);
-
     await newUser.save();
     await newUser.populate('role'); // Populate the newly created role
     internalDashboardRole = newUser.internalDashboardRole;
@@ -202,7 +190,7 @@ const zohoCallback = async (req, res) => {
       empty(to be have permission, the depart and role must already exist in database with permission) 
       In that note it will create new user with  permission */}
 
-    //combinedPermissions(role + department + user additional) 
+    // combinedPermissions(role + department + user additional) 
     combinedPermissions = await getCombinedPermissions(newUser);
 
     setUserSession(newUser);
