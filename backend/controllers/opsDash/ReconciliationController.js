@@ -10,7 +10,7 @@ exports.getRecoTransactions = async (req, res) => {
   const skipItems = items * (page - 1)
   let filters = {}
   let filterStage2 = {};
-  const role = req.user?.role?.role;
+  const userPermissions = req.user?.permissions || [];
 
   schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
 
@@ -96,7 +96,7 @@ exports.getRecoTransactions = async (req, res) => {
     ]
   }
 
-  if (['administrator', 'management', 'operations senior'].includes(role?.toLowerCase())) {
+  if (userPermissions.includes('reconcile_approval_approve')) {
     shouldRecoThenCondition = {
       $or: [
         {
