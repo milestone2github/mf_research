@@ -10,13 +10,11 @@ const AllocateAssetModal = ({ show, onClose, asset, onAllocate }) => {
   useEffect(() => {
     if (show) {
       axios.get(FETCH_ALL_USERS_URL)
-        .then(res => setUsers(res.data))
+        .then(res => setUsers(res.data.data))
         .catch(err => console.error('Failed to fetch users', err));
     }
   }, [show]);
-
   if (!show) return null;
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
       <div className="bg-white p-5 rounded w-[400px]">
@@ -41,7 +39,7 @@ const AllocateAssetModal = ({ show, onClose, asset, onAllocate }) => {
           >
             <option value="">-- Select User --</option>
             {users.map(user => (
-              <option key={user._id} value={user._id}>{user.name}</option>
+              <option key={user._id} value={user._id}>{user.email}</option>
             ))}
           </select>
         </label>

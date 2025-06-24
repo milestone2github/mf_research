@@ -48,6 +48,3 @@ exports.ASSET_WITH_TYPE_NOT_FOUND = "No assets associated with given type.";
 exports.ASSET_TYPE_FETCH_SUCCESS = "All assets fetched successfully.";
 exports.ASSET_TYPE_FIELDS_REQUIRED = "There are missing fields required to create an Asset Type.";
 exports.ASSET_TYPE_CREATE_SUCCESS = "Asset Type created successfully.";
-
-
-

@@ -15,7 +15,7 @@ const sendEmail = require("../../utils/sendEmail");
 // Sending Gotra to new employees Via Mail
 async function sendGotraDocument(user) {
   try {
-    
+
     // 1. Fetch the PDF from blob storage
     const gotraUrl =
       "https://mfdatafeed.blob.core.windows.net/onboarding/Gotraka_-_HR_guideline_2023_.pdf";
@@ -191,7 +191,10 @@ async function saveJoineeDetails(req, res) {
     const filter = { email: personalEmail };
 
     const update = {
-      role: "664ecd97efdcf936376851d2",
+      email: personalEmail, // Set personalEmail to top-level email also as this field is required
+      department,
+      role,
+
       onboarding: {
         hrFilledInfo: {
           name,
@@ -202,6 +205,7 @@ async function saveJoineeDetails(req, res) {
           department,
           role,
           isPfApplicable,
+          isExperienced,
           doj,
           initiatedBy: req.user ? req.user._id : null,
           initiatedAt: new Date(),
@@ -209,9 +213,9 @@ async function saveJoineeDetails(req, res) {
       },
     };
 
-    const options = { new: true, upsert: true, setDefaultsOnInsert: true };
 
-    const savedUser = await User.findOneAndUpdate(filter, update, options);
+
+    const savedUser = await User.create(update);
 
     const pdfBuffer = await generateOfferLetterPDF({
       name,
@@ -233,9 +237,20 @@ async function saveJoineeDetails(req, res) {
     const toAddress = personalEmail;
     const ccAddress = "";
 
-    await sendEmail(subject, body, toAddress, ccAddress, {
-      "offerLetter.pdf": pdfBuffer,
+    await sendEmail({
+      subject,
+      body,
+      toAddress,
+      ccAddress,
+      attachments: [
+        {
+          filename: "offerLetter.pdf",
+          content: pdfBuffer
+        }
+      ]
     });
+
+
 
     const userId = savedUser._id;
     const updateData = {

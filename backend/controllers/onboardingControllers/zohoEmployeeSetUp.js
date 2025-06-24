@@ -145,6 +145,7 @@ async function newEmployeeSetup(userId) {
             userId,
             {
                 $set: {
+                     email: finalEmail,
                     'onboarding.zohoSetup.userCreated': true,
                     'onboarding.zohoSetup.zohoEmployeeId': employeeId.toString(),
                     'onboarding.zohoSetup.email': finalEmail

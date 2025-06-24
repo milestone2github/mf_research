@@ -6,24 +6,16 @@ const cron = require('node-cron')
 const app = express();
 const port = process.env.PORT || 5000;
 const session = require("express-session");
-const { connectToMilestoneDB, connetToTransactionsDb, connectToMniveshDB } = require("./dbConfig/connection");
+const { connectToMilestoneDB, connetToTransactionsDb } = require("./dbConfig/connection");
 const authRoutes = require('./routes/Auth');
-const dataRoutes = require('./routes/Data');
-const opsRoutes = require('./routes/opsDash/OpsRoutes');
-const mintRoutes = require('./routes/Mint');
-const OnboardingRoutes = require('./routes/OnboardingRoutes');
 const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
 const { pendingTransactionsNotification, springVerifyStatusCheck } = require("./utils/scheduledTasks");
 const MongoStore = require("connect-mongo");
-const AdminRoute = require("./routes/mniveshAdminRoutes/mniveshAdminRoutes");
 const router = require("./routes");
 const { getwebHookAccessToken } = require("./utils/webHookAccessToken");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
-const routes = require("./routes/centralRbacRoutes");
-
-
 
 // Configure session middleware
 app.use(
@@ -56,7 +48,8 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['Content-Disposition']
 };
 
 app.use(cors(corsOptions));
@@ -72,22 +65,12 @@ function dbAccess(req, res, next) {
 app.use(dbAccess); // Use the middleware
 
 app.use('/auth', authRoutes);
-app.use('/api/data', dataRoutes);
-app.use('/api/ops-dash', opsRoutes);
-app.use('/api/mint', mintRoutes);
-app.use('/api/mnivesh/admin', AdminRoute);
-app.use('/api/onboarding', OnboardingRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
-// central RBAC
-app.use('/api/rbac', routes);
-
-
-
-// Centralized Routes (ToDo: ADD OTHER ROUTES INSIDE THIS)
+// Centralized Routes
 app.use('/api', router);
 
 // wildcard route to serve react using express
-app.get("*", (req, res) => {
+app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
 });
 
