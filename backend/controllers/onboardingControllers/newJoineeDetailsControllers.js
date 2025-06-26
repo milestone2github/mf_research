@@ -10,6 +10,9 @@ const { getwebHookAccessToken } = require("../../utils/webHookAccessToken");
 const { getNewJoineeMailBody } = require("../../utils/newJoineeMailTemplate");
 const sendEmail = require("../../utils/sendEmail");
 const { getOfferLetterEmailTemplate } = require('../../utils/offerLetterTemplate');
+const { BlobServiceClient } = require('@azure/storage-blob');
+const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+
 
 
 
@@ -463,34 +466,129 @@ const fetchUserOnboardingInfo = async (req, res) => {
 };
 
 // ========== [2] Save Partial Onboarding Info ==========
+const extractDriveFileId = (url) => {
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)\//);
+  return match ? match[1] : null;
+};
+
+const fetchDriveFileBuffer = async (fileId) => {
+  const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+  const response = await axios.get(downloadUrl, {
+    responseType: 'arraybuffer',
+    headers: { 'Content-Type': 'application/octet-stream' }
+  });
+  return Buffer.from(response.data, 'binary');
+};
+
 const savePartialUserOnboardingInfo = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const update = { $set: {} };
     const submitStatus = req.body;
+    const userRecord = await User.findById(userId).lean();
+if (!userRecord) return res.status(404).json({ error: "User not found" });
 
-    const isFinalSubmit = submitStatus.finalSubmit === true;
+const sanitizedEmail = userRecord.email.replace(/[^a-zA-Z0-9]/g, '_');
 
+
+    const isFinalSubmit = submitStatus.finalSubmit === 'true' || submitStatus.finalSubmit === true;
+    const update = { $set: {} };
+
+    const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+    const containerClient = blobServiceClient.getContainerClient('education-docs');
+
+    // === Track uploaded fields from Azure (avoid Drive overwrite)
+    const azureUploadedFields = new Set();
+
+    const fileFields = {
+      tenthMarksheetFile: 'tenthMarksheet',
+      lastEducationFileUpload: 'lastEducationFile',
+      latestUpdateCvUpload: 'latestUpdateCv',
+    };
+
+    if (req.files && Object.keys(req.files).length > 0) {
+      for (const [field, dbField] of Object.entries(fileFields)) {
+        const fileArr = req.files?.[field];
+        if (fileArr?.length) {
+          const file = fileArr[0];
+          const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+
+          const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+          await blockBlobClient.uploadData(file.buffer, {
+            blobHTTPHeaders: { blobContentType: file.mimetype }
+          });
+          
+
+          update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blockBlobClient.url;
+          azureUploadedFields.add(dbField);
+        }
+      }
+    }
+
+    // === Handle Drive URLs only if Azure file not uploaded
+    const driveFields = {
+      tenthMarksheet: 'tenthMarksheet',
+      lastEducationFile: 'lastEducationFile',
+      latestUpdateCv: 'latestUpdateCv',
+    };
+
+    const eduSection = {
+      tenthMarksheet: submitStatus['educationalCertificatesAndDegree.tenthMarksheet'],
+      lastEducationFile: submitStatus['educationalCertificatesAndDegree.lastEducationFile'],
+      latestUpdateCv: submitStatus['educationalCertificatesAndDegree.latestUpdateCv'],
+    };
+
+    for (const [dbField, bodyField] of Object.entries(driveFields)) {
+      if (azureUploadedFields.has(dbField)) continue;
+
+      const url = eduSection[bodyField];
+      if (typeof url === 'string' && url.startsWith('https://drive.google.com')) {
+        const fileId = extractDriveFileId(url);
+        if (fileId) {
+          try {
+            const buffer = await fetchDriveFileBuffer(fileId);
+            const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${fileId}.pdf`;
+
+            const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+            await blockBlobClient.uploadData(buffer, {
+              blobHTTPHeaders: { blobContentType: 'application/pdf' }
+            });
+           
+            update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blockBlobClient.url;
+          } catch (err) {
+            console.error(`❌ Failed to fetch/upload Drive file for ${dbField}`, err.message);
+          }
+        }
+      } else if (typeof url === 'string' && url.startsWith('https://')) {
+        // Fallback to raw URL (not ideal, but acceptable)
+        update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = url;
+      }
+    }
+
+    // === Handle all other sections (e.g., personalDetails, bankDetails, etc.)
     for (const [key, value] of Object.entries(submitStatus)) {
-      if (key !== "finalSubmit") {
+      if (key !== 'finalSubmit' && !key.startsWith('educationalCertificatesAndDegree')) {
         update.$set[`onboarding.userFilledInfo.${key}`] = value;
       }
     }
 
+    // === Final Submit Timestamp
     if (isFinalSubmit) {
-      update.$set["onboarding.userFilledInfo.submittedAt"] = new Date();
+      update.$set['onboarding.userFilledInfo.submittedAt'] = new Date();
     }
 
+    
+
     const user = await User.findByIdAndUpdate(userId, update, { new: true });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.status(200).json({
-      message: isFinalSubmit ? "Final submission successful" : "Data saved",
+      message: isFinalSubmit ? 'Final submission successful' : 'Data saved',
       data: user.onboarding.userFilledInfo,
     });
+
   } catch (error) {
-    console.error("Error saving onboarding info:", error);
-    res.status(500).json({ error: "Failed to save onboarding data" });
+    console.error('❌ Error saving onboarding info:', error);
+    res.status(500).json({ error: 'Failed to save onboarding data' });
   }
 };
 
