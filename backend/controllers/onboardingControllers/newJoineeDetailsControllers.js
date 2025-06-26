@@ -9,6 +9,8 @@ const { getZohoAccessToken } = require("../../utils/getZohoAccessToken");
 const { getwebHookAccessToken } = require("../../utils/webHookAccessToken");
 const { getNewJoineeMailBody } = require("../../utils/newJoineeMailTemplate");
 const sendEmail = require("../../utils/sendEmail");
+const { getOfferLetterEmailTemplate } = require('../../utils/offerLetterTemplate');
+
 
 
 
@@ -131,40 +133,80 @@ function generateOfferLetterPDF({
   department,
   baseSalary,
   annualCtc,
+  doj = new Date().toLocaleDateString('en-IN'),
 }) {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument();
       const buffers = [];
 
-      doc.on("data", (chunk) => buffers.push(chunk));
-      doc.on("end", () => {
+      doc.on('data', (chunk) => buffers.push(chunk));
+      doc.on('end', () => {
         const pdfBuffer = Buffer.concat(buffers);
         resolve(pdfBuffer);
       });
 
-      doc.fontSize(20).text("Offer Letter", { align: "center" });
-      doc.moveDown();
-      doc
-        .fontSize(12)
-        .text(`Date: ${new Date().toLocaleDateString()}`, { align: "right" });
+      // Attach logo/header
+      const headerImagePath = path.join(__dirname, '../assets/05dae632-0a5d-4314-b327-1427c191d7fa.png'); // Update to actual path
+      const signatureImagePath = path.join(__dirname, '../assets/61b08f44-4f16-4dc8-ae99-eea3c3784271.png'); // Update to actual path
+
+      if (fs.existsSync(headerImagePath)) {
+        doc.image(headerImagePath, { width: 500, align: 'center' });
+      }
+
       doc.moveDown(2);
+      doc.fontSize(12).text(`Date: ${new Date().toLocaleDateString('en-IN')}`, { align: 'right' });
+      doc.moveDown();
+      doc.text(`Mr. ${name}\nDelhi`);
+      doc.moveDown();
       doc.text(`Dear ${name},`);
       doc.moveDown();
-      doc.text(
-        `We are delighted to offer you the position of ${role} in our ${department} department.`
-      );
+
+      doc.text(`I would like to congratulate you on behalf of Milestone Global Moneymart Private Limited alongside welcoming you to our family. We are excited to offer you a position in our organisation for ${role}.`);
       doc.moveDown();
-      doc.text(
-        `Your base salary will be ${baseSalary} and your annual CTC is ${annualCtc}.`
-      );
+      doc.text(`This offer letter will be valid for 2 working days for you to accept the job from the date of receipt. The date of joining as set by the terms of the offer letter will be ${new Date(doj).toDateString()} with option for extension of 1 week available on request.`);
       doc.moveDown();
-      doc.text(
-        `Please review the terms and conditions outlined in this offer letter. We are excited about the prospect of you joining our team.`
-      );
+      doc.text(`As per our discussion done during the interview are stated as followed to prevent any miscommunication on either part -`);
+      doc.moveDown();
+
+      const bullets = [
+        `Your annual compensation will be ${annualCtc} INR subject to tax and other statutory deductions. EPF deductions will be mandatory and set at 12% of basic pay or 1800 INR per month with equal contribution from employer, if opted. Making your net-in-hand compensation ${baseSalary} INR per month. Your CTC (Cost to Company) will be approximately ${annualCtc} annually.`,
+        `For the first three months from the joining date, you'll be appointed as probationary officer, where the notice period in case of resignation or termination will be 15 days from either side or in-lieu 15 days of pay to waive notice period or any combination thereof.`,
+        `You’ll be required to sign the Non-Disclosure Agreement on date of appointment.`,
+        `You’ll be reporting to our Rohini, Delhi office.`,
+        `NISM VA qualification will be mandatory within probationary period, if you're appointed in Mutual Fund Sales.`,
+        `At end of probation period, you'll be regarded as permanent employee eligible for:`,
+        `• Corporate Health Insurance & Personal Accident Policy (company-paid)`,
+        `• Gratuity as per government guidelines`,
+        `• Official SIM, Laptop on joining (company-owned)`,
+        `• Abide by HR policy (supersedes this letter)`,
+        `• Notice period: 1 month from either side`,
+        `• Eligible for incentive structure post-probation`
+      ];
+
+      bullets.forEach(b => {
+        doc.text(`• ${b}`, { indent: 20, lineGap: 4 });
+      });
+
+      doc.moveDown();
+      doc.text(`Before the date of joining, you'll be sent a mail from Spring Verify for pre-employment verification. You'll be deemed not fit until the verification is completed.`);
+      doc.moveDown();
+      doc.text(`For any clarification, contact the undersigned at +91 9910076952 or jobs@niveshonline.com.`);
       doc.moveDown(2);
-      doc.text("Best regards,");
-      doc.text("The HR Team");
+
+      // Signature block
+      doc.text('Regards,\n');
+      if (fs.existsSync(signatureImagePath)) {
+        doc.image(signatureImagePath, { width: 100 });
+      }
+      doc.text(`Vilakshan Bhutani`);
+      doc.text(`Executive Director`);
+      doc.text(`Milestone Global Moneymart Private Limited`);
+      doc.moveDown(2);
+
+      doc.text(`I have read all terms and conditions and will abide by them in all scenarios.`);
+      doc.moveDown(1);
+      doc.text(`Mr. ${name}`);
 
       doc.end();
     } catch (error) {
@@ -172,6 +214,7 @@ function generateOfferLetterPDF({
     }
   });
 }
+
 
 // ======= Save Joinee ======= Step 1
 async function saveJoineeDetails(req, res) {
@@ -217,22 +260,33 @@ async function saveJoineeDetails(req, res) {
 
     const savedUser = await User.create(update);
 
-    const pdfBuffer = await generateOfferLetterPDF({
-      name,
-      role,
-      department,
-      baseSalary,
-      annualCtc,
-    });
-    const subject =
-      "Offer Letter from 'Milestone Global Moneymart Private Limited'";
-    const body = `
-      <h1>Dear ${name},</h1>
-      <p>We are pleased to extend to you an offer of employment. Please find your official offer letter attached to this email.</p>
-      <p>We look forward to welcoming you to the team and are excited about the contributions you will bring to our organization.</p>
-      <p>Should you have any questions, feel free to reach out.</p>
-      <p>Sincerely,<br/>Milestone HR Team</p>
-    `;
+    let pdfBuffer;
+if (process.env.USE_ZOHO_TEMPLATE === 'true') {
+  pdfBuffer = await generateOfferLetterFromZohoTemplate({
+    name,
+    role,
+    department,
+    baseSalary,
+    annualCtc,
+    doj,
+  });
+} else {
+  pdfBuffer = await generateOfferLetterPDF({
+    name,
+    role,
+    department,
+    baseSalary,
+    annualCtc,
+  });
+}
+
+    const { subject, body } = getOfferLetterEmailTemplate({
+  name,
+  doj,
+  onboardingLink: 'https://yourdomain.com/onboarding-form-link'
+});
+
+
 
     const toAddress = personalEmail;
     const ccAddress = "";
