@@ -316,7 +316,7 @@ function EditUser() {
             </button>
 
             {/* Top Profile Section */}
-            <div className="bg-gray-900 p-6 rounded-lg shadow-lg flex flex-col md:flex-row justify-between items-center border-2 border-green-700 mb-6 gap-4">
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg flex flex-wrap justify-between items-center border-2 border-green-700 mb-6 gap-4">
                 {/* Left Section - Avatar, Name, Email */}
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full text-white font-bold text-lg md:text-xl ${getAvatorColor(user._id)}`}>
@@ -331,19 +331,19 @@ function EditUser() {
                 {/* Status */}
                 <div>
                     <select
-                        className={`px-3 py-2 md:px-4 md:py-2 font-medium rounded-lg focus:outline-white text-sm md:text-base ${activeStatus === "Active" ? "bg-green-500" : "bg-red-500"}`}
+                        className={`px-3 py-2 md:px-4 md:py-2 font-medium rounded-lg focus:outline-white text-sm md:text-base ${activeStatus === "Active" ? "bg-green-600" : "bg-red-600"}`}
                         value={activeStatus}
                         onChange={(e) => setActiveStatus(e.target.value)}
                     >
-                        <option value="Active" className="bg-green-500">Active</option>
-                        <option value="Inactive" className="bg-red-500">Inactive</option>
+                        <option value="Active" className="bg-green-600">Active</option>
+                        <option value="Inactive" className="bg-red-600">Inactive</option>
                     </select>
                 </div>
 
                 {/* Role & Department Dropdowns / Save Button */}
-                <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full md:w-auto">
+                <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full md:w-auto flex-wrap">
                     <select
-                        className="bg-blue-700 text-white px-6 py-2 rounded-lg focus:outline-none w-full md:w-auto text-sm md:text-base"
+                        className="bg-blue-700 text-white px-3 py-2 rounded-lg focus:outline-none w-full md:w-auto text-sm md:text-base truncate"
                         value={selectedDepartment || ""}
                         onChange={(e) => handleDepartmentChange(e.target.value)}
                     >
@@ -356,15 +356,15 @@ function EditUser() {
                     </select>
 
                     <select
-                        className="bg-blue-700 text-white px-3 py-2 rounded-lg focus:outline-none w-full md:w-auto text-sm md:text-base"
+                        className="bg-blue-700 text-white px-3 py-2 rounded-lg focus:outline-none w-full md:w-48 text-sm md:text-base truncate"
                         value={selectedRole || ""}
                         onChange={(e) => handleRoleChange(e.target.value)}
                         disabled={!selectedDepartment}
                     >
                         <option value="">Select Role</option>
                         {roles.map((role) => (
-                            <option key={role._id} value={role._id}>
-                                {role.name}
+                            <option key={role._id} value={role._id} title={role.name}>
+                                {role.name.length > 30 ? `${role.name.slice(0, 30)}...` : role.name}
                             </option>
                         ))}
                     </select>
@@ -382,7 +382,7 @@ function EditUser() {
             {/* Permissions Section */}
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Left Container - User Info and Additional Permissions */}
-                <div className="lg:w-[40%] bg-gray-900 p-6 rounded-lg shadow-lg border-2 border-gray-700 mb-6">
+                <div className="lg:w-[40%] bg-gray-900 p-6 rounded-lg shadow-lg border-2 border-gray-600">
                     {/* User Info */}
                     <div className="mb-6">
                         <h3 className="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">User Info</h3>
@@ -447,7 +447,7 @@ function EditUser() {
                 {/* Right Container - Department and Role Permissions */}
                 <div className="lg:w-[60%] flex flex-col lg:flex-row gap-6">
                     {/* Department Permissions */}
-                    <div className="lg:w-[50%] bg-gray-900 p-6 rounded-lg shadow-lg border-2 border-gray-700">
+                    <div className="lg:w-[50%] bg-gray-900 p-6 rounded-lg shadow-lg border-2 border-gray-600">
                         <h3 className="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">
                             Department Permissions
                             {selectedDepartment && (
@@ -477,7 +477,7 @@ function EditUser() {
                     </div>
 
                     {/* Role Permissions */}
-                    <div className="lg:w-[50%] bg-gray-900 p-6 rounded-lg shadow-lg border-2 border-gray-700">
+                    <div className="lg:w-[50%] bg-gray-900 p-6 rounded-lg shadow-lg border-2 border-gray-600">
                         <h3 className="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">
                             Role Permissions
                             {selectedRole && (

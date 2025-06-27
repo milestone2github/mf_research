@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash, FaArrowLeft, FaPlus } from "react-icons/fa";
 import axios from "axios";
-import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
+import DeleteUserNameConfirmationModal from "../components/common/DeleteUserNameConfirmationModal";
 import { toast, ToastContainer, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { RBAC_BASE_URL } from "../utils/urlConstants";
@@ -321,11 +321,10 @@ function UserManagementDashboard() {
             </div>
             {/* Delete Confirmation Modal */}
             {deleteModal.show && (
-                <DeleteConfirmationModal
-                    modalData={{ deleteTitle: deleteModal.userName, }}
-                    onClose={cancelDeleteUser}
-                    onDeleteConfirm={confirmDeleteUser}
-                    message=""
+                <DeleteUserNameConfirmationModal
+                    userName={deleteModal.userName}
+                    onCancel ={cancelDeleteUser}
+                    onConfirm={confirmDeleteUser}
                 />
             )}
         </div>

@@ -1058,6 +1058,13 @@ const setRelationshipManager = async (req, res) => {
 
 // Export the transactions in excel
 const exportAllTransactions = async (req, res) => {
+
+  const permissions = req.user?.permissions || [];
+
+  if (!permissions.includes('export_all_transactions_data')) {
+    return res.status(403).json({ error: 'Export Permission denied' });
+  }
+
   try {
     let {
       minDate,

@@ -26,7 +26,7 @@ function Search({ onSearch }) {
         placeholder="Search title"
         className="border border-gray-300 text-black p-2 rounded-md w-full md:w-80"
       />
-      <button type="submit" className="ml-2 bg-blue-600 text-white px-4 py-2 rounded-md">
+      <button type="submit" className="ml-2 bg-blue-600 hover:bg-blue-800 text-white px-4 py-2 rounded-md">
         Search
       </button>
     </form>

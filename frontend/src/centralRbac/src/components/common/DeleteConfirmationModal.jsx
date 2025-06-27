@@ -4,7 +4,7 @@ function DeleteConfirmationModal({ modalData, onClose, onDeleteConfirm, message 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-gray-700 rounded-md p-6 w-96">
-        <h2 className="text-xl font-semibold mb-4">Confirm Delete</h2>
+        <h2 className="text-xl font-semibold mb-4 text-white">Confirm Delete</h2>
         <p>
           Are you sure you want to delete <strong>{modalData.deleteTitle}</strong>?<br />
           {message}
