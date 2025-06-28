@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@azure/storage-blob": "^12.27.0",
     "axios": "^1.8.4",
     "connect-mongo": "^5.1.0",
     "cors": "^2.8.5",
@@ -28,6 +29,7 @@
     "nodemailer": "^6.10.1",
     "path": "^0.12.7",
     "pdfkit": "^0.17.1",
+    "puppeteer": "^24.11.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -14,7 +14,7 @@ const {
 
 const verifyUser = require('../middlewares/VerifyUser');
 const verifyToken = require('../middlewares/verifyToken');
-const { uploadEducationDocs } = require('../middlewares/uploadEducationDocs');
+const { uploadOnboardingDocs } = require('../middlewares/uploadOnboardingDocs');
 
 
 const { sendOtpSms, verifyOtp, otpVerifiedStatus } = require('../controllers/onboardingControllers/otpController');
@@ -42,7 +42,7 @@ router.post('/otp/verify', verifyOtp);
 router.get('/check-session', otpVerifiedStatus);
 
 router.get('/me', verifyToken, fetchUserOnboardingInfo);
-router.patch('/onboarding-form', verifyToken, uploadEducationDocs, savePartialUserOnboardingInfo);
+router.patch('/onboarding-form', verifyToken, uploadOnboardingDocs, savePartialUserOnboardingInfo);
 
 router.get('/department', getAllDepartments);
 router.get('/roles', getRoles);

@@ -9,9 +9,14 @@ const { getZohoAccessToken } = require("../../utils/getZohoAccessToken");
 const { getwebHookAccessToken } = require("../../utils/webHookAccessToken");
 const { getNewJoineeMailBody } = require("../../utils/newJoineeMailTemplate");
 const sendEmail = require("../../utils/sendEmail");
+const generateOnboardingLink = require('../../utils/generateOnboardingLink');
 const { getOfferLetterEmailTemplate } = require('../../utils/offerLetterTemplate');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+
 
 
 
@@ -130,94 +135,189 @@ async function getEmployeeRecords(access_token) {
 }
 
 // ======= PDF Generation =======
-function generateOfferLetterPDF({
-  name,
-  role,
-  department,
-  baseSalary,
-  annualCtc,
-  doj = new Date().toLocaleDateString('en-IN'),
-}) {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument();
-      const buffers = [];
 
-      doc.on('data', (chunk) => buffers.push(chunk));
-      doc.on('end', () => {
-        const pdfBuffer = Buffer.concat(buffers);
-        resolve(pdfBuffer);
-      });
-
-      // Attach logo/header
-      const headerImagePath = path.join(__dirname, '../assets/05dae632-0a5d-4314-b327-1427c191d7fa.png'); // Update to actual path
-      const signatureImagePath = path.join(__dirname, '../assets/61b08f44-4f16-4dc8-ae99-eea3c3784271.png'); // Update to actual path
-
-      if (fs.existsSync(headerImagePath)) {
-        doc.image(headerImagePath, { width: 500, align: 'center' });
-      }
-
-      doc.moveDown(2);
-      doc.fontSize(12).text(`Date: ${new Date().toLocaleDateString('en-IN')}`, { align: 'right' });
-      doc.moveDown();
-      doc.text(`Mr. ${name}\nDelhi`);
-      doc.moveDown();
-      doc.text(`Dear ${name},`);
-      doc.moveDown();
-
-      doc.text(`I would like to congratulate you on behalf of Milestone Global Moneymart Private Limited alongside welcoming you to our family. We are excited to offer you a position in our organisation for ${role}.`);
-      doc.moveDown();
-      doc.text(`This offer letter will be valid for 2 working days for you to accept the job from the date of receipt. The date of joining as set by the terms of the offer letter will be ${new Date(doj).toDateString()} with option for extension of 1 week available on request.`);
-      doc.moveDown();
-      doc.text(`As per our discussion done during the interview are stated as followed to prevent any miscommunication on either part -`);
-      doc.moveDown();
-
-      const bullets = [
-        `Your annual compensation will be ${annualCtc} INR subject to tax and other statutory deductions. EPF deductions will be mandatory and set at 12% of basic pay or 1800 INR per month with equal contribution from employer, if opted. Making your net-in-hand compensation ${baseSalary} INR per month. Your CTC (Cost to Company) will be approximately ${annualCtc} annually.`,
-        `For the first three months from the joining date, you'll be appointed as probationary officer, where the notice period in case of resignation or termination will be 15 days from either side or in-lieu 15 days of pay to waive notice period or any combination thereof.`,
-        `You’ll be required to sign the Non-Disclosure Agreement on date of appointment.`,
-        `You’ll be reporting to our Rohini, Delhi office.`,
-        `NISM VA qualification will be mandatory within probationary period, if you're appointed in Mutual Fund Sales.`,
-        `At end of probation period, you'll be regarded as permanent employee eligible for:`,
-        `• Corporate Health Insurance & Personal Accident Policy (company-paid)`,
-        `• Gratuity as per government guidelines`,
-        `• Official SIM, Laptop on joining (company-owned)`,
-        `• Abide by HR policy (supersedes this letter)`,
-        `• Notice period: 1 month from either side`,
-        `• Eligible for incentive structure post-probation`
-      ];
-
-      bullets.forEach(b => {
-        doc.text(`• ${b}`, { indent: 20, lineGap: 4 });
-      });
-
-      doc.moveDown();
-      doc.text(`Before the date of joining, you'll be sent a mail from Spring Verify for pre-employment verification. You'll be deemed not fit until the verification is completed.`);
-      doc.moveDown();
-      doc.text(`For any clarification, contact the undersigned at +91 9910076952 or jobs@niveshonline.com.`);
-      doc.moveDown(2);
-
-      // Signature block
-      doc.text('Regards,\n');
-      if (fs.existsSync(signatureImagePath)) {
-        doc.image(signatureImagePath, { width: 100 });
-      }
-      doc.text(`Vilakshan Bhutani`);
-      doc.text(`Executive Director`);
-      doc.text(`Milestone Global Moneymart Private Limited`);
-      doc.moveDown(2);
-
-      doc.text(`I have read all terms and conditions and will abide by them in all scenarios.`);
-      doc.moveDown(1);
-      doc.text(`Mr. ${name}`);
-
-      doc.end();
-    } catch (error) {
-      reject(error);
-    }
+async function fetchImageAsBase64(url) {
+  const response = await axios.get(url, {
+    responseType: 'arraybuffer',
   });
+
+  const contentType = response.headers['content-type']; // e.g., 'image/png'
+  const base64 = Buffer.from(response.data, 'binary').toString('base64');
+  return `data:${contentType};base64,${base64}`;
 }
 
+async function generateOfferLetterPDF({ name, role, department, baseSalary, annualCtc, doj, location = 'Delhi' }) {
+  const logoUrl = 'https://mfdatafeed.blob.core.windows.net/employee-onboarding/offerletterlogo.png';
+  const signatureUrl = 'https://mfdatafeed.blob.core.windows.net/employee-onboarding/Signaturevk.png';
+
+  const logoBase64 = await fetchImageAsBase64(logoUrl);
+  const signatureBase64 = await fetchImageAsBase64(signatureUrl);
+
+  const today = new Date();
+const formattedDate = today.toLocaleDateString('en-IN');
+
+  const joiningDate = isNaN(formattedDate) ? '' : formattedDate.toLocaleDateString('en-IN');
+  const joiningDateFull = isNaN(formattedDate) ? '' : formattedDate.toDateString();
+const formattedReadableDate = isNaN(formattedDate) ? '' : formattedDate.toDateString();
+
+   const firstName = name.split(' ')[0];
+const ctc = annualCtc;
+const monthly = baseSalary;
+  const htmlTemplate = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.65;
+  margin: 0;
+  padding: 20px 40px;
+  color: #000;
+}
+
+      .header-img {
+  width: 100%;
+  max-width: 650px;
+  display: block;
+  margin: 0 auto 10px;
+}
+
+      .signature-img {
+        width: 140px;
+        margin-top: 30px;
+      }
+      .section {
+        margin-bottom: 12px;
+      }
+      ul {
+        padding-left: 18px;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      .footer {
+        margin-top: 30px;
+        border-top: 1px solid #ccc;
+        padding-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="${logoBase64}" class="header-img" />
+    <p>${formattedDate}</p>
+
+    <p>Mr. ${name}</p>
+    <p>${location || 'Delhi'}</p>
+
+    <p>Dear ${firstName},</p>
+
+    <p>
+      I would like to congratulate you on-behalf of Milestone Global Moneymart Private Limited alongside
+      welcoming you to our family. We are excited to offer you a position in our organisation for ${role}.
+    </p>
+
+    <p>
+      This offer letter will be valid for 2 working days for you to accept the job from the date of
+      receipt. The date of joining as set by the terms of the offer letter will be <strong>${formattedReadableDate}</strong>
+      with option for extension of 1 week available on request.
+    </p>
+
+    <p>As per our discussion done during the interview are stated as followed to prevent any miscommunication on either part -</p>
+
+    <ul>
+      <li>Your annual compensation will be ${ctc} INR subject to tax and other statutory deductions. EPF deductions will be mandatory and set at 12% of basic pay or 1800 INR per month with equal contribution from employer, if opted. Making your net-in-hand compensation ${monthly} INR per month. Your CTC (Cost to Company) will be 2.10 Lakhs annually approximately.</li>
+      <li>For the first three months from the joining date, you'll be appointed as probationary officer, where the notice period in case of resignation or termination will be 15 days from either side or in-lieu 15 days of pay to waive notice period or any combination thereof. Your probation period can be extended on discretion of Milestone.</li>
+      <li>You’ll be required to sign the Non-Disclosure Agreement on date of appointment.</li>
+      <li>You’ll be reporting to our Rohini, Delhi office.</li>
+      <li>NISM VA qualification will be mandatory within probationary period, if you're appointed in Mutual Fund Sales.</li>
+      <li>At end of probation period, you'll be regarded as permanent employee on payroll of organisation where you'll be eligible for following -</li>
+      <ul>
+        <li>Corporate Health Insurance for the employee for which the premium will be borne by the organisation.</li>
+        <li>Corporate Personal Accidental Policy for the employee for which the premium will be borne by the organisation.</li>
+        <li>You’ll be eligible for the Gratuity Scheme as per the government issued guidelines, where the 15 days of your basic pay will be accumulated annually and paid to you in case of cessation of employment from either side.</li>
+      </ul>
+      <li>On date of joining, we expect you to be present physically at our Rohini, Delhi office for onboarding where you’ll also be provided with SIM card for official Number, Laptop (Owned by Milestone Global Moneymart (P) Ltd. and maintained by employee).</li>
+      <li>From date of joining, you’ll abide by HR policies as issued by the organisation. The policy will supersede any or all terms and conditions as stated under the offer letter.</li>
+      <li>Your notice period will be set as 1 month from either side or in-lieu same days of pay or a combination of both.</li>
+      <li>You'll be eligible for the incentive structure from the end of your probation period.</li>
+    </ul>
+
+    <p>
+      Before the date of joining, you'll be sent a mail from Spring verify to do pre-employment verification.
+      You'll be deemed not fit, till you've completed that verification form.
+    </p>
+
+    <p>
+      For any information, clarification you may contact the undersigned at +91 9910076952 or jobs@niveshonline.com.
+    </p>
+
+    <div class="section">
+      <p>Regards,</p>
+      <img src="${signatureBase64}" class="signature-img" />
+      <p>
+        Vilakshan Bhutani<br/>
+        Executive Director<br/>
+        Milestone Global Moneymart Private Limited
+      </p>
+    </div>
+<div class="footer">
+      <p><strong>I have read all terms and conditions and will abide by them in all scenarios.</strong></p>
+      <p>Mr. ${name}</p>
+    </div>
+  </body>
+</html>
+`;
+
+
+  const browser = await puppeteer.launch({ headless: "new" });
+  const page = await browser.newPage();
+  await page.setContent(htmlTemplate, { waitUntil: 'networkidle0' });
+  const buffer = await page.pdf({
+  format: 'A4',
+  printBackground: true,
+  margin: { top: '15mm', bottom: '15mm', left: '10mm', right: '10mm' },
+});
+
+
+  await browser.close();
+  return buffer;
+}
+
+
+async function handleSendOfferLetter({ name, role, department, baseSalary, annualCtc, doj, personalEmail, phone, departmentId }) {
+    // Fetch role name
+  const roleData = await Role.findById(role); // Assuming Role is imported
+  const roleName = roleData?.name || 'Role';
+
+  // 1. Generate Onboarding Link
+  const onboardingLink = generateOnboardingLink({
+    name,
+    email: personalEmail,
+    phone,
+    doj,
+    departmentId: departmentId.toString()
+  });
+
+  // 2. Generate Offer Letter PDF
+  const pdfBuffer = await generateOfferLetterPDF({ name, role: roleName, department, baseSalary, annualCtc, doj,
+  location: 'Delhi' });
+
+  // 3. Prepare email
+  const { subject, body } = getOfferLetterEmailTemplate({ name, doj, onboardingLink });
+
+  await sendEmail({
+    toAddress: personalEmail,
+    subject,
+    body,
+    attachments: [{
+      filename: 'OfferLetter.pdf',
+      content: pdfBuffer
+    }]
+  });
+}
 
 // ======= Save Joinee ======= Step 1
 async function saveJoineeDetails(req, res) {
@@ -234,13 +334,11 @@ async function saveJoineeDetails(req, res) {
       isExperienced,
       doj,
     } = req.body;
-    const filter = { email: personalEmail };
 
     const update = {
-      email: personalEmail, // Set personalEmail to top-level email also as this field is required
+      email: personalEmail,
       department,
       role,
-
       onboarding: {
         hrFilledInfo: {
           name,
@@ -259,55 +357,52 @@ async function saveJoineeDetails(req, res) {
       },
     };
 
+    let savedUser = await User.findOne({ email: personalEmail });
 
-
-    const savedUser = await User.create(update);
+    if (!savedUser) {
+      savedUser = await User.create(update);
+    } else {
+      await User.updateOne({ email: personalEmail }, { $set: update });
+    }
 
     let pdfBuffer;
+
 if (process.env.USE_ZOHO_TEMPLATE === 'true') {
   pdfBuffer = await generateOfferLetterFromZohoTemplate({
+    name, role, department, baseSalary, annualCtc, doj,
+  });
+} else {
+  // 🟡 Fetch role name before generating PDF
+  const roleData = await Role.findById(role);
+  const roleName = roleData?.name || 'Role';
+
+  pdfBuffer = await generateOfferLetterPDF({
     name,
-    role,
+    role: roleName,
     department,
     baseSalary,
     annualCtc,
     doj,
-  });
-} else {
-  pdfBuffer = await generateOfferLetterPDF({
-    name,
-    role,
-    department,
-    baseSalary,
-    annualCtc,
+    location: 'Delhi'
   });
 }
 
+
     const { subject, body } = getOfferLetterEmailTemplate({
-  name,
-  doj,
-  onboardingLink: 'https://yourdomain.com/onboarding-form-link'
-});
-
-
-
-    const toAddress = personalEmail;
-    const ccAddress = "";
+      name,
+      doj,
+      onboardingLink: 'https://yourdomain.com/onboarding-form-link',
+    });
 
     await sendEmail({
       subject,
       body,
-      toAddress,
-      ccAddress,
+      toAddress: personalEmail,
+      ccAddress: "",
       attachments: [
-        {
-          filename: "offerLetter.pdf",
-          content: pdfBuffer
-        }
-      ]
+        { filename: "offerLetter.pdf", content: pdfBuffer },
+      ],
     });
-
-
 
     const userId = savedUser._id;
     const updateData = {
@@ -320,10 +415,7 @@ if (process.env.USE_ZOHO_TEMPLATE === 'true') {
     const updatedUser = await User.findByIdAndUpdate(userId, updateData);
 
     if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
     res.status(201).json({
@@ -331,8 +423,9 @@ if (process.env.USE_ZOHO_TEMPLATE === 'true') {
       message: "New Joinee details saved successfully",
       user: savedUser,
     });
+
   } catch (error) {
-    console.error("Error creating joinee data:", error.message);
+    console.error("Error creating joinee data:", error);
     res.status(500).json({
       success: false,
       message: "Failed to create joinee data",
@@ -340,6 +433,8 @@ if (process.env.USE_ZOHO_TEMPLATE === 'true') {
     });
   }
 }
+
+
 
 // ======= Fetch All Joinees Status =======
 async function statusDetailsAllJoinee(req, res) {
@@ -484,21 +579,20 @@ const savePartialUserOnboardingInfo = async (req, res) => {
   try {
     const userId = req.user.userId;
     const submitStatus = req.body;
+
     const userRecord = await User.findById(userId).lean();
-if (!userRecord) return res.status(404).json({ error: "User not found" });
+    if (!userRecord) return res.status(404).json({ error: "User not found" });
 
-const sanitizedEmail = userRecord.email.replace(/[^a-zA-Z0-9]/g, '_');
-
-
+    const sanitizedEmail = userRecord.email.replace(/[^a-zA-Z0-9]/g, '_');
     const isFinalSubmit = submitStatus.finalSubmit === 'true' || submitStatus.finalSubmit === true;
     const update = { $set: {} };
 
     const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
-    const containerClient = blobServiceClient.getContainerClient('education-docs');
+    const containerClient = blobServiceClient.getContainerClient('employee-onboarding');
 
-    // === Track uploaded fields from Azure (avoid Drive overwrite)
     const azureUploadedFields = new Set();
 
+    // === Upload Education Files ===
     const fileFields = {
       tenthMarksheetFile: 'tenthMarksheet',
       lastEducationFileUpload: 'lastEducationFile',
@@ -511,72 +605,106 @@ const sanitizedEmail = userRecord.email.replace(/[^a-zA-Z0-9]/g, '_');
         if (fileArr?.length) {
           const file = fileArr[0];
           const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
-
           const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
           await blockBlobClient.uploadData(file.buffer, {
             blobHTTPHeaders: { blobContentType: file.mimetype }
           });
-          
 
-          update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blockBlobClient.url;
+         const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
+
           azureUploadedFields.add(dbField);
         }
       }
     }
 
-    // === Handle Drive URLs only if Azure file not uploaded
+    // === Upload Personal Photo & Bank Verification Doc ===
+    const personalBankFiles = {
+  'personalDetails.photo': 'photo',
+  'bankDetails.bankVerificationDoc': 'bankVerificationDoc',
+};
+
+for (const [formField, dbField] of Object.entries(personalBankFiles)) {
+  const fileArr = req.files?.[formField];
+
+  if (fileArr?.length > 0) {
+    const file = fileArr[0];
+    const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+    await blockBlobClient.uploadData(file.buffer, {
+      blobHTTPHeaders: { blobContentType: file.mimetype }
+    });
+
+    const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+    const [section, field] = formField.split('.');
+
+    if (typeof blobUrl === 'string' && blobUrl.startsWith('https://')) {
+      update.$set[`onboarding.userFilledInfo.${section}.${field}`] = blobUrl;
+    }
+  } else {
+    // ✅ Prevent setting an empty object accidentally
+    console.warn(` file uploaded for ${formField}, skipping.`);
+  }
+}
+
+
+
+    // === Handle Google Drive Fallbacks for Education Files ===
     const driveFields = {
       tenthMarksheet: 'tenthMarksheet',
       lastEducationFile: 'lastEducationFile',
       latestUpdateCv: 'latestUpdateCv',
     };
 
-    const eduSection = {
-      tenthMarksheet: submitStatus['educationalCertificatesAndDegree.tenthMarksheet'],
-      lastEducationFile: submitStatus['educationalCertificatesAndDegree.lastEducationFile'],
-      latestUpdateCv: submitStatus['educationalCertificatesAndDegree.latestUpdateCv'],
-    };
-
-    for (const [dbField, bodyField] of Object.entries(driveFields)) {
+    for (const [dbField] of Object.entries(driveFields)) {
       if (azureUploadedFields.has(dbField)) continue;
 
-      const url = eduSection[bodyField];
+      const driveFieldPath = `educationalCertificatesAndDegree.${dbField}`;
+      const url = submitStatus[driveFieldPath];
+
       if (typeof url === 'string' && url.startsWith('https://drive.google.com')) {
         const fileId = extractDriveFileId(url);
         if (fileId) {
           try {
             const buffer = await fetchDriveFileBuffer(fileId);
             const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${fileId}.pdf`;
-
             const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
             await blockBlobClient.uploadData(buffer, {
               blobHTTPHeaders: { blobContentType: 'application/pdf' }
             });
-           
-            update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blockBlobClient.url;
+
+           const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
+
           } catch (err) {
-            console.error(`❌ Failed to fetch/upload Drive file for ${dbField}`, err.message);
+            console.error(`❌ Failed to fetch/upload Drive file for ${dbField}:`, err.message);
           }
         }
       } else if (typeof url === 'string' && url.startsWith('https://')) {
-        // Fallback to raw URL (not ideal, but acceptable)
+        // Fallback: Use raw URL
         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = url;
       }
     }
 
-    // === Handle all other sections (e.g., personalDetails, bankDetails, etc.)
+    // === Save Remaining Form Data ===
     for (const [key, value] of Object.entries(submitStatus)) {
-      if (key !== 'finalSubmit' && !key.startsWith('educationalCertificatesAndDegree')) {
-        update.$set[`onboarding.userFilledInfo.${key}`] = value;
-      }
-    }
+  if (
+    key !== 'finalSubmit' &&
+    !key.startsWith('educationalCertificatesAndDegree') &&
+    !(typeof value === 'object' && value !== null && Object.keys(value).length === 0) // skip empty objects
+  ) {
+    update.$set[`onboarding.userFilledInfo.${key}`] = value;
+  }
+}
 
-    // === Final Submit Timestamp
+
+    // === Final Submit Timestamp ===
     if (isFinalSubmit) {
       update.$set['onboarding.userFilledInfo.submittedAt'] = new Date();
     }
-
-    
 
     const user = await User.findByIdAndUpdate(userId, update, { new: true });
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -591,6 +719,7 @@ const sanitizedEmail = userRecord.email.replace(/[^a-zA-Z0-9]/g, '_');
     res.status(500).json({ error: 'Failed to save onboarding data' });
   }
 };
+
 
 //Supporting function for below processSpringVerifyOrNda
 const extractUserDetails = (user) => {
@@ -777,7 +906,6 @@ const getRoles = async (req, res) => {
 
 // ======= EXPORT ==========
 // ======= EXPORT ==========
-
 module.exports = {
   saveJoineeDetails,
   statusDetailsAllJoinee,
@@ -789,4 +917,6 @@ module.exports = {
   processSpringVerifyOrNda,
   getAllDepartments,
   getRoles,
+  generateOnboardingLink, 
 };
+
