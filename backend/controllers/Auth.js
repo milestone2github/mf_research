@@ -175,6 +175,7 @@ const zohoCallback = async (req, res) => {
       insuranceDashboardID: zohoUser.insuranceDashboardID || null,
       department: department._id,
       role: role._id,
+      status: 'active',
       internalDashboardRole: zohoUser.InternalDashboardRole || "",
       lastSyncedWithZoho: new Date()
     });
