@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { FaArrowLeft } from "react-icons/fa";
 import { FETCH_DEPARTMENT_URL, FETCH_ALL_ROLES_URL } from '../../utils/urlConstants';
 import SearchModal from '../common/SearchModal';
 import DepartmentList from './DepartmentList';
@@ -8,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { DEPARTMENT_DELETE_MESSAGE } from '../../utils/stringConstants';
 import { toast, ToastContainer, Slide } from 'react-toastify'; // Import toast
 import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate } from 'react-router-dom';
 
 
 function DepartmentIndex() {
@@ -15,6 +17,7 @@ function DepartmentIndex() {
   const [filtered, setFiltered] = useState([]);
   const [modalData, setModalData] = useState({ show: false, deleteTitle: '', deleteUrl: '' });
   const [roleCounts, setRoleCounts] = useState({}); // Maps department id with roles assigned
+  const navigate = useNavigate();
 
   /** To Do: Manage Roles and Manage Departments buttons are hitting APIs every time we click,
    * integrate a way of caching to minimize no. of API hit **/
@@ -108,20 +111,25 @@ function DepartmentIndex() {
   return (
     <div className="p-4">
       <ToastContainer />
-      <div className='text-4xl font-bold text-white pb-5 text-center'>
-        <h2 className='text-white'>DEPARTMENT MANAGEMENT</h2>
-        <div className="mt-2 mx-auto w-72 border-b-2 border-orange-400" />
+      <div className="relative flex items-center mb-5">
+        <button onClick={() => navigate("/rbac")} className="text-white hover:text-gray-400 mr-4">
+          <FaArrowLeft size={20} />
+        </button>
+
+        <h1 className="text-3xl font-semibold text-white m-0">
+          Department Management
+        </h1>
       </div>
       <div className="flex justify-between mb-4">
         <SearchModal onSearch={handleSearch} />
         <div className='flex gap-5'>
           <Link to="/rbac/roles/manage">
-            <button className="bg-slate-500 text-white px-4 py-2 rounded-md">
+            <button className="bg-slate-500 hover:bg-slate-700 hover:border-white text-white px-4 py-2 rounded-md">
               Manage Roles
             </button>
           </Link>
           <Link to="/rbac/departments/add">
-            <button className="bg-green-600 text-white px-4 py-2 rounded-md">
+            <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
               Add Department
             </button>
           </Link>

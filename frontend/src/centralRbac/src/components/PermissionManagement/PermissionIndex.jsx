@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Search from '../common/SearchModal';
+import { FaArrowLeft } from "react-icons/fa";
 import PermissionList from './PermissionList';
 import AddEditPermission from './AddEditPermission';
 import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
@@ -8,6 +9,7 @@ import { FETCH_PERMISSION_URL } from '../../utils/urlConstants';
 import { PERMISSION_DELETE_MESSAGE } from '../../utils/stringConstants';
 import { toast, ToastContainer, Slide } from 'react-toastify'; 
 import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate } from 'react-router-dom';
 
 
 function PermissionIndex() {
@@ -16,6 +18,7 @@ function PermissionIndex() {
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [modalData, setModalData] = useState({ show: false, deleteTitle: '', deleteUrl: '' });
+  const navigate = useNavigate();
 
   // Function to fetch and store search-based results
   const fetchPermissions = async () => {
@@ -86,10 +89,16 @@ function PermissionIndex() {
   return (
     <div className="p-4">
       <ToastContainer />
-      <div className='text-4xl font-bold text-white pb-5 text-center'>
-        <h2 className='text-white'>PERMISSION MANAGEMENT</h2>
-        <div className="mt-2 mx-auto w-72 border-b-2 border-orange-400" />
+      <div className="relative flex items-center mb-5">
+        <button onClick={() => navigate("/rbac")} className="text-white hover:text-gray-400 mr-4">
+          <FaArrowLeft size={20} />
+        </button>
+
+        <h1 className="text-3xl font-semibold text-white m-0">
+          Permission Management
+        </h1>
       </div>
+
       {/* Search and Add option */}
       <div className="flex justify-between mb-4">
         <Search onSearch={handleSearch} />
@@ -98,7 +107,7 @@ function PermissionIndex() {
             setEditData(null);
             setShowModal(true);
           }}
-          className="bg-green-600 text-white px-4 py-2 rounded-md"
+          className="bg-green-600 hover:bg-green-700 hover:border-white text-white px-4 py-2 rounded-md"
         >
           Add Permission
         </button>

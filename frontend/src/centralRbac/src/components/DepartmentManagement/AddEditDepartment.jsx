@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { Switch } from '@headlessui/react';
 import { toast, ToastContainer, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -129,11 +129,19 @@ function AddEditDepartment() {
         <div className="flex flex-wrap gap-4">
           {permissions.map((perm) => (
             <div key={perm._id} className="flex items-center gap-2">
-              <button onClick={() => togglePermission(perm._id)}>
-                {permissionToggles.includes(perm._id)
-                  ? <FaToggleOn size={34} />
-                  : <FaToggleOff size={34} />}
-              </button>
+              <Switch
+                checked={permissionToggles.includes(perm._id)}
+                onChange={() => togglePermission(perm._id)}
+                className={`${permissionToggles.includes(perm._id) ? 'bg-green-500' : 'bg-gray-600'
+                  } relative inline-flex h-5 w-9 md:h-6 md:w-11 items-center rounded-full transition-colors`}
+              >
+                <span
+                  className={`${permissionToggles.includes(perm._id)
+                      ? 'translate-x-4 md:translate-x-6'
+                      : 'translate-x-1'
+                    } inline-block h-4 w-4 md:h-5 md:w-5 transform rounded-full bg-white transition-transform`}
+                />
+              </Switch>
               <span>{perm.name}</span>
             </div>
           ))}

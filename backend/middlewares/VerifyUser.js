@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const getCombinedPermissions = require("../utils/getCombinedPermissions");
 
 const verifyUser = async (req, res, next) => {
   // console.log("SESSION INFO: ", req.session);   // debug
@@ -12,7 +13,13 @@ const verifyUser = async (req, res, next) => {
     if(!user) {
       return res.status(401).json({error: 'User not found'})
     }
-    req.user = {...user, name: req.session.user.name}
+    const permissions = await getCombinedPermissions(user);
+
+    req.user = {...user, name: req.session.user.name , permissions}
+
+   // Update session so permissions are cached
+    req.session.user.permissions = permissions;
+
     next()
   } catch (error) {
     console.error('Error verifying user: ', error.message)

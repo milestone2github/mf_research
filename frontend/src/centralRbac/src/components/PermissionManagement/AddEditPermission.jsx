@@ -58,9 +58,18 @@ function AddEditPermission({ editData, onClose, onSuccess }) {
           className="w-full border rounded text-black p-2"
           placeholder="Permission name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-
+          onChange={(e) => { const value = e.target.value;
+            setName(value);
+            // Only auto-generate key if NOT editing existing permission
+            if (!editData) {
+              const generatedKey = value
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9\s]/g, '')   // Remove non-alphanumeric except space
+                .replace(/\s+/g, '_');         // Replace spaces with underscores
+              setKey(generatedKey);
+            }
+          }}/>
         <label className="block font-medium">Permission Key</label>
         <p className="text-sm text-gray-200 my-0 px-0 " style={{ marginTop: '0.2rem' }}>
           Use lowercase letters only. Words must be separated using underscores. E.g. mnivesh_admin</p>
@@ -93,7 +102,7 @@ function AddEditPermission({ editData, onClose, onSuccess }) {
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800"
           >
             {editData ? 'Update' : 'Add'}
           </button>

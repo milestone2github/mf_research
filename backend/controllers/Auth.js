@@ -175,6 +175,7 @@ const zohoCallback = async (req, res) => {
       insuranceDashboardID: zohoUser.insuranceDashboardID || null,
       department: department._id,
       role: role._id,
+      status: 'active',
       internalDashboardRole: zohoUser.InternalDashboardRole || "",
       lastSyncedWithZoho: new Date()
     });
@@ -223,12 +224,21 @@ const logout = (req, res) => {
   }
 };
 
-const verifySession = (req, res) => {
+const verifySession = async (req, res) => {
   console.log("Session Data:", req.session);//debug
   if (req.session && req.session.user) {
     // refresh the session expiration time by the time set during configuration  
-    req.session.touch();
-    console.log(req.session.user);
+    req.session.touch(); 
+     const user = await User.findOne({ email: req.session.user.email });
+      if (!user) {
+        return res.status(401).json({ loggedIn: false, user: null });
+      }
+      const permissions = await getCombinedPermissions(user);
+
+      // Update session and prepare response user object
+      req.session.user.permissions = permissions;
+
+    console.log("Updated session user:", req.session.user);
 
     // If the session exists and contains user information, the user is logged in
     res.status(200).json({ loggedIn: true, user: req.session.user });

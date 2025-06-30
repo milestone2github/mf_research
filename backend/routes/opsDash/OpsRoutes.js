@@ -50,7 +50,7 @@ router.patch('/note/:id', updateNote);
 router.patch('/relationship-manager', setRelationshipManager); //TEMPORARY
 
 // Export all the filtered transactions in XLSX file
-router.get('/export/filtered-transactions', exportAllTransactions);
+router.get('/export/filtered-transactions', verifyUser, exportAllTransactions);
 
 // RECONCILLATION ROUTES 
 router.use('/reconciliation',  require('./Reconciliation'))

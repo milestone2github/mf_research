@@ -31,7 +31,7 @@ exports.generateTransactionTableHTML = (transaction, flag, fractIdx) => {
       <td>${transaction.rmName}</td>
       <td>${transaction.amcName}</td>
       <td>${transaction.schemeName}</td>
-      <td>₹${amount.toLocaleString()}</td>
+      <td>₹${amount?.toLocaleString()}</td>
       <td>${transaction.units}</td>
       <td>${transaction.fromScheme}</td>
       <td>${transaction.smName || "N/A"}</td>
@@ -41,7 +41,7 @@ exports.generateTransactionTableHTML = (transaction, flag, fractIdx) => {
       <td>${transaction.registrant}</td>
       <td>${transaction.transactionFor}</td>
       <td>${transaction.paymentMode}</td>
-      <td>₹${transaction.firstTransactionAmount.toLocaleString()}</td>
+      <td>₹${transaction.firstTransactionAmount?.toLocaleString()}</td>
       <td>${sipSwpStpDate}</td>
       <td>${transaction.sipPauseMonth || "None"}</td>
       <td>${transaction.tenure || "N/A"}</td>
