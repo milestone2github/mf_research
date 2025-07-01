@@ -13,6 +13,7 @@ const generateOnboardingLink = require('../../utils/generateOnboardingLink');
 const { getOfferLetterEmailTemplate } = require('../../utils/offerLetterTemplate');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const ONBOARDING_FORM_LINK = process.env.ONBOARDING_FORM_LINK;
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
@@ -146,7 +147,7 @@ async function fetchImageAsBase64(url) {
   return `data:${contentType};base64,${base64}`;
 }
 
-async function generateOfferLetterPDF({ name, role, department, baseSalary, annualCtc, doj, location = 'Delhi' }) {
+async function generateOfferLetterPDF({ name, role, baseSalary, annualCtc, doj, location = 'Delhi' }) {
   const logoUrl = 'https://mfdatafeed.blob.core.windows.net/employee-onboarding/offerletterlogo.png';
   const signatureUrl = 'https://mfdatafeed.blob.core.windows.net/employee-onboarding/Signaturevk.png';
 
@@ -154,15 +155,29 @@ async function generateOfferLetterPDF({ name, role, department, baseSalary, annu
   const signatureBase64 = await fetchImageAsBase64(signatureUrl);
 
   const today = new Date();
-const formattedDate = today.toLocaleDateString('en-IN');
+  doj = new Date(doj);
 
-  const joiningDate = isNaN(formattedDate) ? '' : formattedDate.toLocaleDateString('en-IN');
-  const joiningDateFull = isNaN(formattedDate) ? '' : formattedDate.toDateString();
-const formattedReadableDate = isNaN(formattedDate) ? '' : formattedDate.toDateString();
+  // Format current date as: "13 June 2025"
+  const currentFormatted = today.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
 
-   const firstName = name.split(' ')[0];
-const ctc = annualCtc;
-const monthly = baseSalary;
+  // Format DOJ as: "Tue, 01 Jul 2025"
+  const dojFormatted = doj.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  const firstName = name.split(' ')[0];
+  const ctc = annualCtc ? Number(annualCtc).toLocaleString('en-IN') : null;
+  const monthly = baseSalary ? Number(baseSalary).toLocaleString('en-IN') : null;
+
+  console.log('ctc: ', ctc);//debug
+
   const htmlTemplate = `
 <!DOCTYPE html>
 <html>
@@ -171,16 +186,16 @@ const monthly = baseSalary;
     <style>
       body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 13.5px;
-  line-height: 1.65;
+  font-size: 16px;
+  line-height: 1.5;
   margin: 0;
-  padding: 20px 40px;
+  padding: 8px 24px;
   color: #000;
 }
 
       .header-img {
   width: 100%;
-  max-width: 650px;
+  max-width: 690px;
   display: block;
   margin: 0 auto 10px;
 }
@@ -199,15 +214,17 @@ const monthly = baseSalary;
         margin-bottom: 6px;
       }
       .footer {
-        margin-top: 30px;
-        border-top: 1px solid #ccc;
-        padding-top: 12px;
+        margin-top: 6px;
+      }
+      #sign-name {
+        font-weight: 400;
+        margin-top: 44px;
       }
     </style>
   </head>
   <body>
     <img src="${logoBase64}" class="header-img" />
-    <p>${formattedDate}</p>
+    <p>${currentFormatted}</p>
 
     <p>Mr. ${name}</p>
     <p>${location || 'Delhi'}</p>
@@ -221,7 +238,7 @@ const monthly = baseSalary;
 
     <p>
       This offer letter will be valid for 2 working days for you to accept the job from the date of
-      receipt. The date of joining as set by the terms of the offer letter will be <strong>${formattedReadableDate}</strong>
+      receipt. The date of joining as set by the terms of the offer letter will be <strong>${dojFormatted}</strong>
       with option for extension of 1 week available on request.
     </p>
 
@@ -259,13 +276,14 @@ const monthly = baseSalary;
       <img src="${signatureBase64}" class="signature-img" />
       <p>
         Vilakshan Bhutani<br/>
-        Executive Director<br/>
-        Milestone Global Moneymart Private Limited
+        <span style="font-size: 12px;">Executive Director</span><br/>
+        <span style="font-size: 12px;">Milestone Global Moneymart Private Limited</span>
       </p>
+
     </div>
 <div class="footer">
-      <p><strong>I have read all terms and conditions and will abide by them in all scenarios.</strong></p>
-      <p>Mr. ${name}</p>
+      <p>I have read all terms and conditions and will abide by them in all scenarios.</p>
+      <p id='sign-name'>Mr. ${name}</p>
     </div>
   </body>
 </html>
@@ -276,19 +294,19 @@ const monthly = baseSalary;
   const page = await browser.newPage();
   await page.setContent(htmlTemplate, { waitUntil: 'networkidle0' });
   const buffer = await page.pdf({
-  format: 'A4',
-  printBackground: true,
-  margin: { top: '15mm', bottom: '15mm', left: '10mm', right: '10mm' },
-});
+    format: 'A4',
+    printBackground: true,
+    margin: { top: '15mm', bottom: '15mm', left: '10mm', right: '10mm' },
+  });
 
 
   await browser.close();
   return buffer;
 }
 
-
+// NOT IN USE
 async function handleSendOfferLetter({ name, role, department, baseSalary, annualCtc, doj, personalEmail, phone, departmentId }) {
-    // Fetch role name
+  // Fetch role name
   const roleData = await Role.findById(role); // Assuming Role is imported
   const roleName = roleData?.name || 'Role';
 
@@ -302,8 +320,10 @@ async function handleSendOfferLetter({ name, role, department, baseSalary, annua
   });
 
   // 2. Generate Offer Letter PDF
-  const pdfBuffer = await generateOfferLetterPDF({ name, role: roleName, department, baseSalary, annualCtc, doj,
-  location: 'Delhi' });
+  const pdfBuffer = await generateOfferLetterPDF({
+    name, role: roleName, department, baseSalary, annualCtc, doj,
+    location: 'Delhi'
+  });
 
   // 3. Prepare email
   const { subject, body } = getOfferLetterEmailTemplate({ name, doj, onboardingLink });
@@ -365,33 +385,24 @@ async function saveJoineeDetails(req, res) {
       await User.updateOne({ email: personalEmail }, { $set: update });
     }
 
-    let pdfBuffer;
+    // 🟡 Fetch role name before generating PDF
+    const roleData = await Role.findById(role);
+    const roleName = roleData?.name || 'Role';
 
-if (process.env.USE_ZOHO_TEMPLATE === 'true') {
-  pdfBuffer = await generateOfferLetterFromZohoTemplate({
-    name, role, department, baseSalary, annualCtc, doj,
-  });
-} else {
-  // 🟡 Fetch role name before generating PDF
-  const roleData = await Role.findById(role);
-  const roleName = roleData?.name || 'Role';
-
-  pdfBuffer = await generateOfferLetterPDF({
-    name,
-    role: roleName,
-    department,
-    baseSalary,
-    annualCtc,
-    doj,
-    location: 'Delhi'
-  });
-}
+    const pdfBuffer = await generateOfferLetterPDF({
+      name,
+      role: roleName,
+      baseSalary,
+      annualCtc,
+      doj,
+      location: 'Delhi'
+    });
 
 
     const { subject, body } = getOfferLetterEmailTemplate({
       name,
       doj,
-      onboardingLink: 'https://yourdomain.com/onboarding-form-link',
+      onboardingLink: ONBOARDING_FORM_LINK,
     });
 
     await sendEmail({
@@ -611,8 +622,8 @@ const savePartialUserOnboardingInfo = async (req, res) => {
             blobHTTPHeaders: { blobContentType: file.mimetype }
           });
 
-         const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
+          const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+          update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
 
           azureUploadedFields.add(dbField);
         }
@@ -621,33 +632,33 @@ update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbFiel
 
     // === Upload Personal Photo & Bank Verification Doc ===
     const personalBankFiles = {
-  'personalDetails.photo': 'photo',
-  'bankDetails.bankVerificationDoc': 'bankVerificationDoc',
-};
+      'personalDetails.photo': 'photo',
+      'bankDetails.bankVerificationDoc': 'bankVerificationDoc',
+    };
 
-for (const [formField, dbField] of Object.entries(personalBankFiles)) {
-  const fileArr = req.files?.[formField];
+    for (const [formField, dbField] of Object.entries(personalBankFiles)) {
+      const fileArr = req.files?.[formField];
 
-  if (fileArr?.length > 0) {
-    const file = fileArr[0];
-    const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
-    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+      if (fileArr?.length > 0) {
+        const file = fileArr[0];
+        const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-    await blockBlobClient.uploadData(file.buffer, {
-      blobHTTPHeaders: { blobContentType: file.mimetype }
-    });
+        await blockBlobClient.uploadData(file.buffer, {
+          blobHTTPHeaders: { blobContentType: file.mimetype }
+        });
 
-    const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-    const [section, field] = formField.split('.');
+        const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+        const [section, field] = formField.split('.');
 
-    if (typeof blobUrl === 'string' && blobUrl.startsWith('https://')) {
-      update.$set[`onboarding.userFilledInfo.${section}.${field}`] = blobUrl;
+        if (typeof blobUrl === 'string' && blobUrl.startsWith('https://')) {
+          update.$set[`onboarding.userFilledInfo.${section}.${field}`] = blobUrl;
+        }
+      } else {
+        // ✅ Prevent setting an empty object accidentally
+        console.warn(` file uploaded for ${formField}, skipping.`);
+      }
     }
-  } else {
-    // ✅ Prevent setting an empty object accidentally
-    console.warn(` file uploaded for ${formField}, skipping.`);
-  }
-}
 
 
 
@@ -676,8 +687,8 @@ for (const [formField, dbField] of Object.entries(personalBankFiles)) {
               blobHTTPHeaders: { blobContentType: 'application/pdf' }
             });
 
-           const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
+            const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+            update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
 
           } catch (err) {
             console.error(`❌ Failed to fetch/upload Drive file for ${dbField}:`, err.message);
@@ -691,14 +702,14 @@ update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbFiel
 
     // === Save Remaining Form Data ===
     for (const [key, value] of Object.entries(submitStatus)) {
-  if (
-    key !== 'finalSubmit' &&
-    !key.startsWith('educationalCertificatesAndDegree') &&
-    !(typeof value === 'object' && value !== null && Object.keys(value).length === 0) // skip empty objects
-  ) {
-    update.$set[`onboarding.userFilledInfo.${key}`] = value;
-  }
-}
+      if (
+        key !== 'finalSubmit' &&
+        !key.startsWith('educationalCertificatesAndDegree') &&
+        !(typeof value === 'object' && value !== null && Object.keys(value).length === 0) // skip empty objects
+      ) {
+        update.$set[`onboarding.userFilledInfo.${key}`] = value;
+      }
+    }
 
 
     // === Final Submit Timestamp ===
@@ -917,6 +928,6 @@ module.exports = {
   processSpringVerifyOrNda,
   getAllDepartments,
   getRoles,
-  generateOnboardingLink, 
+  generateOnboardingLink,
 };
 
