@@ -658,6 +658,14 @@ const filteredTransactions = async (req, res) => {
     'investor name': 'investorName',
     'PAN': 'panNumber',
   };
+  //Ensures all filter logic can use .includes, .map, $in operators safely.
+  //Prevents crashes on .map() when value is a string.
+  const toArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').map(v => v.trim());
+    if (value != null) return [value];
+    return [];
+  };
 
   // Stage 1 filters
   if (minDate) {
@@ -688,18 +696,48 @@ const filteredTransactions = async (req, res) => {
   if (orderId) {
     filterStage1.orderId = orderId;
   }
+
   if (smName) {
-    filterStage1.serviceManager = Array.isArray(smName) ? { $in: smName.map(name => toTitleCase(name)) } : toTitleCase(smName);
-  }
-  if (transactionFor) {
-    filterStage1.transactionFor = transactionFor;
+    const s = toArray(smName).map(n => toTitleCase(n));
+    if (s.includes('Unassigned')) {
+      // If "Unassigned" is selected, filter for empty or null serviceManager
+      filterStage1.$or = [
+        { serviceManager: { $in: s.filter(n => n !== 'Unassigned') } },
+        { serviceManager: { $in: ['', null] } }
+      ];
+    } else {
+      filterStage1.serviceManager = { $in: s };
+    }
   }
 
-  if (type === 'Switch') {
-    filterStage1.category = 'switch';
-  } else if (type) {
-    filterStage1.transactionType = type;
+  if (transactionFor) {
+    const val = toArray(transactionFor);
+    if (val.length) filterStage1.transactionFor = { $in: val };
   }
+
+  if (type) {
+    const types = toArray(type);
+
+    const nonSwitchTypes = types.filter(t => t !== 'Switch');
+    const isSwitchSelected = types.includes('Switch');
+
+    const typeFilters = [];
+
+    if (nonSwitchTypes.length) {
+      typeFilters.push({ transactionType: { $in: nonSwitchTypes } });
+    }
+
+    if (isSwitchSelected) {
+      typeFilters.push({ category: 'switch' });
+    }
+
+    if (typeFilters.length === 1) {
+      Object.assign(filterStage1, typeFilters[0]);
+    } else if (typeFilters.length > 1) {
+      filterStage1.$or = typeFilters;
+    }
+  }
+
 
   // stage 2 filters 
   // Ensure status and reconcileStatus are arrays
@@ -748,9 +786,11 @@ const filteredTransactions = async (req, res) => {
     }
   }
 
-  if (approvalStatus) {
-    filterStage2.approvalStatus = approvalStatus;
-    fractionFilters['transactionFractions.approvalStatus'] = approvalStatus;
+  // approvalStatus filter
+  const approvals = toArray(approvalStatus);
+  if (approvals.length) {
+    filterStage2.approvalStatus = { $in: approvals };
+    fractionFilters['transactionFractions.approvalStatus'] = { $in: approvals };
   }
 
   if (minAmount?.toString()) {
