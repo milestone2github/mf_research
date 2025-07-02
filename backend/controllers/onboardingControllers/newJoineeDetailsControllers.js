@@ -175,6 +175,7 @@ async function generateOfferLetterPDF({ name, role, baseSalary, annualCtc, doj, 
   const firstName = name.split(' ')[0];
   const ctc = annualCtc ? Number(annualCtc).toLocaleString('en-IN') : null;
   const monthly = baseSalary ? Number(baseSalary).toLocaleString('en-IN') : null;
+  const annualCompensation = (Number(baseSalary) * 12).toLocaleString('en-IN');
 
   console.log('ctc: ', ctc);//debug
 
@@ -244,8 +245,8 @@ async function generateOfferLetterPDF({ name, role, baseSalary, annualCtc, doj, 
 
     <p>As per our discussion done during the interview are stated as followed to prevent any miscommunication on either part -</p>
 
-    <ul>
-      <li>Your annual compensation will be ${ctc} INR subject to tax and other statutory deductions. EPF deductions will be mandatory and set at 12% of basic pay or 1800 INR per month with equal contribution from employer, if opted. Making your net-in-hand compensation ${monthly} INR per month. Your CTC (Cost to Company) will be 2.10 Lakhs annually approximately.</li>
+    <ul>annualCompensation
+      <li>Your annual compensation will be ${annualCompensation} INR subject to tax and other statutory deductions. EPF deductions will be mandatory and set at 12% of basic pay or 1800 INR per month with equal contribution from employer, if opted. Making your net-in-hand compensation ${monthly} INR per month. Your CTC (Cost to Company) will be ${ctc} INR annually approximately.</li>
       <li>For the first three months from the joining date, you'll be appointed as probationary officer, where the notice period in case of resignation or termination will be 15 days from either side or in-lieu 15 days of pay to waive notice period or any combination thereof. Your probation period can be extended on discretion of Milestone.</li>
       <li>You’ll be required to sign the Non-Disclosure Agreement on date of appointment.</li>
       <li>You’ll be reporting to our Rohini, Delhi office.</li>
