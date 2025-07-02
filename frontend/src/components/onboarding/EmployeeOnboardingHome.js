@@ -175,9 +175,11 @@ const handleSpringVerifyAction = async (userId, action) => {
        
 
 
-
-
-
+        {/* NDA status  */}
+        <td className="px-4 py-2">
+          {renderStatus(ndaSigned ? 'Completed' : 'Pending')}
+        </td>
+        {/* Zoho user status  */}
         <td className="px-4 py-2">
           {renderStatus(zohoCreated ? 'Completed' : 'Pending')}
         </td>
