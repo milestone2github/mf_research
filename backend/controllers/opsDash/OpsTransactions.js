@@ -181,23 +181,46 @@ const getTransactionsGroupByFh = async (req, res) => {
     'PAN': 'panNumber',
   }
 
+  // Normalize SM names from query
+  const smNames = Array.isArray(req.query.smName)
+    ? req.query.smName
+    : typeof req.query.smName === 'string'
+      ? req.query.smName.split(',').map(name => name.trim()).filter(Boolean)
+      : [];
+
+  const showAllDateTrans = req.query.showAllDateTrans === 'true' || req.query.showAllDateTrans === true;
+
   let sortBy = { createdAt: 1 }
   let matchStage = {}
-  let uptoDate = new Date()
-  if (uptoDate.getDay() == 6) {
-    uptoDate.setDate(uptoDate.getDate() + 2)
-  }
-  else {
-    uptoDate.setDate(uptoDate.getDate() + 1)
+
+  if (!showAllDateTrans) {
+    let uptoDate = new Date()
+    if (uptoDate.getDay() === 6) {
+      uptoDate.setDate(uptoDate.getDate() + 2)
+    }
+    else {
+      uptoDate.setDate(uptoDate.getDate() + 1)
+    }
+    // Include full day up to 11:59:59.999 PM
+    uptoDate.setHours(23, 59, 59, 999);
+    matchStage.transactionPreference = { $lte: uptoDate }
   }
 
-  matchStage.transactionPreference = { $lte: uptoDate }
+  // matchStage.transactionPreference = { $lte: uptoDate }
   if (smFilter === 'my') {
     matchStage.serviceManager = toTitleCase(userName)
     sortBy.createdAt = -1
   }
   else if (smFilter === 'ua') {
     matchStage.serviceManager = { $in: [null, ''] }
+  } else if (smFilter === 'all' && smNames.length > 0) {
+    //for SM Filter
+    matchStage.$expr = {
+      $in: [
+        { $toLower: "$serviceManager" },
+        smNames.map(name => name.toLowerCase())
+      ]
+    };
   }
 
   if (searchBy && searchKey) {
@@ -275,7 +298,7 @@ const getTransactionsGroupByFh = async (req, res) => {
           familyHead: { $first: "$familyHead" },
           relationshipManager: { $first: "$relationshipManager" },
           serviceManager: { $first: "$serviceManager" },
-          createdAt: { $min: "$transactionPreference" },
+          createdAt: { $max: "$transactionPreference" },
           totalPending: { $sum: "$pendingCounts.total" },
           sysPending: { $sum: "$pendingCounts.sys" },
           purchRedempPending: { $sum: "$pendingCounts.purchRedemp" },
@@ -303,21 +326,27 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
   const { fh } = req.query;
   const smFilter = req.query.smFilter || 'all'
   const userName = req.user?.name
+  const showAllDateTrans = req.query.showAllDateTrans === 'true' || req.query.showAllDateTrans === true;
 
   if (!fh) {
     return res.status(400).json({ error: 'family head is required to get transactions' })
   }
 
-  // if its Saturday set it to upcoming Monday otherwise the next Day
-  let uptoDate = new Date()
-  if (uptoDate.getDay() == 6) {
-    uptoDate.setDate(uptoDate.getDate() + 2)
-  }
-  else {
-    uptoDate.setDate(uptoDate.getDate() + 1)
+  let matchStage = { familyHead: fh };
+
+  // // if its Saturday set it to upcoming Monday otherwise the next Day
+  if (!showAllDateTrans) {
+    let uptoDate = new Date();
+    if (uptoDate.getDay() == 6) {
+      uptoDate.setDate(uptoDate.getDate() + 2);
+    } else {
+      uptoDate.setDate(uptoDate.getDate() + 1);
+    }
+    // Include full day up to 11:59:59.999 PM
+    uptoDate.setHours(23, 59, 59, 999);
+    matchStage.transactionPreference = { $lte: uptoDate };
   }
 
-  let matchStage = { transactionPreference: { $lte: uptoDate }, familyHead: fh }
   if (smFilter === 'my') {
     matchStage.serviceManager = toTitleCase(userName)
   }
@@ -487,14 +516,14 @@ const generateLink = async (req, res) => {
       transaction = await Transactions.findOneAndUpdate(
         { _id: req.params.id, 'transactionFractions._id': fractionId },
         {
-            'transactionFractions.$.linkStatus': 'generated',
-            'transactionFractions.$.orderId': orderId,
-            'transactionFractions.$.approvalStatus': approvalStatus,
-            'transactionFractions.$.orderPlatform': platform,
-            ...(status ? { 'transactionFractions.$.status': status } : {}),
-            ...(paymentMode ? { paymentMode: paymentMode } : {}),
-            $push: { 'transactionFractions.$.validations': validations }
-          },
+          'transactionFractions.$.linkStatus': 'generated',
+          'transactionFractions.$.orderId': orderId,
+          'transactionFractions.$.approvalStatus': approvalStatus,
+          'transactionFractions.$.orderPlatform': platform,
+          ...(status ? { 'transactionFractions.$.status': status } : {}),
+          ...(paymentMode ? { paymentMode: paymentMode } : {}),
+          $push: { 'transactionFractions.$.validations': validations }
+        },
         { new: true }
       )
     }
