@@ -56,14 +56,42 @@ async function postMessageData(req, res) {
     // 2) Fallback to FreshClients
     let mode = 'existing';
     if (!selected) {
-      selected = await freshCollection.findOne({ MOBILE: waid }, { projection });
-      mode = 'fresh';
+      var freshDoc =  await freshCollection.findOne({ MOBILE: waid }, { projection });
+        if (freshDoc) {
+            // use the existing fresh record
+            selected = freshDoc;
+            mode = 'fresh';
+        } else {
+            // 2) No fresh record: create a new one with null defaults
+            const emptyDoc = {
+            MOBILE: waid,
+            PAN: null,
+            NAME: null,
+            'FAMILY HEAD': null,
+            EMAIL: null,
+            'RELATIONSHIP  MANAGER': null,
+            LANGUAGE: null,
+            USERNAME: null,
+            AUM: null,
+            Marketing: null,
+            MarketingTimeStamp: null,
+            CalcMode: null,
+            CalcType: null,
+            CalcStage: null,
+            Value1: null,
+            Value2: null,
+            Value3: null,
+            Value4: null,
+            Value5: null,
+            Value6: null,
+            Value7: null,
+            CalcTimeStamp: null
+            };
+            const { insertedId } = await freshCollection.insertOne(emptyDoc);
+            selected = { ...emptyDoc, _id: insertedId };
+            mode = 'fresh';
+        }
     }
-
-    if (!selected) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
     // prepare and send response
     const responseData = {
       mode,
