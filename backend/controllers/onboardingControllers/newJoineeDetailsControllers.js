@@ -914,6 +914,21 @@ const getRoles = async (req, res) => {
 };
 
 
+// DELETE /api/onboarding/delete/:id
+const deleteJoinee = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const result = await User.findByIdAndDelete(id);  
+
+    if (!result) return res.status(404).json({ message: "User not found" });
+
+    return res.status(200).json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Delete error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 
 // ======= EXPORT ==========
@@ -930,5 +945,6 @@ module.exports = {
   getAllDepartments,
   getRoles,
   generateOnboardingLink,
+  deleteJoinee,
 };
 
