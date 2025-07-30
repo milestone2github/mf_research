@@ -20,6 +20,7 @@ const { uploadOnboardingDocs } = require('../middlewares/uploadOnboardingDocs');
 const { sendOtpSms, verifyOtp, otpVerifiedStatus } = require('../controllers/onboardingControllers/otpController');
 const { getCandidateStatus } = require('../controllers/onboardingControllers/springVerifyControllers');
 const { ndaSignedWebhook, newEmployeeSetup } = require('../controllers/onboardingControllers/zohoEmployeeSetUp');
+const { embeddedsigning, ndaSignStatusDbUpdate } = require('../utils/ndaUrlWorkFlow');
 
 const router = require('express').Router(); 
 
@@ -50,6 +51,9 @@ router.post('/spring-verify', processSpringVerifyOrNda);
 router.post('/nda-sign-webhook', ndaSignedWebhook)
 
 router.delete('/delete/:id', deleteJoinee);
+router.get('/embeddedsigning', embeddedsigning);
+router.get('/ndaSignStatus', ndaSignStatusDbUpdate);
+
 
 // just included this route for testing purpose 
 

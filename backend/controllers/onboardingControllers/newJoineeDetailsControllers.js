@@ -803,7 +803,7 @@ const processSpringVerifyOrNda = async (req, res) => {
         });
 
         // Step 4: Dispatch NDA
-        await dispatchNdaFlow(userId, userDetails);
+        // await dispatchNdaFlow(userId, userDetails);
       }
 
       return res.status(200).json({
@@ -828,7 +828,8 @@ const processSpringVerifyOrNda = async (req, res) => {
       const authToken = await getZohoAccessToken();
       console.log("AuthToken is ", authToken);
 
-      await dispatchNdaFlow(userId, authToken, userDetails);
+      
+      // await dispatchNdaFlow(userId, authToken, userDetails);
 
       return res.status(200).json({
         status: 'success', message: 'SpringVerify skipped, NDA workflow dispatched',
