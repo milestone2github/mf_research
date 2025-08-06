@@ -9,7 +9,7 @@ const {
   getRoles,
   processSpringVerifyOrNda,
   updateAssetAllocationStatus,
-   
+   deleteJoinee,
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
 
 const verifyUser = require('../middlewares/VerifyUser');
@@ -48,6 +48,8 @@ router.get('/department', getAllDepartments);
 router.get('/roles', getRoles);
 router.post('/spring-verify', processSpringVerifyOrNda);
 router.post('/nda-sign-webhook', ndaSignedWebhook)
+
+router.delete('/delete/:id', deleteJoinee);
 
 // just included this route for testing purpose 
 
