@@ -716,6 +716,7 @@ const savePartialUserOnboardingInfo = async (req, res) => {
     // === Final Submit Timestamp ===
     if (isFinalSubmit) {
       update.$set['onboarding.userFilledInfo.submittedAt'] = new Date();
+      console.log("Updated Final submit submitedAt date")
     }
 
     const user = await User.findByIdAndUpdate(userId, update, { new: true });

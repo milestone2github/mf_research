@@ -31,8 +31,8 @@ const ndaAgreementPdfPath = path.join(__dirname, 'Non-Disclosure Agreement.pdf')
 // });
 
 const ndaSignStatusDbUpdate = async (req, res) => {
-    const { status } = req.query;
-    const userId = req.user?._id;
+    const { status, userId } = req.query;
+    // const userId = req.user?.userId || "68778d5de79d249ba6c6ab84";
     console.log(`📩 Signing callback received: status=${status}, userId=${userId}`);
 
     if (!status || !userId) {
@@ -48,6 +48,7 @@ const ndaSignStatusDbUpdate = async (req, res) => {
         case 'success':
             console.log('✅ Status indicates successful. Preparing DB update...');
             update = {
+                'onboarding.nda.signed': true,
                 'onboarding.nda.signedStatus': 'success',
                 'onboarding.nda.signedAt': signedAt,
             };
@@ -87,7 +88,7 @@ const ndaSignStatusDbUpdate = async (req, res) => {
     }
 
     try {
-        console.log('🔄 Attempting to update NDA signing status in the database...');
+        console.log('🔄 Attempting to update NDA signing status in the database.');
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             { $set: update },
@@ -210,8 +211,8 @@ const embeddedsigning = async (req, res) => {
     const accessToken = await getZohoAccessToken();
 
     try {
-        console.log("🔍 Incoming userId via middlewaare:", req.user?._id);
-        const userId = req.user?._id;
+        console.log("🔍 Incoming userId via middlewaare:", req.user?.userId);
+        const userId = req.user?.userId;
         const user = await User.findById(userId).lean();
 
         console.log("Received userId:", userId);
@@ -256,7 +257,7 @@ const embeddedsigning = async (req, res) => {
                 verify_recipient: true,
                 verification_type: 'EMAIL',
                 is_embedded: true,
-                private_notes: 'Please sign this NDA'
+                private_notes: 'Please sign this NDA document'
             },
             {
                 recipient_name: 'Vilakshan Bhutani',
@@ -288,10 +289,10 @@ const embeddedsigning = async (req, res) => {
             reminder_period: 8,
             actions: actionsJson,
             redirect_pages: {
-                sign_success: `${ndaRedirectHostURL}`,
-                // sign_completed: `${ndaRedirectHostURL}/sign-completed`,
-                sign_declined: `${ndaRedirectHostURL}`,
-                sign_later: `${ndaRedirectHostURL}`
+                sign_success: `${ndaRedirectHostURL}/sign-success?status=success&userId=${userId}`,
+                // sign_completed: `${ndaRedirectHostURL}/sign-completed?status=completed&userId=${userId}`,
+                sign_declined: `${ndaRedirectHostURL}/sign-declined?status=declined&userId=${userId}`,
+                sign_later: `${ndaRedirectHostURL}/sign-later?status=later&userId=${userId}`
 
                 // sign_success: `${ndaRedirectHostURL}/ndaSignStatus?status=success&email=${encodeURIComponent(employeeEmail)}`,
                 // sign_completed: `${ndaRedirectHostURL}/ndaSignStatus?status=completed&email=${encodeURIComponent(employeeEmail)}`,
@@ -965,7 +966,7 @@ const embeddedsigning = async (req, res) => {
             {
                 action_id: directorActionId,
                 recipient_name: 'Vilakshan Bhutani',
-                recipient_email: 'kishan@niveshonline.com',
+                recipient_email: 'vilakshan@niveshonline.com',
                 action_type: 'SIGN',
                 fields: fieldJsonDirector
             }
