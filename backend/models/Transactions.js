@@ -34,6 +34,8 @@ const transactionSchema = new mongoose.Schema({
   orderId: { type: String, trim: true },
   orderPlatform: { type: String, trim: true },
   note: { type: String, trim: true, maxLength: 1200 },
+  // Combined root notes from `transaction.note` and `transaction.reconciliation.note`
+  // notes: [{ type: String, trim: true, maxLength: 1200 }],
   status: { type: String, enum: statusEnum },
   approvalStatus: { type: String, enum: approvalStatusEnum, default: '' },
   linkStatus: { type: String, enum: ['generated', 'locked', 'unlocked'], default: 'unlocked' },
@@ -46,6 +48,8 @@ const transactionSchema = new mongoose.Schema({
     orderPlatform: { type: String, trim: true },
     folioNumber: String,
     note: { type: String, trim: true, maxLength: 1200 },
+    // Combined notes for transaction fractions from `transactionFractions[n].note` and `transactionFractions[n].reconciliation.note`
+    // notes: [{ type: String, trim: true, maxLength: 1200 }],
     linkStatus: { type: String, enum: ['initialized', 'generated', 'deleted'] },
     status: { type: String, enum: statusEnum },
     approvalStatus: { type: String, enum: approvalStatusEnum, default: '' },
@@ -75,7 +79,7 @@ const transactionSchema = new mongoose.Schema({
       amount: Number, // in case of major issues
       schemeName: String, // in case of major issues
       panNumber: String, // in case of major issues
-      note: {type: String, trim: true, minLength: 5, maxLength: 1000 }
+      // note: {type: String, trim: true, minLength: 5, maxLength: 1000 }
     },
     managementApproval: {
       approvedBy: {
@@ -111,7 +115,8 @@ const transactionSchema = new mongoose.Schema({
     amount: Number, // in case of major issues
     schemeName: String, // in case of major issues
     panNumber: String, // in case of major issues
-    note: {type: String, trim: true, minLength: 5, maxLength: 1000 }
+    // note: {type: String, trim: true, minLength: 5, maxLength: 1000 }
+    // Note from reconciliation moved to the `notes` array at the root level
   },
   managementApproval: {
     approvedBy: {
