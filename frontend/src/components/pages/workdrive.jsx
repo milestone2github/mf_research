@@ -15,13 +15,11 @@ import {
 } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import AccessDenied from "./AccessDenied";
 
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
 function Workdrive() {
   const { userData } = useSelector((state) => state.user);
-  const permissions = userData?.role?.permissions;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [items, setItems] = useState([]);
   const [allData, setAllData] = useState([]);
@@ -207,8 +205,6 @@ function Workdrive() {
         return <FaFile className="inline-block text-gray-500 mr-2 text-2xl" />;
     }
   };
-
-  if (!permissions.find((perm) => perm === "Workdrive")) return <AccessDenied />;
 
   return (
     <div className="container mx-auto p-5">

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import AccessDenied from "./AccessDenied";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 import Toast from "../common/Toast";
 import { updateToast } from "../../reducers/ToastSlice";
@@ -18,8 +17,6 @@ const DirClientPayouts = () => {
     return today.toISOString().substring(0, 10);
   });
 
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
   const [buttonStates, setButtonStates] = useState({}); // Add state for button status
 
   const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
@@ -46,7 +43,6 @@ const DirClientPayouts = () => {
     gettotalsum(data)
   }, [data])
   useEffect(() => {
-    if (!permissions.find(perm => perm === 'Direct Client Payout')) { return; }
     setLoading(true);
     axios
       .get(
@@ -175,9 +171,6 @@ const DirClientPayouts = () => {
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
   }
-
-  if (!permissions.find(perm => perm === 'Direct Client Payout'))
-    return (<AccessDenied />)
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>

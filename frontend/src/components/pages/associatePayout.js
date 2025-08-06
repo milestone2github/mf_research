@@ -3,18 +3,14 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
-import AccessDenied from "./AccessDenied";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 import { updateToast } from "../../reducers/ToastSlice";
 import Toast from "../common/Toast";
 
 const AssociatePayout = () => {
-  const navigate = useNavigate()
   const [total, setTotal] = useState(0)
   const [load, setLoad] = useState(false)
   const [data, setData] = useState({});
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
 
   const gettotalsum = async () => {
     try {
@@ -56,7 +52,6 @@ const AssociatePayout = () => {
   const dispatch = useDispatch()
 
   useEffect(() => {
-    if (!permissions.find(perm => perm === 'Associate Payout')) { return; }
     setLoading(true);
     axios
       .get(
@@ -211,9 +206,6 @@ const AssociatePayout = () => {
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
   }
-
-  if (!permissions.find(perm => perm === 'Associate Payout'))
-    return (<AccessDenied />)
 
   if (loading) return <div className=" h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>

@@ -6,7 +6,6 @@ import { FaCheck, FaClipboard } from "react-icons/fa";
 import UccTable from "../nfoComponents/UccTable";
 import debounce from "../../utils/debounce";
 import { useDispatch, useSelector } from "react-redux";
-import AccessDenied from "./AccessDenied";
 import Toast from "../common/Toast";
 import { updateToast } from "../../reducers/ToastSlice";
 import KycStatusTable from '../nfoComponents/KycStatusTable';
@@ -41,7 +40,6 @@ function NfoForm() {
   const [minAmount, setMinAmount] = useState(1);
 
   const { userData } = useSelector((state) => state.user);
-  const permissions = userData?.role?.permissions;
   const dispatch = useDispatch();
   const [searchAll, setSearchAll] = useState(false);
   const [schemeOption, setSchemeOption] = useState("Growth");
@@ -443,8 +441,6 @@ function NfoForm() {
     return false;
   };
 
-  if (!permissions.find((perm) => perm === "NFO")) return <AccessDenied />;
-  
   return (
     <form onSubmit={handleSubmit} className="relative flex flex-col gap-y-8 md:mx-0">
         {bseStatus===0 && (

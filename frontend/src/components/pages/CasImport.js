@@ -1,16 +1,11 @@
 import React, { useState } from "react";
 import Header from "../common/PortfolioResearchHeader";
-import AccessDenied from "./AccessDenied";
-import { useSelector } from "react-redux";
 
 const CasImport = () => {
   const [panNumber, setPanNumber] = useState("");
   const [email, setEmail] = useState("");
   const [casFile, setCasFile] = useState(null);
   const [pdfPassword, setPdfPassword] = useState("");
-
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
 
   const handlePanChange = (e) => {
     const upperCasePan = e.target.value.toUpperCase();
@@ -72,9 +67,6 @@ const CasImport = () => {
     );
     // Further processing logic here
   };
-
-  if(!permissions.find(perm => perm === 'Portfolio Analysis')) 
-    return (<AccessDenied />)
 
   return (
     <div>

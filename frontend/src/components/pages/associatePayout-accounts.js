@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
-import { useSelector } from "react-redux";
-import AccessDenied from "./AccessDenied";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 
 const AssociatePayoutAccounts = () => {
@@ -22,9 +20,6 @@ const AssociatePayoutAccounts = () => {
   const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
   const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
   const [payoutModalError, setPayoutModalError] = useState(null)
-
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
 
   useEffect(() => {
     if (originalData.length) {
@@ -59,7 +54,6 @@ const AssociatePayoutAccounts = () => {
     gettotalsum(data);
   }, [data]);
   useEffect(() => {
-    if (!permissions.find(perm => perm === 'Associate Payout Accounts')) { return; }
     setLoading(true);
     axios
       .get(
@@ -400,9 +394,6 @@ const AssociatePayoutAccounts = () => {
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
   }
-
-  if (!permissions.find(perm => perm === 'Associate Payout Accounts'))
-    return (<AccessDenied />);
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div className="loader"></div>
   </div>;

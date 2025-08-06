@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import Header from "../common/PortfolioResearchHeader";
-import { useSelector } from "react-redux";
-import AccessDenied from "./AccessDenied";
 
 const ModelPortfolio = () => {
   const [portfolioName, setPortfolioName] = useState("");
@@ -9,9 +7,6 @@ const ModelPortfolio = () => {
   const [schemes, setSchemes] = useState([
     { scheme: "", amount: "", mode: "Lumpsum" },
   ]);
-
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
 
   const addScheme = () => {
     setSchemes([...schemes, { scheme: "", amount: "", mode: "Lumpsum" }]);
@@ -27,9 +22,6 @@ const ModelPortfolio = () => {
   const removeScheme = (index) => {
     setSchemes(schemes.filter((_, i) => i !== index));
   };
-
-  if(!permissions.find(perm => perm === 'Portfolio Analysis')) 
-    return (<AccessDenied />)
   
   return (
     <div className="portfolio-wrapper">
