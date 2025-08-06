@@ -55,10 +55,32 @@ exports.getRecoTransactions = async (req, res) => {
   if (rmName) {
     filters.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName)
   }
-  if (type === 'Switch') { filters.category = 'switch' }
-  else if (type) {
-    filters.transactionType = type
+
+   // Type filter
+  if (Array.isArray(type)) {
+
+    const isSwitchSelected = type.includes('Switch');
+    const typeFilters = [];
+
+    if (isSwitchSelected) {
+      typeFilters.push({ category: "switch" });
+    }
+
+    const nonSwitchTypes = type.filter(t => t !== "Switch");
+    if (nonSwitchTypes.length > 0) {
+      typeFilters.push({ transactionType: { $in: nonSwitchTypes } });
+    }
+
+    if (typeFilters.length > 0) {
+      filters.$or = typeFilters;
+    }
+    
+  } else if (type === "Switch") {
+    filters.category = "switch";
+  } else if (type) {
+    filters.transactionType = type;
   }
+
 
   if (searchBy && searchKey) {
     filters[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') }

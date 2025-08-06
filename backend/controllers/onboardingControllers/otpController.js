@@ -1,7 +1,6 @@
 const Otp = require('../../models/Otp');
 const User = require('../../models/User');
 const axios = require('axios');
-const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 
 // --- SEND OTP via SMS ---
@@ -9,21 +8,31 @@ async function sendOtpSms(req, res) {
   let otp = Math.ceil(Math.random() * 10000);
   if (otp < 1000) otp += 1000;
 
-  const pid = req.body.phone;
-  const smsOtpUrl = `https://2factor.in/API/R1/?module=TRANS_SMS&apikey=${process.env.TWO_FACTOR_API_KEY}&to=${pid}&from=mNIVSH&templatename=otp_template&var1=${otp}`;
+  const phone = req.body.phone;
 
+  const baseUrl = "https://2factor.in/API/V1/";
+  const apiKey = process.env.TWO_FACTOR_API_KEY;
+  const template = "mverify";
+
+  const finalUrl = `${baseUrl}${encodeURIComponent(apiKey)}/SMS/${encodeURIComponent(phone)}/${encodeURIComponent(otp)}/${encodeURIComponent(template)}`;
+  
   try {
-    await axios.get(smsOtpUrl); // must be GET, not POST
+    await axios.get(finalUrl);
 
     await Otp.findOneAndUpdate(
-      { phone: pid },
+      { phone },
       { otp, createdAt: Date.now() },
       { upsert: true, new: true }
     );
 
-    res.status(200).json({ message: 'OTP sent via SMS ✅', data: pid });
+    if(!Otp) {
+      return res.status(400).json({ error: 'Failed to send OTP' });
+    }
+
+    res.status(200).json({ message: 'OTP sent via SMS ✅', data: phone });
   } catch (error) {
-    res.status(500).json({ error: error.response?.data || error.message });
+    console.error('error message: ', error.response?.data || error.message);
+    res.status(500).json({ error: error.message });
   }
 }
 
@@ -73,7 +82,7 @@ async function verifyOtp(req, res) {
 async function otpVerifiedStatus(req, res) {
   try {
     const otpVerified = req.session.otpVerified || false;
-    
+
     if (otpVerified) {
       res.sendStatus(200); // OK
     } else {

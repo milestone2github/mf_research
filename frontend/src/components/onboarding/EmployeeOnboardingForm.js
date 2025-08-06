@@ -147,10 +147,10 @@ const EmployeeOnboardingForm = () => {
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500" required />
         </div>
 
-        {/* Base Salary */}
+        {/* Monthly Salary */}
         <div className="flex flex-col">
-          <label htmlFor="baseSalary" className="mb-1 text-sm font-medium text-gray-700">Basic Monthly Salary</label>
-          <input type="number" name="baseSalary" id="baseSalary" placeholder="Basic Monthly Salary" value={formData.baseSalary} onChange={handleChange}
+          <label htmlFor="baseSalary" className="mb-1 text-sm font-medium text-gray-700">Monthly In-hand Salary</label>
+          <input type="number" name="baseSalary" id="baseSalary" placeholder="Monthly In-hand Salary" value={formData.baseSalary} onChange={handleChange}
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500" required />
         </div>
 
