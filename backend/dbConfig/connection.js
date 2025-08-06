@@ -6,7 +6,7 @@ let mniveshDbConnection = null;
 
 const connetToTransactionsDb = async () => {
   try {
-    const connect = await mongoose.connect(`${process.env.MONGO_URI}/mftransactiondbtest`)
+    const connect = await mongoose.connect(`${process.env.MONGO_URI}/mftransactiondb`)
     if (connect) {
       console.log("Connected to MfTransactions DB");
     }
