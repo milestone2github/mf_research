@@ -17,6 +17,7 @@ require('dotenv').config()
 const querystring = require('querystring');
 const Workdrive = require("../models/Workdrive");
 const { request } = require("http");
+const Employee = require("../models/Employee");
 
 const getKycStatus = async (req, res) => {
   try {
