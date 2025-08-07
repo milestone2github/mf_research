@@ -565,7 +565,12 @@ const fetchUserOnboardingInfo = async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const savedInfo = user.onboarding?.userFilledInfo || {};
-    res.status(200).json(savedInfo);
+    const ndaInfo = user.onboarding?.nda || {};
+
+    res.status(200).json({
+      ...savedInfo,
+      nda:ndaInfo
+    });
   } catch (error) {
     console.error("Error fetching onboarding info:", error);
     res.status(500).json({ error: "Failed to fetch user onboarding data" });
