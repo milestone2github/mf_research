@@ -130,9 +130,9 @@ const calculators = [
 
 const CalculatorList = () => {
   const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
+  const permissions = userData?.role?.permissions || [];
   const allowedCalculators = calculators.filter(calculator => (
-    permissions.includes(calculator.name)
+    permissions?.includes(calculator.name)
   ))
 
   return (

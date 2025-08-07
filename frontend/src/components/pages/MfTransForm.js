@@ -14,7 +14,6 @@ import FormHeader from '../mfTransaction/FormHeader';
 import Header from '../mfTransaction/common/Header';
 import { resetTransactions } from '../../reducers/TransactionSlice';
 import { FaCheck } from "react-icons/fa";
-import AccessDenied from './AccessDenied';
 import { updateToast } from '../../reducers/ToastSlice';
 
 //today updates
@@ -52,9 +51,6 @@ function MfTransForm() {
   const systematicData = useSelector(state => state.systematicData.value);
   const purchRedempData = useSelector(state => state.purchRedempData.value);
   const switchData = useSelector(state => state.switchData.value);
-
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
 
   const dispatch = useDispatch();
 
@@ -400,9 +396,6 @@ function MfTransForm() {
       setIsLoadingSubmission(false)
     }
   }
-  
-  if (!permissions.find(perm => perm === 'MF Transaction'))
-    return (<AccessDenied />)
   
   return (
     <div>

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
-import AccessDenied from "./AccessDenied";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 import { updateToast } from "../../reducers/ToastSlice";
 import Toast from "../common/Toast";
@@ -26,9 +25,6 @@ const DirectClientPayouts = () => {
   const [loadingRelease, setLoadingRelease] = useState(false)
   const dispatch = useDispatch()
 
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
-
   const gettotalsum = (data) => {
     let sum = 0;
     data.forEach((item) => {
@@ -47,9 +43,6 @@ const DirectClientPayouts = () => {
   }, [filterDate, data]);
 
   useEffect(() => {
-    if (!permissions.find(perm => perm === 'Direct Client Payout Accounts')) {
-      return;
-    }
     setLoading(true);
     axios
       .get(
@@ -276,9 +269,6 @@ const DirectClientPayouts = () => {
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
   }
-
-  if (!permissions.find(perm => perm === 'Direct Client Payout Accounts'))
-    return (<AccessDenied />);
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>;
