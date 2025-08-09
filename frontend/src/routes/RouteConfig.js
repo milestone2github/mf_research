@@ -27,6 +27,7 @@ import OnboardingLayout from '../components/onboarding/OnboardingLayout';
 import onboardingRoutes from './onboarding'
 import RbacLayout from '../centralRbac/src/pages/RbacLayout'
 import { centralRbacRoutes } from './centralRbacRoutes'
+import NotFound from '../components/pages/NotFound'
 
 export const appRoutes = [
   { to: '/', label: 'Home', element: <Home />, protected: true, showInSidebar: true },
@@ -77,7 +78,14 @@ export const appRoutes = [
     requiredPermission: 'mnivesh_admin', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
   },
-  { requiredPermission: 'employee_onboarding', to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
+  { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
     nestedRoutes: assetRoutes
   },
+
+  // wild card route to catch all other routes
+  {
+    to: '*',
+    element: <NotFound />,
+    showInSidebar: false
+    }
 ]

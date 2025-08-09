@@ -58,12 +58,20 @@ function Workdrive() {
       setItems(JSON.parse(decodeURIComponent(filesData)));
       setToken(tokenParam);
       setPath(JSON.parse(decodeURIComponent(pathData)));
-      console.log(JSON.parse(decodeURIComponent(pathData)))
+
+      sessionStorage.removeItem("zohoAuthAttempted");
       fetchAllNotes();
-    } else {
-      handleLogin(); // Automatically handle login if not authenticated
+      return;
+    } 
+    // guard against infinite redirects when success=false
+    if (
+      !isAuthenticated &&
+      !sessionStorage.getItem("zohoAuthAttempted")
+    ) {
+      sessionStorage.setItem("zohoAuthAttempted", "1");
+      handleLogin();
     }
-  }, [location]);
+  }, []);
 
   useEffect(() => {
     if (items.length > 0 && allData.length > 0) {

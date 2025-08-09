@@ -14,7 +14,7 @@ const Department = require('../models/Department');
 const loginWithZoho = (req, res) => {
   const redirectUrl = req.query.redirect || process.env.DEFAULT_FRONTEND_URL; 
   const state = encodeURIComponent(JSON.stringify({ redirectUrl }));
-  const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email,ZOHOPEOPLE.forms.ALL&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline&state=${state}&prompt=consent`;
+  const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email,ZOHOPEOPLE.forms.ALL&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline&state=${state}`;
   res.redirect(authUrl);
 }
 
