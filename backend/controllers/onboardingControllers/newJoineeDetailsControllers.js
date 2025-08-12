@@ -636,6 +636,32 @@ const savePartialUserOnboardingInfo = async (req, res) => {
       }
     }
 
+//     for (const [field, dbField] of Object.entries(fileFields)) {
+//     const fileArr = req.files?.[field];
+//     if (fileArr?.length) {
+//       const file = fileArr[0];
+//       const existingUrl = userRecord.onboarding?.userFilledInfo?.educationalCertificatesAndDegree?.[dbField];
+
+
+//       if (!existingUrl || existingUrl.startsWith('data:') || existingUrl.includes('blob:')) {
+//         const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+//         const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+//         await blockBlobClient.uploadData(file.buffer, {
+//           blobHTTPHeaders: { blobContentType: file.mimetype }
+//         });
+
+//         const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+//         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
+//       } else {
+//         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = existingUrl;
+//       }
+
+//       azureUploadedFields.add(dbField);
+//     }
+//   }
+// }
+
     // === Upload Personal Photo & Bank Verification Doc ===
     const personalBankFiles = {
       'personalDetails.photo': 'photo',

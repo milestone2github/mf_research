@@ -209,20 +209,21 @@ async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
 
 const embeddedsigning = async (req, res) => {
     const accessToken = await getZohoAccessToken();
+    let employeeEmail = null;
 
     try {
         console.log("🔍 Incoming userId via middlewaare:", req.user?.userId);
         const userId = req.user?.userId;
         const user = await User.findById(userId).lean();
-
+        
         console.log("Received userId:", userId);
-
+        
         if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
-
+        
         // const userDetails = req.body;
-        const employeeEmail = user.onboarding.hrFilledInfo.personalEmail;
+        employeeEmail = user.onboarding.hrFilledInfo.personalEmail;
         const employeeName = user.onboarding.hrFilledInfo.name;
 
         const userDetails = extractUserDetails(user);
@@ -257,7 +258,7 @@ const embeddedsigning = async (req, res) => {
                 verify_recipient: true,
                 verification_type: 'EMAIL',
                 is_embedded: true,
-                private_notes: 'Please sign this NDA document'
+                private_notes: 'Please sign this NDA document from mNivesh',
             },
             {
                 recipient_name: 'Vilakshan Bhutani',
@@ -293,11 +294,6 @@ const embeddedsigning = async (req, res) => {
                 // sign_completed: `${ndaRedirectHostURL}/sign-completed?status=completed&userId=${userId}`,
                 sign_declined: `${ndaRedirectHostURL}/sign-declined?status=declined&userId=${userId}`,
                 sign_later: `${ndaRedirectHostURL}/sign-later?status=later&userId=${userId}`
-
-                // sign_success: `${ndaRedirectHostURL}/ndaSignStatus?status=success&email=${encodeURIComponent(employeeEmail)}`,
-                // sign_completed: `${ndaRedirectHostURL}/ndaSignStatus?status=completed&email=${encodeURIComponent(employeeEmail)}`,
-                // sign_declined: `${ndaRedirectHostURL}/ndaSignStatus?status=declined&email=${encodeURIComponent(employeeEmail)}`,
-                // sign_later: `${ndaRedirectHostURL}/ndaSignStatus?status=later&email=${encodeURIComponent(employeeEmail)}`
             }
         };
 
@@ -966,7 +962,7 @@ const embeddedsigning = async (req, res) => {
             {
                 action_id: directorActionId,
                 recipient_name: 'Vilakshan Bhutani',
-                recipient_email: 'vilakshan@niveshonline.com',
+                recipient_email: 'mayank@niveshonline.com',
                 action_type: 'SIGN',
                 fields: fieldJsonDirector
             }
@@ -1003,12 +999,11 @@ const embeddedsigning = async (req, res) => {
         console.log('✅ Field submission successful');
 
         const payload2 = new FormData();
-        payload2.append('host', 'https://sign.zoho.com');
+        payload2.append('host', `${ndaRedirectHostURL}`);
 
         console.log('🔗 Step 6: Requesting embedded signing URL...');
 
         const embedRes = await axios.post(
-            // `https://sign.zoho.in/api/v1/requests/${request_id}/actions/${action_id}/embedtoken`,
             `https://sign.zoho.in/api/v1/requests/${request_id}/actions/${employeeActionId}/embedtoken`,
             payload2,
             {
@@ -1051,13 +1046,11 @@ const embeddedsigning = async (req, res) => {
             await sendEmail({
               toAddress: 'error@niveshonline.com',
               subject: 'Error in Dispatching NDA',
-              body: `<p>Error occurred in embeddedsigning NDA flow for user ${employeeDetails?.email}</p><pre>${err.stack}</pre>`
+              body: `<p>Error occurred in embeddedsigning NDA flow for user ${employeeEmail}</p><pre>${err.stack}</pre>`
             });
-
         console.error('🔥 Error occurred during embedded signing flow:');
         console.error(err.response?.data || err.message);
         res.status(500).json({ error: 'Internal error', details: err.response?.data || err.message });
-        throw new Error("Error embeddedsigning NDA flow main function");
     }
 };
 
