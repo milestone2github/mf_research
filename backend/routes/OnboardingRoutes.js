@@ -20,6 +20,7 @@ const { uploadOnboardingDocs } = require('../middlewares/uploadOnboardingDocs');
 const { sendOtpSms, verifyOtp, otpVerifiedStatus } = require('../controllers/onboardingControllers/otpController');
 const { getCandidateStatus } = require('../controllers/onboardingControllers/springVerifyControllers');
 const { ndaSignedWebhook, newEmployeeSetup } = require('../controllers/onboardingControllers/zohoEmployeeSetUp');
+const { embeddedsigning, ndaSignStatusDbUpdate } = require('../utils/ndaUrlWorkFlow');
 
 const router = require('express').Router(); 
 
@@ -50,27 +51,7 @@ router.post('/spring-verify', processSpringVerifyOrNda);
 router.post('/nda-sign-webhook', ndaSignedWebhook)
 
 router.delete('/delete/:id', deleteJoinee);
-
-// just included this route for testing purpose 
-
-// router.get('/springStatus',  async (req, res) => {
-//   try {
-//     const userId = "682ed10db8aec0bd6663f73f";
-//     const email = "mbelwal05@gmail.com";
-
-//     const result = await getCandidateStatus(userId, email);
-
-//     // ✅ Always return the response
-//     return res.status(200).json(result);
-//   } catch (err) {
-//     console.error('[TEST-ROUTE] Error:', err);
-//     return res.status(500).json({
-//       status: 'error',
-//       message: 'Internal server error',
-//     });
-//   }
-// });
-
-
+router.get('/embeddedsigning', verifyToken, embeddedsigning);
+router.get('/ndaSignStatus', ndaSignStatusDbUpdate);
 
 module.exports = router;

@@ -565,7 +565,12 @@ const fetchUserOnboardingInfo = async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const savedInfo = user.onboarding?.userFilledInfo || {};
-    res.status(200).json(savedInfo);
+    const ndaInfo = user.onboarding?.nda || {};
+
+    res.status(200).json({
+      ...savedInfo,
+      nda:ndaInfo
+    });
   } catch (error) {
     console.error("Error fetching onboarding info:", error);
     res.status(500).json({ error: "Failed to fetch user onboarding data" });
@@ -636,6 +641,32 @@ const savePartialUserOnboardingInfo = async (req, res) => {
     }
   }
 }
+
+//     for (const [field, dbField] of Object.entries(fileFields)) {
+//     const fileArr = req.files?.[field];
+//     if (fileArr?.length) {
+//       const file = fileArr[0];
+//       const existingUrl = userRecord.onboarding?.userFilledInfo?.educationalCertificatesAndDegree?.[dbField];
+
+
+//       if (!existingUrl || existingUrl.startsWith('data:') || existingUrl.includes('blob:')) {
+//         const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+//         const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+//         await blockBlobClient.uploadData(file.buffer, {
+//           blobHTTPHeaders: { blobContentType: file.mimetype }
+//         });
+
+//         const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+//         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
+//       } else {
+//         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = existingUrl;
+//       }
+
+//       azureUploadedFields.add(dbField);
+//     }
+//   }
+// }
 
     // === Upload Personal Photo & Bank Verification Doc ===
     const personalBankFiles = {
@@ -726,6 +757,7 @@ else {
     // === Final Submit Timestamp ===
     if (isFinalSubmit) {
       update.$set['onboarding.userFilledInfo.submittedAt'] = new Date();
+      console.log("Updated Final submit submitedAt date")
     }
 
     const user = await User.findByIdAndUpdate(userId, update, { new: true });
@@ -813,7 +845,7 @@ const processSpringVerifyOrNda = async (req, res) => {
         });
 
         // Step 4: Dispatch NDA
-        await dispatchNdaFlow(userId, userDetails);
+        // await dispatchNdaFlow(userId, userDetails);
       }
 
       return res.status(200).json({
@@ -838,7 +870,8 @@ const processSpringVerifyOrNda = async (req, res) => {
       const authToken = await getZohoAccessToken();
       console.log("AuthToken is ", authToken);
 
-      await dispatchNdaFlow(userId, authToken, userDetails);
+      
+      // await dispatchNdaFlow(userId, authToken, userDetails);
 
       return res.status(200).json({
         status: 'success', message: 'SpringVerify skipped, NDA workflow dispatched',

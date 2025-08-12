@@ -117,8 +117,13 @@ const userSchema = new mongoose.Schema({
             reportUrl: { type: String }
         },
         nda: {
-            sent: { type: Boolean, default: false },
-            sentAt: { type: Date },
+            urlGenerated: { type: Boolean, default: false }, //sent
+            urlGeneratedAt: { type: Date }, //sentAt
+            signedStatus: {
+                type: String,
+                enum: ['success', 'completed', 'declined', 'later', ''],
+                default: ''
+            },
             signed: { type: Boolean, default: false },
             signedAt: { type: Date },
             fileUrl: { type: String },
