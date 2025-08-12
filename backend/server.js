@@ -86,7 +86,4 @@ app.listen(port, async () => {
     springVerifyStatusCheck();
   });
   */
-
-  // const token = await getZohoAccessToken();
-
 });
