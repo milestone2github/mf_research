@@ -13,8 +13,7 @@ const verifyUser = require("./middlewares/VerifyUser");
 const { pendingTransactionsNotification, springVerifyStatusCheck } = require("./utils/scheduledTasks");
 const MongoStore = require("connect-mongo");
 const router = require("./routes");
-const { getwebHookAccessToken } = require("./utils/webHookAccessToken");
-const { getZohoAccessToken } = require("./utils/getZohoAccessToken");
+const { TRANSACTION_DB_NAME } = require("./utils/stringConstants");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
 
@@ -26,7 +25,7 @@ app.use(
     saveUninitialized: true,
     store: MongoStore.create({
       mongoUrl: process.env.MONGO_URI,
-      dbName: "mftransactiondb", // database name
+      dbName: TRANSACTION_DB_NAME, // database name
       ttl: 24 * 60 * 60, // 1-day session expiration
     }),
     cookie: {
@@ -79,11 +78,10 @@ app.get("*", (_req, res) => {
 app.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
-  // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
-  /*
+  cron.schedule('0 9 5 * *', pendingTransactionsNotification);
+  
   cron.schedule("0 11 * * *", () => {
     console.log("Running SpringVerify daily background check status cron at 11:00 AM...");
     springVerifyStatusCheck();
   });
-  */
 });

@@ -5,7 +5,7 @@ const xlsx = require('xlsx');
 let milestoneDbConnection = connectToMilestoneDB();
 const User = require("../models/User"); 
 const getCandidateStatus = require("../controllers/onboardingControllers/springVerifyControllers"); 
-const dispatchNdaFlow = require("./ndaWorkFlow"); 
+// const dispatchNdaFlow = require("./ndaWorkFlow"); 
 
 
 const headers = [
@@ -161,10 +161,10 @@ async function  springVerifyStatusCheck() {
             },
           });
 
-          if (springStatus === "verified") {
-            await dispatchNdaFlow(userId, user?.onboarding?.userFilledInfo?.personalDetails || {});
-            console.log(`NDA dispatched for ${email}`);
-          }
+          // if (springStatus === "verified") {
+          //   await dispatchNdaFlow(userId, user?.onboarding?.userFilledInfo?.personalDetails || {});
+          //   console.log(`NDA dispatched for ${email}`);
+          // }
 
           console.log(`User ${email} status updated to ${springStatus}`);
         } else {
