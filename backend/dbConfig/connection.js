@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { TRANSACTION_DB_NAME } = require("../utils/stringConstants");
 require('dotenv').config()
 
 let milestoneDbConnection = null;
@@ -6,7 +7,7 @@ let mniveshDbConnection = null;
 
 const connetToTransactionsDb = async () => {
   try {
-    const connect = await mongoose.connect(`${process.env.MONGO_URI}/internal`)
+    const connect = await mongoose.connect(`${process.env.MONGO_URI}/${TRANSACTION_DB_NAME}`)
     if (connect) {
       console.log("Connected to MfTransactions DB");
     }
