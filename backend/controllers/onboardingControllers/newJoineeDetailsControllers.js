@@ -617,56 +617,24 @@ const savePartialUserOnboardingInfo = async (req, res) => {
     };
 
     if (req.files && Object.keys(req.files).length > 0) {
-  for (const [field, dbField] of Object.entries(fileFields)) {
-    const fileArr = req.files?.[field];
-    if (fileArr?.length) {
-      const file = fileArr[0];
-      const existingUrl = userRecord.onboarding?.userFilledInfo?.educationalCertificatesAndDegree?.[dbField];
+      for (const [field, dbField] of Object.entries(fileFields)) {
+        const fileArr = req.files?.[field];
+        if (fileArr?.length) {
+          const file = fileArr[0];
+          const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+          const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-      if (!existingUrl || existingUrl.startsWith('data:') || existingUrl.includes('blob:')) {
-        const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
-        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+          await blockBlobClient.uploadData(file.buffer, {
+            blobHTTPHeaders: { blobContentType: file.mimetype }
+          });
 
-        await blockBlobClient.uploadData(file.buffer, {
-          blobHTTPHeaders: { blobContentType: file.mimetype }
-        });
+          const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+          update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
 
-        const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-        update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
-      } else {
-        update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = existingUrl;
+          azureUploadedFields.add(dbField);
+        }
       }
-
-      azureUploadedFields.add(dbField);
     }
-  }
-}
-
-//     for (const [field, dbField] of Object.entries(fileFields)) {
-//     const fileArr = req.files?.[field];
-//     if (fileArr?.length) {
-//       const file = fileArr[0];
-//       const existingUrl = userRecord.onboarding?.userFilledInfo?.educationalCertificatesAndDegree?.[dbField];
-
-
-//       if (!existingUrl || existingUrl.startsWith('data:') || existingUrl.includes('blob:')) {
-//         const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
-//         const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-
-//         await blockBlobClient.uploadData(file.buffer, {
-//           blobHTTPHeaders: { blobContentType: file.mimetype }
-//         });
-
-//         const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-//         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
-//       } else {
-//         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = existingUrl;
-//       }
-
-//       azureUploadedFields.add(dbField);
-//     }
-//   }
-// }
 
     // === Upload Personal Photo & Bank Verification Doc ===
     const personalBankFiles = {
@@ -678,25 +646,21 @@ const savePartialUserOnboardingInfo = async (req, res) => {
       const fileArr = req.files?.[formField];
 
       if (fileArr?.length > 0) {
-  const file = fileArr[0];
-  const [section, field] = formField.split('.');
-  const existingUrl = userRecord.onboarding?.userFilledInfo?.[section]?.[field];
+        const file = fileArr[0];
+        const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-  if (!existingUrl || existingUrl.startsWith('data:') || existingUrl.includes('blob:')) {
-    const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
-    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+        await blockBlobClient.uploadData(file.buffer, {
+          blobHTTPHeaders: { blobContentType: file.mimetype }
+        });
 
-    await blockBlobClient.uploadData(file.buffer, {
-      blobHTTPHeaders: { blobContentType: file.mimetype }
-    });
+        const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+        const [section, field] = formField.split('.');
 
-    const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-    update.$set[`onboarding.userFilledInfo.${section}.${field}`] = blobUrl;
-  } else {
-    update.$set[`onboarding.userFilledInfo.${section}.${field}`] = existingUrl;
-  }
-}
-else {
+        if (typeof blobUrl === 'string' && blobUrl.startsWith('https://')) {
+          update.$set[`onboarding.userFilledInfo.${section}.${field}`] = blobUrl;
+        }
+      } else {
         // ✅ Prevent setting an empty object accidentally
         console.warn(` file uploaded for ${formField}, skipping.`);
       }
@@ -779,7 +743,8 @@ else {
 const extractUserDetails = (user) => {
   const onboardingData = user.onboarding;
   const personal = onboardingData.userFilledInfo.personalDetails;
-  const hrFilled = onboardingData.hrFilledInfo
+  const latestUpdateCv = onboardingData.userFilledInfo.educationalCertificatesAndDegree.latestUpdateCv;
+  const hrFilled = onboardingData.hrFilledInfo;
 
   return {
     name: hrFilled.name,
@@ -787,6 +752,7 @@ const extractUserDetails = (user) => {
     pan: personal.panNumber,
     phone: personal.phone,
     isExperienced: hrFilled.isExperienced,
+    resume: latestUpdateCv,
     address: {
       street_address: personal.streetAddress,
       city: personal.city,
@@ -835,17 +801,32 @@ const processSpringVerifyOrNda = async (req, res) => {
         return res.status(500).json(statusRes);
       }
 
-      // Step 3: If background check is completed, mark it as verified
-      if (statusRes.data?.springStatus === 'Completed') {
-        await User.findByIdAndUpdate(userId, {
-          $set: {
-            'onboarding.backgroundCheck.status': 'verified',
-            'onboarding.backgroundCheck.completedAt': new Date(),
-          },
-        });
-
-        // Step 4: Dispatch NDA
-        // await dispatchNdaFlow(userId, userDetails);
+      // Step 3: If background check status as verified or faled as per mapped spring status received
+      const mappedSpringStatus = statusRes.data?.mappedStatus;
+      if (mappedSpringStatus === "verified" || mappedSpringStatus === "failed") {
+          await User.findByIdAndUpdate(userId, {
+            $set: {
+              "onboarding.backgroundCheck.status": mappedSpringStatus,
+              "onboarding.backgroundCheck.completedAt": new Date(),
+            },
+          })
+        if (mappedSpringStatus === "failed") {
+          await sendEmail({
+            toAddress: 'hr@niveshonline.com',
+            subject: `SpringVerify Check Failed - ${email}`,
+            body: `
+            <p>Dear HR Team,</p>
+      <p>The SpringVerify background check for the following user has <strong>failed</strong> due to insufficiency or other issues:</p>
+      <ul>
+        <li><strong>User Email:</strong> ${email}</li>
+        <li><strong>User ID:</strong> ${userId}</li>
+        <li><strong>Status:</strong> ${mappedSpringStatus}</li>
+      </ul>
+      <p>Please review the SpringVerify portal for detailed reasons and take the necessary next steps.</p>
+      <p>Regards,<br/>Onboarding System</p
+      `
+          });
+        }
       }
 
       return res.status(200).json({

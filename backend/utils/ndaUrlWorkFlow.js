@@ -12,27 +12,9 @@ const ndaRedirectHostURL = process.env.NDA_REDIRECT_HOST_URL
 
 const ndaAgreementPdfPath = path.join(__dirname, 'Non-Disclosure Agreement.pdf');
 
-// Redirect test routes for Zoho Sign Embedded Signing
-
-// app.get('/sign-success', (req, res) => {
-//     res.send('<h1>✅ Signing was successful!</h1>');
-// });
-
-// app.get('/sign-completed', (req, res) => {
-//     res.send('<h1>🎉 Document signing completed!</h1>');
-// });
-
-// app.get('/sign-declined', (req, res) => {
-//     res.send('<h1>❌ The document signing was declined.</h1>');
-// });
-
-// app.get('/sign-later', (req, res) => {
-//     res.send('<h1>⏳ You chose to sign the document later.</h1>');
-// });
-
 const ndaSignStatusDbUpdate = async (req, res) => {
     const { status, userId } = req.query;
-    // const userId = req.user?.userId || "68778d5de79d249ba6c6ab84";
+    // const userId = req.user?.userId ;
     console.log(`📩 Signing callback received: status=${status}, userId=${userId}`);
 
     if (!status || !userId) {
@@ -100,8 +82,8 @@ const ndaSignStatusDbUpdate = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
         console.log(`✅ NDA updated for: ${updatedUser.email} | Status: ${status}`);
-        if (status === 'success' || status === 'completed') {
-            // await newEmployeeSetup(userId);
+        if (status === 'success') {
+            await newEmployeeSetup(userId);
         }
         return res.status(200).json({ success: true, message, userId });
 
@@ -176,11 +158,6 @@ async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
                             country: "India"
                         },
                         second_party_address: {
-                            // street_address: "Colony",
-                            // city: "Ram",
-                            // state: "Uttarakhand",
-                            // pincode: 244715,
-                            // country: "India",
                             street_address: employeeDetails.address.street_address,
                             city: employeeDetails.address.city,
                             state: employeeDetails.address.state,
@@ -205,7 +182,7 @@ async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
     }
 }
 
-// === Mater Step : generating Sign URL ===
+// === Master Step : generating Sign URL ===
 
 const embeddedsigning = async (req, res) => {
     const accessToken = await getZohoAccessToken();
@@ -237,17 +214,6 @@ const embeddedsigning = async (req, res) => {
         console.log('✅ Onboarding PDF exists at:', ndaAgreementPdfPath);
 
         console.log('✉️ Step 2: Preparing request payload...');
-
-        // const actionsJson = {
-        //     recipient_name: employeeName,
-        //     recipient_email: employeeEmail,
-        //     action_type: 'SIGN',
-        //     private_notes: 'Please sign this Non-Disclosure Agreement',
-        //     signing_order: 0,
-        //     verify_recipient: true,
-        //     verification_type: 'EMAIL',
-        //     is_embedded: true
-        // };
 
         const actionsJson = [
             {
@@ -291,7 +257,7 @@ const embeddedsigning = async (req, res) => {
             actions: actionsJson,
             redirect_pages: {
                 sign_success: `${ndaRedirectHostURL}/sign-success?status=success&userId=${userId}`,
-                // sign_completed: `${ndaRedirectHostURL}/sign-completed?status=completed&userId=${userId}`,
+                sign_completed: `https://sign.zoho.com/`,
                 sign_declined: `${ndaRedirectHostURL}/sign-declined?status=declined&userId=${userId}`,
                 sign_later: `${ndaRedirectHostURL}/sign-later?status=later&userId=${userId}`
             }
@@ -962,7 +928,7 @@ const embeddedsigning = async (req, res) => {
             {
                 action_id: directorActionId,
                 recipient_name: 'Vilakshan Bhutani',
-                recipient_email: 'mayank@niveshonline.com',
+                recipient_email: 'vilakshan@niveshonline.com',
                 action_type: 'SIGN',
                 fields: fieldJsonDirector
             }
@@ -981,7 +947,7 @@ const embeddedsigning = async (req, res) => {
 
         console.log('🔗 Step 4: Generating the E-Stamp ...');
 
-        // await generateEstamp(request_id, document_id, userDetails, accessToken);
+        await generateEstamp(request_id, document_id, userDetails, accessToken);
         console.log("Done generateEstamp");
 
         console.log('📤 Step 5: Submitting fields to Zoho...');
