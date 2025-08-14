@@ -779,7 +779,8 @@ else {
 const extractUserDetails = (user) => {
   const onboardingData = user.onboarding;
   const personal = onboardingData.userFilledInfo.personalDetails;
-  const hrFilled = onboardingData.hrFilledInfo
+  const latestUpdateCv = onboardingData.userFilledInfo.educationalCertificatesAndDegree.latestUpdateCv;
+  const hrFilled = onboardingData.hrFilledInfo;
 
   return {
     name: hrFilled.name,
@@ -787,6 +788,7 @@ const extractUserDetails = (user) => {
     pan: personal.panNumber,
     phone: personal.phone,
     isExperienced: hrFilled.isExperienced,
+    resume: latestUpdateCv,
     address: {
       street_address: personal.streetAddress,
       city: personal.city,
