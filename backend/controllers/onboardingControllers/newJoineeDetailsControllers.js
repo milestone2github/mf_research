@@ -617,56 +617,24 @@ const savePartialUserOnboardingInfo = async (req, res) => {
     };
 
     if (req.files && Object.keys(req.files).length > 0) {
-  for (const [field, dbField] of Object.entries(fileFields)) {
-    const fileArr = req.files?.[field];
-    if (fileArr?.length) {
-      const file = fileArr[0];
-      const existingUrl = userRecord.onboarding?.userFilledInfo?.educationalCertificatesAndDegree?.[dbField];
+      for (const [field, dbField] of Object.entries(fileFields)) {
+        const fileArr = req.files?.[field];
+        if (fileArr?.length) {
+          const file = fileArr[0];
+          const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+          const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-      if (!existingUrl || existingUrl.startsWith('data:') || existingUrl.includes('blob:')) {
-        const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
-        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+          await blockBlobClient.uploadData(file.buffer, {
+            blobHTTPHeaders: { blobContentType: file.mimetype }
+          });
 
-        await blockBlobClient.uploadData(file.buffer, {
-          blobHTTPHeaders: { blobContentType: file.mimetype }
-        });
+          const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+          update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
 
-        const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-        update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
-      } else {
-        update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = existingUrl;
+          azureUploadedFields.add(dbField);
+        }
       }
-
-      azureUploadedFields.add(dbField);
     }
-  }
-}
-
-//     for (const [field, dbField] of Object.entries(fileFields)) {
-//     const fileArr = req.files?.[field];
-//     if (fileArr?.length) {
-//       const file = fileArr[0];
-//       const existingUrl = userRecord.onboarding?.userFilledInfo?.educationalCertificatesAndDegree?.[dbField];
-
-
-//       if (!existingUrl || existingUrl.startsWith('data:') || existingUrl.includes('blob:')) {
-//         const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
-//         const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-
-//         await blockBlobClient.uploadData(file.buffer, {
-//           blobHTTPHeaders: { blobContentType: file.mimetype }
-//         });
-
-//         const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-//         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = blobUrl;
-//       } else {
-//         update.$set[`onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`] = existingUrl;
-//       }
-
-//       azureUploadedFields.add(dbField);
-//     }
-//   }
-// }
 
     // === Upload Personal Photo & Bank Verification Doc ===
     const personalBankFiles = {
@@ -678,25 +646,21 @@ const savePartialUserOnboardingInfo = async (req, res) => {
       const fileArr = req.files?.[formField];
 
       if (fileArr?.length > 0) {
-  const file = fileArr[0];
-  const [section, field] = formField.split('.');
-  const existingUrl = userRecord.onboarding?.userFilledInfo?.[section]?.[field];
+        const file = fileArr[0];
+        const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-  if (!existingUrl || existingUrl.startsWith('data:') || existingUrl.includes('blob:')) {
-    const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
-    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+        await blockBlobClient.uploadData(file.buffer, {
+          blobHTTPHeaders: { blobContentType: file.mimetype }
+        });
 
-    await blockBlobClient.uploadData(file.buffer, {
-      blobHTTPHeaders: { blobContentType: file.mimetype }
-    });
+        const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+        const [section, field] = formField.split('.');
 
-    const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
-    update.$set[`onboarding.userFilledInfo.${section}.${field}`] = blobUrl;
-  } else {
-    update.$set[`onboarding.userFilledInfo.${section}.${field}`] = existingUrl;
-  }
-}
-else {
+        if (typeof blobUrl === 'string' && blobUrl.startsWith('https://')) {
+          update.$set[`onboarding.userFilledInfo.${section}.${field}`] = blobUrl;
+        }
+      } else {
         // ✅ Prevent setting an empty object accidentally
         console.warn(` file uploaded for ${formField}, skipping.`);
       }
