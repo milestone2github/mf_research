@@ -835,17 +835,32 @@ const processSpringVerifyOrNda = async (req, res) => {
         return res.status(500).json(statusRes);
       }
 
-      // Step 3: If background check is completed, mark it as verified
-      if (statusRes.data?.springStatus === 'Completed') {
-        await User.findByIdAndUpdate(userId, {
-          $set: {
-            'onboarding.backgroundCheck.status': 'verified',
-            'onboarding.backgroundCheck.completedAt': new Date(),
-          },
-        });
-
-        // Step 4: Dispatch NDA
-        // await dispatchNdaFlow(userId, userDetails);
+      // Step 3: If background check status as verified or faled as per mapped spring status received
+      const mappedSpringStatus = statusRes.data?.mappedStatus;
+      if (mappedSpringStatus === "verified" || mappedSpringStatus === "failed") {
+          await User.findByIdAndUpdate(userId, {
+            $set: {
+              "onboarding.backgroundCheck.status": mappedSpringStatus,
+              "onboarding.backgroundCheck.completedAt": new Date(),
+            },
+          })
+        if (mappedSpringStatus === "failed") {
+          await sendEmail({
+            toAddress: 'hr@niveshonline.com',
+            subject: `SpringVerify Check Failed - ${email}`,
+            body: `
+            <p>Dear HR Team,</p>
+      <p>The SpringVerify background check for the following user has <strong>failed</strong> due to insufficiency or other issues:</p>
+      <ul>
+        <li><strong>User Email:</strong> ${email}</li>
+        <li><strong>User ID:</strong> ${userId}</li>
+        <li><strong>Status:</strong> ${mappedSpringStatus}</li>
+      </ul>
+      <p>Please review the SpringVerify portal for detailed reasons and take the necessary next steps.</p>
+      <p>Regards,<br/>Onboarding System</p
+      `
+          });
+        }
       }
 
       return res.status(200).json({
