@@ -1,10 +1,8 @@
 const User = require("../../models/User");
-const PDFDocument = require("pdfkit");
 const axios = require("axios");
 const Department = require("../../models/Department");
 const Role = require("../../models/Role");
 const { fetchPackageAndAddCandidate, getCandidateStatus } = require('./springVerifyControllers');
-const { dispatchNdaFlow } = require('../../utils/ndaWorkFlow');
 const { getZohoAccessToken } = require("../../utils/getZohoAccessToken");
 const { getwebHookAccessToken } = require("../../utils/webHookAccessToken");
 const { getNewJoineeMailBody } = require("../../utils/newJoineeMailTemplate");
@@ -14,9 +12,7 @@ const { getOfferLetterEmailTemplate } = require('../../utils/offerLetterTemplate
 const { BlobServiceClient } = require('@azure/storage-blob');
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const ONBOARDING_FORM_LINK = process.env.ONBOARDING_FORM_LINK;
-const ZOHO_APIS_BASE = process.env.ZOHO_APIS_BASE || "https://www.zohoapis.com";
 const WRITER_DOCUMENT_ID = process.env.WRITER_DOCUMENT_ID; 
-const path = require('path');
 const FormData = require("form-data");
 require("dotenv").config();
 
