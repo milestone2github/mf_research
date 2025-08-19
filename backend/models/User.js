@@ -53,6 +53,8 @@ const userSchema = new mongoose.Schema({
             isPfApplicable: { type: Boolean },
             isExperienced: { type: Boolean, default: false },
             doj: { type: Date },
+            city: { type: String },
+            reportingLocation: { type: String },
             initiatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
             initiatedAt: { type: Date }
         },
