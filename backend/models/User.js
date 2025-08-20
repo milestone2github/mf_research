@@ -55,6 +55,7 @@ const userSchema = new mongoose.Schema({
             doj: { type: Date },
             city: { type: String },
             reportingLocation: { type: String },
+            gender: { type: String, enum: ['male', 'female'] },
             initiatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
             initiatedAt: { type: Date }
         },

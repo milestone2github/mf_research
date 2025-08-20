@@ -197,7 +197,8 @@ async function saveJoineeDetails(req, res) {
       isExperienced,
       doj,
       city,
-      reportingLocation
+      reportingLocation,
+      gender
     } = req.body;
 
     const update = {
@@ -218,6 +219,7 @@ async function saveJoineeDetails(req, res) {
           doj,
           city,
           reportingLocation,
+          gender,
           initiatedBy: req.user ? req.user._id : null,
           initiatedAt: new Date(),
         },
@@ -235,8 +237,10 @@ async function saveJoineeDetails(req, res) {
     const roleData = await Role.findById(role);
     const roleName = roleData?.name || 'Role';
 
+    const salutation = gender === 'female' ? 'Ms.' : 'Mr.';
+
     const mergeData = {
-    // "Name_Salutation": "Mr./Ms.",                          // salutation
+    "Name_Salutation": salutation,                          // salutation
     "Name_First": name.split(" ")[0],                  // first name
     "Name_Last": name.split(" ").slice(1).join(" "),   // last name
     "SingleLine": city,                                // city

@@ -20,7 +20,8 @@ const EmployeeOnboardingForm = () => {
     isExperienced: false,
     doj: '',
     city: '',
-    reportingLocation: ''
+    reportingLocation: '',
+    gender: ''
   });
 
   const [departments, setDepartments] = useState([]);
@@ -33,7 +34,6 @@ const EmployeeOnboardingForm = () => {
       try {
         const res = await fetch(`${LOCAL_API_BASE}/department`);
         const json = await res.json();
-        console.log("Departments fetched:", json);
         if (json?.data) setDepartments(json.data);
       } catch (error) {
         console.error("Error fetching departments:", error);
@@ -47,7 +47,6 @@ const EmployeeOnboardingForm = () => {
     try {
       const res = await fetch(`${LOCAL_API_BASE}/roles?dept=${deptId}`);
       const json = await res.json();
-      console.log("Roles fetched:", json);
       if (json?.data) setRoles(json.data);
       else setRoles([]);
     } catch (error) {
@@ -116,6 +115,36 @@ const EmployeeOnboardingForm = () => {
           <label htmlFor="phone" className="mb-1 text-sm font-medium text-gray-700">Phone</label>
           <input name="phone" id="phone" placeholder="Phone" value={formData.phone} onChange={handleChange}
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500" required />
+        </div>
+      
+        {/* Gender */}
+        <div className="flex flex-col">
+          <label className="mb-2 text-sm font-medium text-gray-700">Gender</label>
+          <div className="flex gap-4">
+            <label className={`px-4 py-2 rounded-md cursor-pointer border ${formData.gender==='male' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}>
+              <input
+                type="radio"
+                name="gender"
+                value="male"
+                checked={formData.gender === 'male'}
+                onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+                className="hidden"
+              />
+              Male
+            </label>
+
+            <label className={`px-4 py-2 rounded-md cursor-pointer border ${formData.gender==='female' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}>
+              <input
+                type="radio"
+                name="gender"
+                value="female"
+                checked={formData.gender === 'female'}
+                onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+                className="hidden"
+              />
+              Female
+            </label>
+          </div>
         </div>
 
         {/* Department */}

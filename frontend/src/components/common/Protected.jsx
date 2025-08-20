@@ -52,7 +52,6 @@ function Protected({ children, requiredPermission, requiredInternalRole }) {
   if (requiredPermission && !permissions.includes(requiredPermission)) {
     return <AccessDenied />;
   }
-console.log(requiredInternalRole,internalRole);
 
   // 🔐 Internal Dashboard Role check
   if (requiredInternalRole && !requiredInternalRole.includes(internalRole)) {
