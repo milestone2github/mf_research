@@ -19,6 +19,8 @@ const EmployeeOnboardingForm = () => {
     isPfApplicable: false,
     isExperienced: false,
     doj: '',
+    city: '',
+    reportingLocation: ''
   });
 
   const [departments, setDepartments] = useState([]);
@@ -147,12 +149,42 @@ const EmployeeOnboardingForm = () => {
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500" required />
         </div>
 
+        {/* City  */}
+        <div className="flex flex-col">
+          <label htmlFor="city" className="mb-1 text-sm font-medium text-gray-700">City</label>
+          <input
+            name="city"
+            id="city"
+            placeholder="Residential City"
+            value={formData.city}
+            onChange={handleChange}
+            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500"
+            required
+          />
+        </div>
+
         {/* Monthly Salary */}
         <div className="flex flex-col">
           <label htmlFor="baseSalary" className="mb-1 text-sm font-medium text-gray-700">Monthly In-hand Salary</label>
           <input type="number" name="baseSalary" id="baseSalary" placeholder="Monthly In-hand Salary" value={formData.baseSalary} onChange={handleChange}
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500" required />
         </div>
+
+
+        {/* Reporting Location (between Monthly In-hand Salary and PF Applicable) */}
+        <div className="flex flex-col">
+          <label htmlFor="reportingLocation" className="mb-1 text-sm font-medium text-gray-700">Reporting Location</label>
+          <input
+            name="reportingLocation"
+            id="reportingLocation"
+            placeholder="Reporting Location"
+            value={formData.reportingLocation}
+            onChange={handleChange}
+            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500"
+            required
+          />
+        </div>
+
 
         {/* PF Checkbox */}
         <div className="flex items-center col-span-2 mt-2">
