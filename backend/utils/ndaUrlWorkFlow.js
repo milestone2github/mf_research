@@ -3,7 +3,6 @@ const { getZohoAccessToken } = require("../utils/getZohoAccessToken");
 const fs = require('fs');
 const sendEmail = require("./sendEmail");
 const FormData = require('form-data');
-const PDFDocument = require('pdfkit');
 const path = require('path');
 const User = require("../models/User");
 const { newEmployeeSetup } = require("../controllers/onboardingControllers/zohoEmployeeSetUp");
