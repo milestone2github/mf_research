@@ -7,7 +7,6 @@ const Sidebar = () => {
     const { isLoggedIn, userData } = useSelector((state) => state.user)
     const permissions = userData?.permissions;
     const internalRole = userData?.internalDashboardRole;
-    console.log(userData);
 
     if (!isLoggedIn) return null;
 

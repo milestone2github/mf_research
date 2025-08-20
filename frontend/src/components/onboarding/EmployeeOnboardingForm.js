@@ -34,7 +34,6 @@ const EmployeeOnboardingForm = () => {
       try {
         const res = await fetch(`${LOCAL_API_BASE}/department`);
         const json = await res.json();
-        console.log("Departments fetched:", json);
         if (json?.data) setDepartments(json.data);
       } catch (error) {
         console.error("Error fetching departments:", error);
@@ -48,7 +47,6 @@ const EmployeeOnboardingForm = () => {
     try {
       const res = await fetch(`${LOCAL_API_BASE}/roles?dept=${deptId}`);
       const json = await res.json();
-      console.log("Roles fetched:", json);
       if (json?.data) setRoles(json.data);
       else setRoles([]);
     } catch (error) {
