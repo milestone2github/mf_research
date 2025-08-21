@@ -6,7 +6,7 @@ const WEB_HOOK_ZOHO_REFRESH_TOKEN = process.env.WEB_HOOK_ZOHO_REFRESH_TOKEN;
 
 // althought the getwebHookAccessToken also full involves Zoho to get Acces token
 async function getwebHookAccessToken() {
-  console.log("Entered the getwebHookAccessToken Function");
+  // console.log("Entered the getwebHookAccessToken Function");
   
   const TOKEN_ENDPOINT = "https://accounts.zoho.com/oauth/v2/token";
   const payload = new URLSearchParams({
@@ -18,7 +18,7 @@ async function getwebHookAccessToken() {
 
   try {
     const response = await axios.post(TOKEN_ENDPOINT, payload);
-    console.log("Exit getwebHookAccessToken Acces Token is ",response.data.access_token);
+    // console.log("Exit getwebHookAccessToken Acces Token is ",response.data.access_token);
     
     return response.data.access_token;
   } catch (err) {

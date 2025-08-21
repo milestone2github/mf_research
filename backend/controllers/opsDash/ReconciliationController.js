@@ -229,7 +229,7 @@ exports.getRecoTransactions = async (req, res) => {
       }
     })
   } catch (error) {
-    console.log('Error getting transactions: ', error.message)
+    // console.log('Error getting transactions: ', error.message)
     res.status(500).json({ error: `Error getting transactions: ${error.message}` })
   }
 }

@@ -10,8 +10,8 @@ const BASE_URL =
 
 // Supporting function to check if E-mail exists & Add new Employee to Zoho
 async function zohoApiOnboarding(access_token, record) {
-    console.log("[zohoEmployeeSetUp] Entered the zohoApiOnboarding to Add new Employee");
-    console.log("[zohoEmployeeSetUp] Acces Token at zohoApiOnboarding", access_token);
+    // console.log("[zohoEmployeeSetUp] Entered the zohoApiOnboarding to Add new Employee");
+    // console.log("[zohoEmployeeSetUp] Acces Token at zohoApiOnboarding", access_token);
 
 
     const params = {
@@ -24,7 +24,7 @@ async function zohoApiOnboarding(access_token, record) {
     // Adding Record at Zoho
     try {
         const resp = await axios.get(BASE_URL, { params, headers });
-        console.log("[zohoEmployeeSetUp] response at line 62 in zohoApiOnboarding is", resp.data);
+        // console.log("[zohoEmployeeSetUp] response at line 62 in zohoApiOnboarding is", resp.data);
 
         const errors = resp.data.response?.errors.code;
         if (errors === 7006) return 1;
@@ -33,14 +33,14 @@ async function zohoApiOnboarding(access_token, record) {
 
         return 0;
     } catch (err) {
-        console.error("Request failed:", err.response?.data || err.message);
+        // console.error("Request failed:", err.response?.data || err.message);
         return -1;
     }
 }
 
 // Generating Unique Email id for new Employee
 async function registerEmployeeInZohoById(userId, access_token) {
-    console.log(" [zohoEmployeeSetUp] Entered the registerEmployeeInZohoById function")
+    // console.log(" [zohoEmployeeSetUp] Entered the registerEmployeeInZohoById function")
 
     const user = await User.findById(userId);
     // let finalEmail = "";
@@ -48,7 +48,7 @@ async function registerEmployeeInZohoById(userId, access_token) {
 
     // ✅ Fetch the current employee ID count
     let countDoc = await ZohoEmployeeIdCount.findOne();
-    console.log(`[zohoEmployeeSetUp] current count is ${countDoc}`);
+    // console.log(`[zohoEmployeeSetUp] current count is ${countDoc}`);
 
     if (!countDoc) {
         // If it doesn’t exist, initialize it
@@ -70,30 +70,30 @@ async function registerEmployeeInZohoById(userId, access_token) {
         LastName: last,
         EmailID: email,
     };
-    console.log(" [zohoEmployeeSetUp] Records at registerEmployeeInZohoById function is", records);
+    // console.log(" [zohoEmployeeSetUp] Records at registerEmployeeInZohoById function is", records);
 
     // 🔁 Attempt to register with retries
     let result = await zohoApiOnboarding(access_token, records);
-    console.log("[zohoEmployeeSetUp] Result at Line 73=5 in registerEmployeeInZohoById is:", result);
+    // console.log("[zohoEmployeeSetUp] Result at Line 73=5 in registerEmployeeInZohoById is:", result);
 
     if (result === 1) {
         email = `${first}.${last.charAt(0)}${domain}`;
         records.EmailID = email;
         result = await zohoApiOnboarding(access_token, records);
-        console.log("[zohoEmployeeSetUp] Result at Line 83 in registerEmployeeInZohoById is:", result);
+        // console.log("[zohoEmployeeSetUp] Result at Line 83 in registerEmployeeInZohoById is:", result);
 
         if (result === 1) {
             email = `${first}.${last}${domain}`;
             records.EmailID = email;
             result = await zohoApiOnboarding(access_token, records);
-            console.log("[zohoEmployeeSetUp] Result at Line 91 in registerEmployeeInZohoById is:", result);
+            // console.log("[zohoEmployeeSetUp] Result at Line 91 in registerEmployeeInZohoById is:", result);
 
             if (result === 1) {
                 for (let i = 1; ; i++) {
                     email = `${first}.${last}${i}${domain}`;
                     records.EmailID = email;
                     result = await zohoApiOnboarding(access_token, records);
-                    console.log("[zohoEmployeeSetUp] Result at Line 98 in registerEmployeeInZohoById is:", result);
+                    // console.log("[zohoEmployeeSetUp] Result at Line 98 in registerEmployeeInZohoById is:", result);
 
                     if (result === 0) break;
                 }
@@ -103,7 +103,7 @@ async function registerEmployeeInZohoById(userId, access_token) {
 
     if (result === 0) {
         // mail generation is sucessfull 
-        console.log(`[Zoho Setup] ✅ Successfully registered user with email: ${email} and EmployeeID: ${employeeId}`);
+        // console.log(`[Zoho Setup] ✅ Successfully registered user with email: ${email} and EmployeeID: ${employeeId}`);
         return {
             success: true,
             message: "Employee registered successfully in Zoho",
@@ -123,21 +123,21 @@ async function registerEmployeeInZohoById(userId, access_token) {
 
 // Main function to Add new Employee in Zoho
 async function newEmployeeSetup(userId) {
-    console.log(`[zohoEmployeeSetUp] userid fron newEmployeeSetup ${userId}`);
+    // console.log(`[zohoEmployeeSetUp] userid fron newEmployeeSetup ${userId}`);
 
     try {
         const access_token = await getwebHookAccessToken();
 
         const { success, finalEmail, employeeId } = await registerEmployeeInZohoById(userId, access_token);
-        console.log("[zohoEmployeeSetUp] Final Email value  at 131 is ", finalEmail,);
-        console.log("[zohoEmployeeSetUp]  Employeid is at 132 is ", employeeId);
+        // console.log("[zohoEmployeeSetUp] Final Email value  at 131 is ", finalEmail,);
+        // console.log("[zohoEmployeeSetUp]  Employeid is at 132 is ", employeeId);
         if (!success) {
-            console.log(`Failed to register employee in Zoho ${finalEmail}`);
+            // console.log(`Failed to register employee in Zoho ${finalEmail}`);
             throw new Error("Failed to register employee in Zoho");
 
         }
         if (finalEmail) {
-            console.log(`🎉 Employee adding at ZOHOis successfully done. BRAVO!! Final email: ${finalEmail}`);
+            // console.log(`🎉 Employee adding at ZOHOis successfully done. BRAVO!! Final email: ${finalEmail}`);
         }
 
         // ✅ Mark zohoSetup as completed in DB
@@ -153,7 +153,7 @@ async function newEmployeeSetup(userId) {
             }, { new: true }
         );
 
-        console.log(`DB updated for newly created user with mail and zohoSetup: ${finalEmail}`);
+        // console.log(`DB updated for newly created user with mail and zohoSetup: ${finalEmail}`);
 
         // ✅ Update ZohoEmployeeIdCount
         await ZohoEmployeeIdCount.findOneAndUpdate(
@@ -163,12 +163,12 @@ async function newEmployeeSetup(userId) {
         }
         );
 
-        console.log(`[zohoEmployeeSetUp] Successfully updated user and employee count ${employeeId}`);
+        // console.log(`[zohoEmployeeSetUp] Successfully updated user and employee count ${employeeId}`);
         // await getEmployeeRecords(access_token);
         // const gotraStatus = await sendGotraDocument(id);
         return finalEmail;
     } catch (err) {
-        console.log(`[zohoEmployeeSetUp] Error in newEmployeeSetupfor for user with useid: ${userId}`, err.message);
+        // console.log(`[zohoEmployeeSetUp] Error in newEmployeeSetupfor for user with useid: ${userId}`, err.message);
         throw new Error(err.message || "Unknown error during Zoho employee setup");
     }
 }
@@ -176,7 +176,7 @@ async function newEmployeeSetup(userId) {
 
 const ndaSignedWebhook = async (req, res) => {
     const payload = req.body;
-    console.log("Webhook Received:", JSON.stringify(payload));
+    // console.log("Webhook Received:", JSON.stringify(payload));
 
     const { requests } = payload;
 
@@ -194,7 +194,7 @@ const ndaSignedWebhook = async (req, res) => {
         }
 
         const expectedEmail = user?.onboarding?.hrFilledInfo?.personalEmail;
-        console.log("[WebHook] expected email is:", expectedEmail);
+        // console.log("[WebHook] expected email is:", expectedEmail);
 
         //  action that matches the user's email
         const matchedAction = requests?.actions?.find(
@@ -219,7 +219,7 @@ const ndaSignedWebhook = async (req, res) => {
             );
 
             if (updated) {
-                console.log(`✅ NDA marked as signed for: ${updated.email}`);
+                // console.log(`✅ NDA marked as signed for: ${updated.email}`);
                 await newEmployeeSetup(updated._id);
             }
         }

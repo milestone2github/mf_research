@@ -205,7 +205,7 @@ if (relationshipManager && typeof relationshipManager === 'string') {
       department: 'Sales',
       role: 'relationship manager',
     });
-    console.log(`New Relationship Manager '${relationshipManager}' added to Employee list.`);
+    // console.log(`New Relationship Manager '${relationshipManager}' added to Employee list.`);
   }
 }
 
@@ -286,7 +286,7 @@ if (relationshipManager && typeof relationshipManager === 'string') {
         // store systematic data in database
         const ressys = await Transactions.create(combinedSystematic); // Corrected variable name
         if (ressys) {
-          console.log("Data stored successfully in systematic");
+          // console.log("Data stored successfully in systematic");
           results.push("Data stored successfully in systematic");
 
           // add mongo's id field to systematic data
@@ -320,7 +320,7 @@ if (relationshipManager && typeof relationshipManager === 'string') {
         // store data in database
         const resp = await Transactions.create(combinedRedemption);
         if (resp) {
-          console.log("Data stored successfully in predemption");
+          // console.log("Data stored successfully in predemption");
           results.push("Data stored successfully in predemption");
 
           // add mongo's id field to purchase/redemption data
@@ -353,7 +353,7 @@ if (relationshipManager && typeof relationshipManager === 'string') {
         // store switch data to database 
         const resswit = await Transactions.create(combinedSwitch);
         if (resswit) {
-          console.log("Data stored successfully in Switch");
+          // console.log("Data stored successfully in Switch");
           results.push("Data stored successfully in Switch");
 
           // add mongo's id field to purchase/redemption data
@@ -670,7 +670,7 @@ const getNfoSchemes = async (req, res) => {
 
     res.status(200).json({ message: 'Found NFO schemes', data: uniqueSchemes });
   } catch (error) {
-    console.log('Error while getting NFO schemes', error.message);
+    // console.log('Error while getting NFO schemes', error.message);
     res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` });
   }
 };
