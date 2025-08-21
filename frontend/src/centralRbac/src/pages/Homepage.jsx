@@ -21,8 +21,6 @@ function Homepage() {
   const user = useSelector((state) => state.user.userData);
 
   useEffect(() => {
-    console.log('Homepage mounted - checking auth state');
-    //console.log('Current role from localStorage:', getUserRole());
   }, []);
 
   const iconMap = {
@@ -38,7 +36,7 @@ function Homepage() {
     if (link) {
       navigate(link);
     } else {
-      console.log("Clicked on a non-navigable card");
+      console.error("Clicked on a non-navigable card");
     }
   };
 

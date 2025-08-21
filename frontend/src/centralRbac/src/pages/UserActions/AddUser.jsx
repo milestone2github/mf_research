@@ -31,7 +31,6 @@ const AddUser = () => {
         const fetchDepartments = async () => {
             try {
                 const deptRes = await axios.get(`${RBAC_BASE_URL}/depts`);
-                // console.log("Dept response:", deptRes.data.data);
                 setDepartments(deptRes.data.data);
             } catch (err) {
                 console.error("Error fetching departments", err);
@@ -48,7 +47,6 @@ const AddUser = () => {
                 setLoadingRoles(true);
                 try {
                     const roleRes = await axios.get(`${RBAC_BASE_URL}/roles?dept=${departmentId}`);
-                    // console.log("Roles for department", departmentId, ":", roleRes.data.data);
                     setFilteredRoles(roleRes.data.data);
                 } catch (err) {
                     console.error("Error fetching roles by department", err);
@@ -126,7 +124,6 @@ const AddUser = () => {
         try {
             const response = await axios.post(`${RBAC_BASE_URL}/users`, formData);
             setSuccess("User created successfully!");
-            // console.log(response.data.data);
             setFormData({
                 name: "",
                 email: "",

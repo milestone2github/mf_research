@@ -24,7 +24,6 @@ const AssociatePayout = () => {
       })
       setLoad(false)
       setTotal(sum)
-      console.log(sum);
     } catch (error) {
       setLoad(false)
       setTotal(null)
@@ -143,7 +142,7 @@ const AssociatePayout = () => {
       Associate_Payout1: record.Associate_Payout1,
     }).toString();
 
-    console.log(baseUrl, "&", queryParams);
+    // console.log(baseUrl, "&", queryParams);
     const emailData = {
       from: 'insuranceearlypayout@mnivesh.niveshonline.com',
       subject: "Test for Early Payout Release",
@@ -174,7 +173,7 @@ const AssociatePayout = () => {
       if(response.status !== 200) {
         throw new Error(response.data.error || 'something went wrong ')
       }
-      console.log("Email sent:", response.data?.message);
+      // console.log("Email sent:", response.data?.message);
   
       setButtonStates(prevState => ({
         ...prevState,

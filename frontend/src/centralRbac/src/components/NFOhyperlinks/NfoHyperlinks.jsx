@@ -20,7 +20,6 @@ function Nfohyperlinks() {
       try {
         const response = await axios.get(`${RBAC_BASE_URL}/nfohyperlinks`);
         setImageUrl(response.data.imageUrl);
-        // console.log(response.data.imageUrl);
         setRedirectUrl(response.data.redirectUrl);
         setLoading(false);
       } catch (err) {

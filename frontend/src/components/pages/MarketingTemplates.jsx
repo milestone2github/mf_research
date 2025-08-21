@@ -32,7 +32,7 @@ function MarketingTemplates() {
   const images = [1, 2, 3, 4, 5, 6]
 
   function convertToImage(imageId) {
-    console.log('imageId: ', imageId)
+    // console.log('imageId: ', imageId)
     const content = document.getElementById(`image-${imageId}`);
     const topContainer = document.getElementById(`top-container-${imageId}`)
     const brandContainer = document.getElementById(`brand-container-${imageId}`)
@@ -46,14 +46,14 @@ function MarketingTemplates() {
 
     html2canvas(content, { scale: 3.4 }).then(canvas => {
       const imgData = canvas.toDataURL('image/png');
-      console.log('canvas created.'); // test
+      // console.log('canvas created.'); // test
       const link = document.createElement('a');
       link.href = imgData;
       link.download = 'output.png';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      console.log('image downloaded.'); // test
+      // console.log('image downloaded.'); // test
 
       topContainer.style.paddingTop = 'auto'
       brandContainer.style.marginTop = '0'
@@ -76,11 +76,10 @@ function MarketingTemplates() {
 
   useEffect(() => {
     if (fetchStatus === 404) {
-      console.log('404')
       dispatch(createUser(defaultUser))
     }
     else if (fetchStatus !== 404 && error) {
-      console.log(error)
+      console.error(error)
       dispatch(updateToast({ type: 'error', message: error }))
     }
   }, [fetchStatus, error])
