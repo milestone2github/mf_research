@@ -40,7 +40,6 @@ function UserManagementDashboard() {
             try {
                 const response = await axios.get(`${RBAC_BASE_URL}/users`);
                 if (response.data.success) {
-                    console.log(response.data.data)
                     setUsers(response.data.data);
                 } else {
                     console.error("Backend returned error:", response.data.message);

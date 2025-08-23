@@ -91,7 +91,7 @@ const AddFixedDeposit = () => {
       const formDataToSend = new FormData();
       Object.keys(formData).forEach((key) => {
         if (key === "logo") {
-          console.log("Logo value:", formData.logo, "Is File?", formData.logo instanceof File);
+          // console.log("Logo value:", formData.logo, "Is File?", formData.logo instanceof File);
           if (formData.logo instanceof File) {
             formDataToSend.append(key, formData.logo);
           }

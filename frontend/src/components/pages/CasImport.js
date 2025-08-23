@@ -46,7 +46,7 @@ const CasImport = () => {
       return;
     }
 
-    console.log("CAS triggered with PAN:", panNumber, "and Email:", email);
+    // console.log("CAS triggered with PAN:", panNumber, "and Email:", email);
     // Add your logic to trigger CAS here
   };
 
@@ -59,12 +59,12 @@ const CasImport = () => {
       alert("Please enter the password for the PDF.");
       return;
     }
-    console.log(
-      "PDF uploaded for CAS:",
-      casFile.name,
-      "with password:",
-      pdfPassword
-    );
+    // console.log(
+    //   "PDF uploaded for CAS:",
+    //   casFile.name,
+    //   "with password:",
+    //   pdfPassword
+    // );
     // Further processing logic here
   };
 

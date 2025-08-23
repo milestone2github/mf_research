@@ -70,7 +70,7 @@ const getGroupedTransactions = async (req, res) => {
       data: transactions
     })
   } catch (error) {
-    console.log('Error finding grouped transactions', error.message)
+    // console.log('Error finding grouped transactions', error.message)
     res.status(500).json({ error: `Error finding grouped transactions: ${error.message}` })
   }
 }
@@ -316,7 +316,7 @@ const getTransactionsGroupByFh = async (req, res) => {
       data: transactions
     })
   } catch (error) {
-    console.log('Error finding grouped transactions', error.message)
+    // console.log('Error finding grouped transactions', error.message)
     res.status(500).json({ error: `Error finding grouped transactions: ${error.message}` })
   }
 }
@@ -416,7 +416,7 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
 
     res.status(200).json({ message: 'Found transactions', data: transactions })
   } catch (error) {
-    console.log('Error getting transactions: ', error.message)
+    // console.log('Error getting transactions: ', error.message)
     res.status(500).json({ error: `Error getting transactions: ${error.message}` })
   }
 }
@@ -915,7 +915,7 @@ const filteredTransactions = async (req, res) => {
       message: 'Transactions found'
     });
   } catch (error) {
-    console.log('error getting filtered transactions: ', error.message);
+    // console.log('error getting filtered transactions: ', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -1083,7 +1083,7 @@ const nfoTransactions = async (req, res) => {
 
     res.status(200).json({ data: { transactions, page }, message: 'Transactions found' })
   } catch (error) {
-    console.log("error getting NFO transactions: ", error.message)
+    // console.log("error getting NFO transactions: ", error.message)
     res.status(500).json({ error: error.message })
   }
 }
@@ -1392,7 +1392,7 @@ const getAllSMNames = async (_req, res) => {
       message: 'All unique service managers fetched'
     });
   } catch (error) {
-    console.log('Error fetching service managers:', error.message);
+    // console.log('Error fetching service managers:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -1422,7 +1422,7 @@ const getAllRMNames = async (_req, res) => {
       message: 'All unique relationship managers fetched'
     });
   } catch (error) {
-    console.log('Error fetching relationship managers:', error.message);
+    // console.log('Error fetching relationship managers:', error.message);
     res.status(500).json({ error: error.message });
   }
 };

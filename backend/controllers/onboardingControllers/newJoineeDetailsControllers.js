@@ -90,7 +90,7 @@ async function sentNewJoineeMailNotification(user) {
     });
 
     if (mailResult) {
-      console.log("✅ New joinee notification sent to all employees.");
+      // console.log("✅ New joinee notification sent to all employees.");
 
       user.onboarding.hasNotifiedToAll = true;
       await user.save();
@@ -117,7 +117,7 @@ async function getEmployeeRecords(access_token) {
     const emailList = resp.data
       .map((r) => r["Email ID"]) // pick the “Email ID” property
       .filter((e) => e && e.trim());
-    console.log("Data:", emailList);
+    // console.log("Data:", emailList);
 
     return emailList;
 
@@ -254,7 +254,7 @@ async function saveJoineeDetails(req, res) {
 
   // 2. Generate Offer Letter PDF
   const pdfBuffer = await mergeOfferLetter(mergeData);
-  console.log("Offer Letter PDF generated");
+  // console.log("Offer Letter PDF generated");
   
     const { subject, body } = getOfferLetterEmailTemplate({
       name,
@@ -577,7 +577,7 @@ const savePartialUserOnboardingInfo = async (req, res) => {
     // === Final Submit Timestamp ===
     if (isFinalSubmit) {
       update.$set['onboarding.userFilledInfo.submittedAt'] = new Date();
-      console.log("Updated Final submit submitedAt date")
+      // console.log("Updated Final submit submitedAt date")
     }
 
     const user = await User.findByIdAndUpdate(userId, update, { new: true });
@@ -621,11 +621,11 @@ const extractUserDetails = (user) => {
 
 const processSpringVerifyOrNda = async (req, res) => {
   try {
-    console.log("🔍 Incoming body:", req.body);
+    // console.log("🔍 Incoming body:", req.body);
     const userId = req.body.userId;
     const user = await User.findById(userId).lean();
 
-    console.log("Received userId:", userId);
+    // console.log("Received userId:", userId);
 
 
     if (!user) {
@@ -641,7 +641,7 @@ const processSpringVerifyOrNda = async (req, res) => {
 
     if (action === 'verify') {
 
-      console.log("Line 410", userDetails);
+      // console.log("Line 410", userDetails);
 
       // Step 1: Fetch SpringVerify package & add candidate
       const verifyRes = await fetchPackageAndAddCandidate(userId, userDetails);
@@ -702,10 +702,10 @@ const processSpringVerifyOrNda = async (req, res) => {
         },
       });
 
-      console.log("Line 454", userDetails);
+      // console.log("Line 454", userDetails);
 
       const authToken = await getZohoAccessToken();
-      console.log("AuthToken is ", authToken);
+      // console.log("AuthToken is ", authToken);
 
       
       // await dispatchNdaFlow(userId, authToken, userDetails);

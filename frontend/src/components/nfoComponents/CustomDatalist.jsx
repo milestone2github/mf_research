@@ -33,10 +33,8 @@ function CustomDatalist({ label, id, selectedValue, updateKeywords, updateSelect
     }
     if (!options.includes(selectedValue)) {
       setError(true)
-      // console.log('not include')
     }
     else {
-      // console.log('includes')
       setError(false)
     }
   }
@@ -46,19 +44,17 @@ function CustomDatalist({ label, id, selectedValue, updateKeywords, updateSelect
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
-        console.log('key: ', event.key)
         setHighlightedIndex((prevIndex) =>
           prevIndex < options.length - 1 ? prevIndex + 1 : prevIndex
         );
         break;
       case 'ArrowUp':
         event.preventDefault();
-        console.log('key: ', event.key)
         setHighlightedIndex((prevIndex) =>
           prevIndex > 0 ? prevIndex - 1 : 0
         );
         break;
-      case 'Enter': console.log('key: ', event.key)
+      case 'Enter': 
         event.preventDefault();
         if(highlightedIndex >= 0 && highlightedIndex < options.length){
           updateSelectedValue(options[highlightedIndex])

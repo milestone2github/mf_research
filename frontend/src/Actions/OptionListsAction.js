@@ -34,7 +34,7 @@ export const fetchInvestorData = createAsyncThunk(
       }
       return data; 
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 );
@@ -56,7 +56,7 @@ export const fetchAmcNameOptions = createAsyncThunk(
       }
       return data; 
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 );
@@ -78,7 +78,7 @@ export const fetchFolioOptions = createAsyncThunk(
       }
       return data; 
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 );
@@ -100,7 +100,7 @@ export const fetchSchemeNameOptions = createAsyncThunk(
       }
       return data; 
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 );

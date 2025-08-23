@@ -145,7 +145,6 @@ function EditUser() {
 
     // Fetch additional permissions - UPDATED TO HANDLE TOGGLES PROPERLY
     const fetchAdditionalPermissions = async (roleId, departmentId) => {
-        console.log("Role and department id at 139",roleId,departmentId);
         try {
             const response = await axios.get(`${RBAC_BASE_URL}/permissions/addperm`, {
                 params: {

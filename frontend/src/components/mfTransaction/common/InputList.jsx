@@ -20,7 +20,6 @@ function InputList({
   const [inputValue, setInputValue] = useState(value);
 
   useEffect(() => {
-    console.log('value changed: ', value)
     setInputValue(value); // Update state when the `value` prop changes
   }, [value]);
 

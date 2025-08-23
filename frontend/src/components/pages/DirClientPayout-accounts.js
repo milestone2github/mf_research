@@ -95,9 +95,6 @@ const DirectClientPayouts = () => {
       (assoc) => assoc.statusDetails && assoc.statusDetails.priority === 1
     );
     if (priorityOneRecords.length === 0) {
-      console.log(
-        "No records with priority 1 found for inclusion in the Excel file."
-      );
       dispatch(
         updateToast({ type: "error", message: "There are no pending records available for download from Accounts" })
       );
@@ -215,7 +212,7 @@ const DirectClientPayouts = () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Priority One Records");
     XLSX.writeFile(workbook, "PriorityOneRecords.xlsx");
 
-    console.log("Excel file has been created with priority 1 records.");
+    // console.log("Excel file has been created with priority 1 records.");
   };
 
   const handleReleasePayout = async (id) => {
@@ -247,7 +244,7 @@ const DirectClientPayouts = () => {
         updateToast({ type: "success", message: "Payout released" })
       );
 
-      console.log("Payout released successfully.");
+      // console.log("Payout released successfully.");
     } catch (error) {
       console.error("Error releasing payout:", error.message);
       dispatch(

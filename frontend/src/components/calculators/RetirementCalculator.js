@@ -26,7 +26,6 @@ const RetirementCalculator = () => {
   const [error, setError] = useState(initialError);
 
   const generatePublicLink = () => {
-    console.log("generatePublicLink function called");
     const formData = {
       currentAge,
       retirementAge,
@@ -56,7 +55,6 @@ const RetirementCalculator = () => {
       .then((data) => {
         if (data.link) {
           setPublicLink(data.link);
-          console.log(`Your public link is: ${data.link}`);
         } else {
           alert("Error generating link. Please try again.");
         }
@@ -164,7 +162,6 @@ const RetirementCalculator = () => {
     // // Calculate the SIP required based on the investment mix
     // const sipRequired = (additionalFundsRequired * (100 - investmentMix)) / 100;
 
-    console.log(`lumpSumRequired ${lumpSumRequired}`);
     setResults({
       totalCorpusNeeded,
       lumpSumRequired,

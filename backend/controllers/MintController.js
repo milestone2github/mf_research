@@ -9,7 +9,7 @@ const getIpAddress = (req, res) => {
   }
 
   const clientIp = ip.split(',')[0].trim();
-  console.log('client IP: ', clientIp)
+  // console.log('client IP: ', clientIp)
   let existInWhite = whiteListedIPs.find((item) => item === clientIp)
   res.status(200).json({ message: 'Ip found', data: { ip: clientIp, allowed: existInWhite ? true : false } })
 }
