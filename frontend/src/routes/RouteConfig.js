@@ -24,7 +24,7 @@ import { mniveshAdminRoutes } from './mniveshAdminRoutes'
 import { assetRoutes } from './assetRoutes'
 import Assets from '../components/pages/Assets'
 import OnboardingLayout from '../components/onboarding/OnboardingLayout';
-
+import InsuranceLeadUpdate from '../components/pages/InsuranceLeadUpdate';
 import onboardingRoutes from './onboarding'
 import RbacLayout from '../centralRbac/src/pages/RbacLayout'
 import { centralRbacRoutes } from './centralRbacRoutes'
@@ -83,6 +83,13 @@ export const appRoutes = [
   {
     requiredPermission: 'mnivesh_admin', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
+  },
+  { 
+  to: '/insurance-lead-update',
+  label: 'Insurance Lead Update',
+  element: <InsuranceLeadUpdate />,
+  protected: true,
+  showInSidebar: true
   },
   { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
     nestedRoutes: assetRoutes
