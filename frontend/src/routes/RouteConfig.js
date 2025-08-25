@@ -24,7 +24,7 @@ import { mniveshAdminRoutes } from './mniveshAdminRoutes'
 import { assetRoutes } from './assetRoutes'
 import Assets from '../components/pages/Assets'
 import OnboardingLayout from '../components/onboarding/OnboardingLayout';
-
+import Leaderboard from '../components/pages/Leaderboard';
 import onboardingRoutes from './onboarding'
 import RbacLayout from '../centralRbac/src/pages/RbacLayout'
 import { centralRbacRoutes } from './centralRbacRoutes'
@@ -87,7 +87,14 @@ export const appRoutes = [
   { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
     nestedRoutes: assetRoutes
   },
-
+  { 
+  requiredPermission: 'leaderboard',
+  to: '/leaderboard',
+  label: 'Leaderboard',
+  element: <Leaderboard />,
+  protected: true,
+  showInSidebar: true
+  },
   // wild card route to catch all other routes
   {
     to: '*',
