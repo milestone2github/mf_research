@@ -16,6 +16,7 @@ const router = require("./routes");
 const { TRANSACTION_DB_NAME } = require("./utils/stringConstants");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
+const leaderboardRoutes = require('./routes/leaderboard'); 
 
 // Configure session middleware
 app.use(
@@ -63,7 +64,7 @@ function dbAccess(req, res, next) {
 }
 
 app.use(dbAccess); // Use the middleware
-
+app.use('/api', leaderboardRoutes);
 app.use('/auth', authRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
 // Centralized Routes
