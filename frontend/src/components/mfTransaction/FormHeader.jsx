@@ -57,7 +57,7 @@ function FormHeader({ onPanChange, onNameChange }) {
     debounce((nextValue, name) => {
       dispatch(fetchInvestorData({ [name]: nextValue, searchAll: searchAllInvestor }))
         .then((action) => {
-          console.log("Dispatched fetchInvestorData");
+          // console.log("Dispatched fetchInvestorData");
         })
         .catch((error) => {
           console.error("Error while fetching investor data:", error);

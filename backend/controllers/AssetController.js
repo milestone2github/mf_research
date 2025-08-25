@@ -38,7 +38,7 @@ const createAsset = async (req, res) => {
         const { name, type, serialNumber, remarks } = req.body;
         const addedBy = req.user._id;
         // Check if any required field is missing in req.body
-        console.log("User Id: ======> ", req.user);
+        // console.log("User Id: ======> ", req.user);
         if (!addedBy) {
             return res.status(401).json({ message: USER_ID_NOT_FOUND });
         }
@@ -72,7 +72,7 @@ const updateAsset = async (req, res) => {
         const { name, type, serialNumber, remarks } = req.body;
         const { id } = req.params;
         const updatedBy = req.user._id;
-        console.log("ASSET ID: ", id);
+        // console.log("ASSET ID: ", id);
         if (!id) {
             return res.status(401).json({ message: ASSET_ID_NOT_FOUND });
         }

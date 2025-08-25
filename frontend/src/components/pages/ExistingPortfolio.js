@@ -59,7 +59,6 @@ const ExistingPortfolio = () => {
       const data = await response.json();
       if (data.result && data.result.token) {
         setAuthToken(data.result.token);
-        console.log(authToken);
       } else {
         console.error("Failed to fetch auth token:", data.message);
       }
@@ -101,7 +100,7 @@ const ExistingPortfolio = () => {
   // Use useEffect to log portfolioData when it updates
   useEffect(() => {
     if (portfolioData) {
-      console.log(portfolioData);
+      // console.log(portfolioData);
     }
   }, [portfolioData]);
 

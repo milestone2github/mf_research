@@ -36,7 +36,7 @@ const headers = [
 
 //send last month's pending transactions of each RM to them as mail
 async function pendingTransactionsNotification() {
-  console.log('sending pending transactions notification...');
+  // console.log('sending pending transactions notification...');
 
   let startOfLastMonth = new Date()
   startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1);
@@ -87,7 +87,7 @@ async function pendingTransactionsNotification() {
       const rmName = item._id;
       const rm = rmsData.find((rm) => rm['RM Name'].toLowerCase() === rmName.toLowerCase())
       if (rm && rm.Email) {
-        console.log(rm.Email)
+        // console.log(rm.Email)
         // Create an Excel sheet with transaction data
 
         // Prepare transaction data to match header keys exactly

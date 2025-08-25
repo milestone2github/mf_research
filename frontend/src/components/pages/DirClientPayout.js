@@ -108,7 +108,7 @@ const DirClientPayouts = () => {
       Associate_Payout1: Referral_Amount,
     }).toString();
 
-    console.log(baseUrl, "&", queryParams);
+    // console.log(baseUrl, "&", queryParams);
     const emailData = {
       from: 'insuranceearlypayout@mnivesh.niveshonline.com',
       subject: "Request for Early Payout Release",
@@ -138,7 +138,7 @@ const DirClientPayouts = () => {
       if (response.status !== 200) {
         throw new Error(response.data.error || 'something went wrong ')
       }
-      console.log("Email sent:", response.data?.message);
+      // console.log("Email sent:", response.data?.message);
 
       setButtonStates(prevState => ({
         ...prevState,

@@ -39,7 +39,6 @@ function AddEditDepartment() {
       const fetchDepartment = async () => {
         try {
           const deptRes = await axios.get(FETCH_DEPARTMENT_URL(deptId));
-          //   console.log("Department data fetched: --> ", deptRes);
           const data = deptRes.data.data;
           setName(data.name);
           //   setPermissionToggles(data.permissions || []);

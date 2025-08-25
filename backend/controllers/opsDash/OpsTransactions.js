@@ -70,7 +70,7 @@ const getGroupedTransactions = async (req, res) => {
       data: transactions
     })
   } catch (error) {
-    console.log('Error finding grouped transactions', error.message)
+    // console.log('Error finding grouped transactions', error.message)
     res.status(500).json({ error: `Error finding grouped transactions: ${error.message}` })
   }
 }
@@ -316,7 +316,7 @@ const getTransactionsGroupByFh = async (req, res) => {
       data: transactions
     })
   } catch (error) {
-    console.log('Error finding grouped transactions', error.message)
+    // console.log('Error finding grouped transactions', error.message)
     res.status(500).json({ error: `Error finding grouped transactions: ${error.message}` })
   }
 }
@@ -416,7 +416,7 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
 
     res.status(200).json({ message: 'Found transactions', data: transactions })
   } catch (error) {
-    console.log('Error getting transactions: ', error.message)
+    // console.log('Error getting transactions: ', error.message)
     res.status(500).json({ error: `Error getting transactions: ${error.message}` })
   }
 }
@@ -915,7 +915,299 @@ const filteredTransactions = async (req, res) => {
       message: 'Transactions found'
     });
   } catch (error) {
-    console.log('error getting filtered transactions: ', error.message);
+    // console.log('error getting filtered transactions: ', error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// get all transactions with filter (history.jsx page)
+// (Specially to use opsExecDate(validations.validatedAt) instead transactionPreference)
+const filteredHistoryTransactions = async (req, res) => {
+  let {
+    minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort,
+    minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey, reconcileStatus
+  } = req.query;
+  schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
+
+  const items = Number(req.query.items) || 10;
+  const page = Number(req.query.page) || 1;
+  const skipItems = items * (page - 1);
+
+  let filterStage1 = {};
+  let filterStage2 = {};
+  let fractionFilters = {};
+
+  const searchByLookup = {
+    'family head': 'familyHead',
+    'investor name': 'investorName',
+    'PAN': 'panNumber',
+  };
+  //Ensures all filter logic can use .includes, .map, $in operators safely.
+  //Prevents crashes on .map() when value is a string.
+  const toArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').map(v => v.trim());
+    if (value != null) return [value];
+    return [];
+  };
+
+  // Stage 1 filters - date filters now use opsExecDate instead of transactionPreference
+  let dateFilter = {};
+  if (minDate || maxDate) {
+
+    if (minDate) {
+      minDate = new Date(minDate);
+      dateFilter.$gte = minDate;
+    }
+    if (maxDate) {
+      maxDate = new Date(maxDate);
+      maxDate.setUTCHours(23, 59, 59);
+      dateFilter.$lte = maxDate;
+    }
+
+    // filter based on last validation date (opsExecDate)
+    filterStage1.lastValidatedAt = dateFilter;
+    fractionFilters['transactionFractions.lastValidatedAt'] = dateFilter;
+  }
+
+  if (amcName) {
+    filterStage1.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName;
+  }
+  if (schemeName) {
+    filterStage1.$or = [
+      { schemeName: schemeName },
+      { fromSchemeName: schemeName }
+    ];
+  }
+  if (rmName) {
+    filterStage1.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName);
+  }
+  if (orderId) {
+    filterStage1.orderId = orderId;
+  }
+
+  if (smName) {
+    const s = toArray(smName).map(n => toTitleCase(n));
+    if (s.includes('Unassigned')) {
+      // If "Unassigned" is selected, filter for empty or null serviceManager
+      filterStage1.$or = [
+        { serviceManager: { $in: s.filter(n => n !== 'Unassigned') } },
+        { serviceManager: { $in: ['', null] } }
+      ];
+    } else {
+      filterStage1.serviceManager = { $in: s };
+    }
+  }
+
+  if (transactionFor) {
+    const val = toArray(transactionFor);
+    if (val.length) filterStage1.transactionFor = { $in: val };
+  }
+
+  if (type) {
+    const types = toArray(type);
+
+    const nonSwitchTypes = types.filter(t => t !== 'Switch');
+    const isSwitchSelected = types.includes('Switch');
+
+    const typeFilters = [];
+
+    if (nonSwitchTypes.length) {
+      typeFilters.push({ transactionType: { $in: nonSwitchTypes } });
+    }
+
+    if (isSwitchSelected) {
+      typeFilters.push({ category: 'switch' });
+    }
+
+    if (typeFilters.length === 1) {
+      Object.assign(filterStage1, typeFilters[0]);
+    } else if (typeFilters.length > 1) {
+      filterStage1.$or = typeFilters;
+    }
+  }
+
+
+  // stage 2 filters 
+  // Ensure status and reconcileStatus are arrays
+  if (status && !Array.isArray(status)) {
+    status = [status];
+  }
+  if (reconcileStatus && !Array.isArray(reconcileStatus)) {
+    reconcileStatus = [reconcileStatus];
+  }
+
+  // Stage 2 filters for status
+  if (status) {
+    const includeStatuses = status.filter(s => !s.startsWith('NOT-'));
+    const excludeStatuses = status.filter(s => s.startsWith('NOT-')).map(s => s.slice(4));
+
+    if (includeStatuses.length || excludeStatuses.length) {
+      filterStage2.status = {};
+      fractionFilters['transactionFractions.status'] = {};
+
+      if (includeStatuses.length) {
+        filterStage2.status.$in = includeStatuses;
+        fractionFilters['transactionFractions.status'].$in = includeStatuses;
+      }
+      if (excludeStatuses.length) {
+        filterStage2.status.$nin = excludeStatuses;
+        fractionFilters['transactionFractions.status'].$nin = excludeStatuses;
+      }
+    }
+  }
+
+  // Stage 2 filters for reconcileStatus
+  if (reconcileStatus && reconcileStatus.length) {
+    const hasNotExist = reconcileStatus.includes('NOT-EXIST');
+    reconcileStatus = reconcileStatus.filter(status => status !== 'NOT-EXIST');
+
+    if (hasNotExist) {
+      const conditions = [{ $exists: false }];
+      if (reconcileStatus.length) {
+        conditions.unshift({ $in: reconcileStatus });
+      }
+      filterStage2['$or'] = conditions.map(condition => ({ 'reconciliation.reconcileStatus': condition }));
+      fractionFilters['$or'] = conditions.map(condition => ({ 'transactionFractions.reconciliation.reconcileStatus': condition }));
+    } else {
+      filterStage2['reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+      fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+    }
+  }
+
+  // approvalStatus filter
+  const approvals = toArray(approvalStatus);
+  if (approvals.length) {
+    filterStage2.approvalStatus = { $in: approvals };
+    fractionFilters['transactionFractions.approvalStatus'] = { $in: approvals };
+  }
+
+  if (minAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount) };
+  }
+  if (maxAmount?.toString()) {
+    filterStage2.amount = { $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $lte: Number(maxAmount) };
+  }
+  if (minAmount?.toString() && maxAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+  }
+
+  if (searchBy && searchKey) {
+    filterStage1[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') };
+  }
+
+  // --- SORT MAP (now uses lastValidatedAt) ---
+  const sortMap = new Map();
+  sortMap.set('trxdate-asc', { lastValidatedAt: 1 });
+  sortMap.set('trxdate-desc', { lastValidatedAt: -1 });
+  sortMap.set('amount-asc', { amount: 1 });
+  sortMap.set('amount-desc', { amount: -1 });
+  let sortBy = sortMap.get(sort || 'trxdate-desc');
+
+  try {
+    // Aggregation for unique serviceManager names
+    // const uniqueSMList = await Transactions.aggregate([
+    //   { $match: filterStage1 },
+    //   { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+    //   { $match: { $or: [{ hasFractions: false, ...filterStage2 }, { hasFractions: true, ...fractionFilters }] } },
+    //   { $group: { _id: '$serviceManager' } }, // Group by serviceManager to get unique values
+    //   { $project: { _id: 0, serviceManager: '$_id' } } // Rename field to 'serviceManager'
+    // ]);
+
+    const validatedAtFieldsStage = {
+      $addFields: {
+        lastValidatedAt: {
+          $let: {
+            vars: { last: { $arrayElemAt: ["$validations.validatedAt", -1] } },
+            in: "$$last"
+          }
+        },
+        transactionFractions: {
+          $map: {
+            input: "$transactionFractions",
+            as: "frac",
+            in: {
+              $mergeObjects: [
+                "$$frac",
+                {
+                  lastValidatedAt: {
+                    $let: {
+                      vars: { last: { $arrayElemAt: ["$$frac.validations.validatedAt", -1] } },
+                      in: "$$last"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    };
+
+    const paginatedTransactions = await Transactions.aggregate([
+      validatedAtFieldsStage,
+      { $match: filterStage1 },
+      { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+      {
+        $match: {
+          $or: [
+            { hasFractions: false, ...filterStage2 },
+            { hasFractions: true, ...fractionFilters }
+          ]
+        }
+      },
+      { $sort: sortBy },
+      { $skip: skipItems },
+      { $limit: items }
+    ]);
+
+    const totalCountAndAmount = await Transactions.aggregate([
+      validatedAtFieldsStage,
+      { $match: filterStage1 },
+      { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+      {
+        $match: {
+          $or: [
+            { hasFractions: false, ...filterStage2 },
+            { hasFractions: true, ...fractionFilters }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalCount: { $sum: 1 },
+          totalAmount: {
+            $sum: {
+              $cond: [
+                { $eq: ['$hasFractions', false] },
+                '$amount',
+                '$transactionFractions.fractionAmount'
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const totalCount = totalCountAndAmount[0]?.totalCount || 0
+    const totalAmount = totalCountAndAmount[0]?.totalAmount || 0
+
+    res.status(200).json({
+      data: {
+        page,
+        totalCount,
+        totalAmount,
+        transactions: paginatedTransactions,
+        // uniqueSMList: uniqueSMList.map(item => item.serviceManager)
+      },
+      message: 'Transactions found'
+    });
+  } catch (error) {
+    // console.log('error getting filtered transactions: ', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -1083,7 +1375,7 @@ const nfoTransactions = async (req, res) => {
 
     res.status(200).json({ data: { transactions, page }, message: 'Transactions found' })
   } catch (error) {
-    console.log("error getting NFO transactions: ", error.message)
+    // console.log("error getting NFO transactions: ", error.message)
     res.status(500).json({ error: error.message })
   }
 }
@@ -1392,7 +1684,7 @@ const getAllSMNames = async (_req, res) => {
       message: 'All unique service managers fetched'
     });
   } catch (error) {
-    console.log('Error fetching service managers:', error.message);
+    // console.log('Error fetching service managers:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -1422,7 +1714,7 @@ const getAllRMNames = async (_req, res) => {
       message: 'All unique relationship managers fetched'
     });
   } catch (error) {
-    console.log('Error fetching relationship managers:', error.message);
+    // console.log('Error fetching relationship managers:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -1440,6 +1732,7 @@ module.exports = {
   getSchemeNames,
   getRMNames,
   filteredTransactions,
+  filteredHistoryTransactions,
   nfoTransactions,
   updateApprovalStatus,
   updateOrderId,

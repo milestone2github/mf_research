@@ -106,13 +106,13 @@ const zohoCallback = async (req, res) => {
         let updatedDept = await Department.findOne({ name: latestDeptName });
         if (!updatedDept) {
           updatedDept = await Department.create({ name: latestDeptName });
-          console.log(`[SYNC] Created new department: "${latestDeptName}" with ID ${updatedDept._id}`);
+          // console.log(`[SYNC] Created new department: "${latestDeptName}" with ID ${updatedDept._id}`);
         }
 
         let updatedRole = await Role.findOne({ name: latestRoleName });
         if (!updatedRole) {
           updatedRole = await Role.create({ name: latestRoleName });
-          console.log(`[SYNC] Created new role: "${latestRoleName}" with ID ${updatedRole._id}`);
+          // console.log(`[SYNC] Created new role: "${latestRoleName}" with ID ${updatedRole._id}`);
         }
 
         let updated = false;
@@ -120,21 +120,21 @@ const zohoCallback = async (req, res) => {
         if (!userExist.department.equals(updatedDept._id)) {
           userExist.department = updatedDept._id;
           updated = true;
-          console.log(`[SYNC] Department changed for ${email}: ${userExist.department} → ${updatedDept._id}`);
+          // console.log(`[SYNC] Department changed for ${email}: ${userExist.department} → ${updatedDept._id}`);
         }
 
         if (!userExist.role.equals(updatedRole._id)) {
           userExist.role = updatedRole._id;
           updated = true;
-          console.log(`[SYNC] Role changed for ${email}: ${userExist.role} → ${updatedRole._id}`);
+          // console.log(`[SYNC] Role changed for ${email}: ${userExist.role} → ${updatedRole._id}`);
         }
 
         if (updated) {
-          console.log(`[SYNC] Updated user ${email} with new department and/or role. Syncing now -(promotion/transfer detected)`);
+          // console.log(`[SYNC] Updated user ${email} with new department and/or role. Syncing now -(promotion/transfer detected)`);
           userExist.lastSyncedWithZoho = currDate;
           await userExist.save();
         } else {
-          console.log(`[SYNC] No changes in department or role for ${email}. Just updating last sync timestamp.`);
+          // console.log(`[SYNC] No changes in department or role for ${email}. Just updating last sync timestamp.`);
           userExist.lastSyncedWithZoho = currDate;
           await userExist.save();
         }
@@ -147,7 +147,7 @@ const zohoCallback = async (req, res) => {
 
       setUserSession(userExist);
 
-      console.log("Session Set (Existing User):", req.session);
+      // console.log("Session Set (Existing User):", req.session);
       return res.redirect(redirectUrl);
     }
 
@@ -157,14 +157,14 @@ const zohoCallback = async (req, res) => {
 
     if (!department) {
       department = await Department.create({ name: zohoUser.Department });
-      console.log("Created new department:", department);
+      // console.log("Created new department:", department);
     }
 
     let role = await Role.findOne({ name: zohoUser.Title });
 
     if (!role) {
       role = await Role.create({ name: zohoUser.Title });
-      console.log("Created new role:", role);
+      // console.log("Created new role:", role);
     }
 
     // Step 6: Create new user in the database
@@ -196,7 +196,7 @@ const zohoCallback = async (req, res) => {
 
     setUserSession(newUser);
 
-    console.log("New User Created & Session Set:", req.session); // Debug
+    // console.log("New User Created & Session Set:", req.session); // Debug
 
     return res.redirect(redirectUrl);
 
@@ -216,7 +216,7 @@ const logout = (req, res) => {
         return res.status(500).json({ message: "Could not log out." });
       }
       res.clearCookie("user");
-      console.log("Logout: Session destroyed- cookies clear") //debug
+      // console.log("Logout: Session destroyed- cookies clear") //debug
       res.status(204).send(); // No content to send back
     });
   } else {
@@ -225,7 +225,7 @@ const logout = (req, res) => {
 };
 
 const verifySession = async (req, res) => {
-  console.log("Session Data:", req.session);//debug
+  // console.log("Session Data:", req.session);//debug
   if (req.session && req.session.user) {
     // refresh the session expiration time by the time set during configuration  
     req.session.touch(); 
@@ -238,7 +238,7 @@ const verifySession = async (req, res) => {
       // Update session and prepare response user object
       req.session.user.permissions = permissions;
 
-    console.log("Updated session user:", req.session.user);
+    // console.log("Updated session user:", req.session.user);
 
     // If the session exists and contains user information, the user is logged in
     res.status(200).json({ loggedIn: true, user: req.session.user });
@@ -271,7 +271,7 @@ const verifyGoogleUser = async (req, res) => {
       return res.status(400).json({ success: false, msg: "permission denied" })
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ success: false, msg: "Internal server error" })
   }
 }

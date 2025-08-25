@@ -14,7 +14,7 @@ const ndaAgreementPdfPath = path.join(__dirname, 'Non-Disclosure Agreement.pdf')
 const ndaSignStatusDbUpdate = async (req, res) => {
     const { status, userId } = req.query;
     // const userId = req.user?.userId ;
-    console.log(`📩 Signing callback received: status=${status}, userId=${userId}`);
+    // console.log(`📩 Signing callback received: status=${status}, userId=${userId}`);
 
     if (!status || !userId) {
         console.warn('⚠️ Missing status or user ID.');
@@ -27,7 +27,7 @@ const ndaSignStatusDbUpdate = async (req, res) => {
 
     switch (status) {
         case 'success':
-            console.log('✅ Status indicates successful. Preparing DB update...');
+            // console.log('✅ Status indicates successful. Preparing DB update...');
             update = {
                 'onboarding.nda.signed': true,
                 'onboarding.nda.signedStatus': 'success',
@@ -48,7 +48,7 @@ const ndaSignStatusDbUpdate = async (req, res) => {
         //     break;
 
         case 'declined':
-            console.log('❌ Status indicates signing was declined. Preparing DB update...');
+            // console.log('❌ Status indicates signing was declined. Preparing DB update...');
             update = {
                 'onboarding.nda.signedStatus': 'declined',
             };
@@ -56,7 +56,7 @@ const ndaSignStatusDbUpdate = async (req, res) => {
             break;
 
         case 'later':
-            console.log('⏳ Status indicates user chose to sign later. Skipping DB update.');
+            // console.log('⏳ Status indicates user chose to sign later. Skipping DB update.');
             update = {
                 'onboarding.nda.signedStatus': 'later',
             };
@@ -69,7 +69,7 @@ const ndaSignStatusDbUpdate = async (req, res) => {
     }
 
     try {
-        console.log('🔄 Attempting to update NDA signing status in the database.');
+        // console.log('🔄 Attempting to update NDA signing status in the database.');
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             { $set: update },
@@ -80,7 +80,7 @@ const ndaSignStatusDbUpdate = async (req, res) => {
             console.warn(`⚠️ No user found with ID: ${userId}`);
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
-        console.log(`✅ NDA updated for: ${updatedUser.email} | Status: ${status}`);
+        // console.log(`✅ NDA updated for: ${updatedUser.email} | Status: ${status}`);
         if (status === 'success') {
             await newEmployeeSetup(userId);
         }
@@ -171,9 +171,9 @@ async function generateEstamp(requestId, documentId, employeeDetails, oauth) {
 
     try {
         await axios.put(url, payload, { headers });
-        console.log("eStamp address:", employeeDetails.address);
+        // console.log("eStamp address:", employeeDetails.address);
 
-        console.log('E-stamp paper generated successfully.');
+        // console.log('E-stamp paper generated successfully.');
         return 200;
     } catch (error) {
         console.error('Failed to generate e-stamp paper:', error.response?.data || error);
@@ -188,11 +188,11 @@ const embeddedsigning = async (req, res) => {
     let employeeEmail = null;
 
     try {
-        console.log("🔍 Incoming userId via middlewaare:", req.user?.userId);
+        // console.log("🔍 Incoming userId via middlewaare:", req.user?.userId);
         const userId = req.user?.userId;
         const user = await User.findById(userId).lean();
         
-        console.log("Received userId:", userId);
+        // console.log("Received userId:", userId);
         
         if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
@@ -205,14 +205,14 @@ const embeddedsigning = async (req, res) => {
         const userDetails = extractUserDetails(user);
 
 
-        console.log('📄 Step 1: Using real onboarding PDF...');
+        // console.log('📄 Step 1: Using real onboarding PDF...');
 
         if (!fs.existsSync(ndaAgreementPdfPath)) {
             throw new Error(`PDF file not found at ${ndaAgreementPdfPath}`);
         }
-        console.log('✅ Onboarding PDF exists at:', ndaAgreementPdfPath);
+        // console.log('✅ Onboarding PDF exists at:', ndaAgreementPdfPath);
 
-        console.log('✉️ Step 2: Preparing request payload...');
+        // console.log('✉️ Step 2: Preparing request payload...');
 
         const actionsJson = [
             {
@@ -266,7 +266,7 @@ const embeddedsigning = async (req, res) => {
         payload.append('file', fs.createReadStream(ndaAgreementPdfPath));
         payload.append('data', JSON.stringify({ requests: documentJson }));
 
-        console.log('🚀 Step 3: Sending create request to Zoho...');
+        // console.log('🚀 Step 3: Sending create request to Zoho...');
 
         const createResponse = await axios.post(
             'https://sign.zoho.in/api/v1/requests',
@@ -279,7 +279,7 @@ const embeddedsigning = async (req, res) => {
             }
         );
 
-        console.log('✅ Zoho Sign create response received');
+        // console.log('✅ Zoho Sign create response received');
         // console.log('📦 Full Response:', JSON.stringify(createResponse.data, null, 2));
 
         const requests = createResponse.data.requests;
@@ -300,11 +300,11 @@ const embeddedsigning = async (req, res) => {
             });
         }
 
-        console.log(`🆔 Request ID: ${request_id}`);
+        // console.log(`🆔 Request ID: ${request_id}`);
         // console.log(`🧍 Action ID: ${action_id}`);
-        console.log(`🧍 employeeActionId ID: ${employeeActionId}`);
-        console.log(`🧍 directorActionId: ${directorActionId}`);
-        console.log(`🧍 Document ID: ${document_id}`);
+        // console.log(`🧍 employeeActionId ID: ${employeeActionId}`);
+        // console.log(`🧍 directorActionId: ${directorActionId}`);
+        // console.log(`🧍 Document ID: ${document_id}`);
 
         const fieldJsonEmployee = [{
             "x_coord": 177,
@@ -944,12 +944,12 @@ const embeddedsigning = async (req, res) => {
         // payload1.append('data', JSON.stringify({ requests: { actions: [actionsJson1] } }));
         payload1.append('data', JSON.stringify({ requests: { actions: actionsToSubmit } }));
 
-        console.log('🔗 Step 4: Generating the E-Stamp ...');
+        // console.log('🔗 Step 4: Generating the E-Stamp ...');
 
         await generateEstamp(request_id, document_id, userDetails, accessToken);
-        console.log("Done generateEstamp");
+        // console.log("Done generateEstamp");
 
-        console.log('📤 Step 5: Submitting fields to Zoho...');
+        // console.log('📤 Step 5: Submitting fields to Zoho...');
 
         const submitResponse = await axios.post(
             `https://sign.zoho.in/api/v1/requests/${request_id}/submit`,
@@ -961,12 +961,12 @@ const embeddedsigning = async (req, res) => {
                 }
             }
         );
-        console.log('✅ Field submission successful');
+        // console.log('✅ Field submission successful');
 
         const payload2 = new FormData();
         payload2.append('host', `${ndaRedirectHostURL}`);
 
-        console.log('🔗 Step 6: Requesting embedded signing URL...');
+        // console.log('🔗 Step 6: Requesting embedded signing URL...');
 
         const embedRes = await axios.post(
             `https://sign.zoho.in/api/v1/requests/${request_id}/actions/${employeeActionId}/embedtoken`,
@@ -980,17 +980,17 @@ const embeddedsigning = async (req, res) => {
         );
 
         const embedJson = embedRes.data;
-        console.log('🔐 Embedded token response:', embedJson);
+        // console.log('🔐 Embedded token response:', embedJson);
 
         if (!embedJson.sign_url) {
             console.error('❌ No sign_url received');
             return res.status(500).json({ error: 'Failed to generate sign URL', details: embedJson });
         }
 
-        console.log('✅ Signing URL generated successfully:', embedJson.sign_url);
+        // console.log('✅ Signing URL generated successfully:', embedJson.sign_url);
 
         //  Update NDA status in DB
-        console.log('Updating NDA status for user:', userId);
+        // console.log('Updating NDA status for user:', userId);
         await User.findByIdAndUpdate(userId, {
             $set: {
                 'onboarding.nda.urlGenerated': true,
@@ -998,7 +998,7 @@ const embeddedsigning = async (req, res) => {
                 'onboarding.nda.requestId': request_id
             }
         });
-        console.log("Databse updated for user id", userId)
+        // console.log("Databse updated for user id", userId)
 
         return res.json({
             message: 'Success! Embedded sign URL generated.',

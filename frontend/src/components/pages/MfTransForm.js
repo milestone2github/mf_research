@@ -64,13 +64,13 @@ function MfTransForm() {
       const jsonRes = await response.json();
 
       if (!response.ok) {
-        console.log("Error fetching KYC status");
+        console.error("Error fetching KYC status");
         return;
       }
 
       setKycStatusData(jsonRes.data || []);
     } catch (error) {
-      console.log("Internal error fetching KYC:", error.message);
+      console.error("Internal error fetching KYC:", error.message);
     }
   };
   const handlePanChange = (newPan) => {
@@ -95,13 +95,13 @@ function MfTransForm() {
       const jsonData = await response.json();
 
       if (!response.ok) {
-        console.log("Error fetching UCC");
+        console.error("Error fetching UCC");
         return;
       }
 
       setUccList(jsonData.data);
     } catch (error) {
-      console.log("Internal server error while getting UCC data");
+      console.error("Internal server error while getting UCC data");
     }
   };
 
@@ -115,15 +115,14 @@ function MfTransForm() {
         }
       );
       const jsonRes = await response.json();
-      console.log(jsonRes.data)
       if (!response.ok) {
-        console.log("Error fetching folios");
+        console.error("Error fetching folios");
         return;
       }
 
       setFoliosFromIwell(jsonRes.data);
     } catch (error) {
-      console.log("Internal server error while getting folios:", error.message);
+      console.error("Internal server error while getting folios:", error.message);
     }
   };
 
@@ -336,7 +335,7 @@ function MfTransForm() {
           break;
 
         default:
-          console.log('Unknown transaction type:', type);
+          // console.log('Unknown transaction type:', type);
           break;
       }
     });
@@ -371,7 +370,6 @@ function MfTransForm() {
         return;
       }
 
-      console.log('submitted')
       dispatch(updateToast({
         type: 'success',
         header: 'Form submitted',
@@ -388,7 +386,7 @@ function MfTransForm() {
       setDidReset(true);
       setHasReviewed(false);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       alert.message = <span>Server error! Try again later</span>;
       dispatch(updateToast(alert))
     }

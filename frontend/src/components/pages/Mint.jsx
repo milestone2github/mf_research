@@ -24,7 +24,7 @@ function Mint() {
       setIpData(jsonResponse.data)
       setIpStatus('completed')
     } catch (error) {
-      console.log('Unable to get IP', error.message)
+      console.error('Unable to get IP', error.message)
       setIpStatus('failed')
     }
   }
@@ -63,7 +63,7 @@ function Mint() {
         window.open(jsonResponse.data.url, '_blank');
       }
     } catch (error) {
-      console.log('error verifying otp', error.message);
+      console.error('error verifying otp', error.message);
       setOtpError(error.message || 'An error occurred while verifying OTP');
       setOtpStatus('failed');
     }
