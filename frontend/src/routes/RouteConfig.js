@@ -88,7 +88,7 @@ export const appRoutes = [
     nestedRoutes: assetRoutes
   },
   { 
-  // requiredPermission: 'leaderboard',
+  requiredPermission: 'leaderboard',
   to: '/leaderboard',
   label: 'Leaderboard',
   element: <Leaderboard />,
