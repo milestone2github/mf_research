@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CgSpinner } from "react-icons/cg";
+import { Link } from 'react-router-dom';
 
 
 const LOCAL_API_BASE = `${process.env.REACT_APP_API_BASE_URL}/api/onboarding`;
@@ -92,6 +93,12 @@ const EmployeeOnboardingForm = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-8 rounded-2xl bg-white text-gray-900 shadow-xl border border-gray-200 mt-8">
+      <Link 
+      to="/onboarding" 
+      className="text-blue-600 hover:underline text-sm mb-2 inline-block"
+    >
+      ← 
+    </Link>
       <h2 className="text-3xl font-bold mb-8 text-gray-800 tracking-wide">Onboard New Employee</h2>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">

@@ -84,7 +84,7 @@ export const appRoutes = [
     requiredPermission: 'mnivesh_admin', to: '/mnivesh-admin', label: 'mNivesh Admin', element: <MniveshAdmin />, protected: true, showInSidebar: true,
     nestedRoutes: mniveshAdminRoutes
   },
-  { to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
+  { requiredPermission: 'assets', to: '/assets', label: 'Assets', element: <Assets />, protected: true, showInSidebar: true,
     nestedRoutes: assetRoutes
   },
   { 
