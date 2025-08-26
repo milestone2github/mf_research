@@ -20,7 +20,16 @@ function IpoTable({ ipos, pagination, onPageChange, setModalData }) {
           </tr>
         </thead>
         <tbody>
-          {ipos.length ? (
+          {!pagination ? (
+            <tr>
+              <td colSpan="5" className="p-8">
+                <div className="flex items-center justify-center gap-3 text-gray-600">
+                  <span className="inline-block h-5 w-5 rounded-full border-2 border-gray-300 border-t-transparent animate-spin" />
+                  Loading IPOs...
+                </div>
+              </td>
+            </tr>
+          ) : ipos.length ? (
             ipos.map((ipo, index) => (
               <tr key={ipo._id} className="border-b border-gray-200">
                 {/* Serial Number */} {/*** CHECK IF S.No. is coming from BE ***/}
