@@ -14,8 +14,9 @@ import {
 } from '../../utils/urlConstants';
 
 function AssetIndex() {
-  const [assets, setAssets] = useState(null);
-  const [filtered, setFiltered] = useState(null);
+  const [assets, setAssets] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [modalData, setModalData] = useState({ show: false, deleteTitle: '', deleteUrl: '' });
   const [categories, setCategories] = useState([]);
   const [types, setTypes] = useState([]);
@@ -28,21 +29,22 @@ function AssetIndex() {
   });
 
   const fetchAssets = async (filters = {}) => {
-    try {
-    setAssets(null);      
-    setFiltered(null);    
-      const { type } = filters;
-      const url = type ? FETCH_ASSET_BASED_ON_TYPE(type) : FETCH_ASSETS_URL;
-      const res = await axios.get(url);
-      const data = res.data.data;
-      setAssets(data);
-      setFiltered(data);
-    } catch (error) {
-      console.error('Error fetching assets:', error);
-      setAssets([]);
-      setFiltered([]);
-    }
-  };
+  try {
+    setLoading(true);   
+    const { type } = filters;
+    const url = type ? FETCH_ASSET_BASED_ON_TYPE(type) : FETCH_ASSETS_URL;
+    const res = await axios.get(url);
+    const data = res.data.data;
+    setAssets(data);
+    setFiltered(data);
+  } catch (error) {
+    console.error('Error fetching assets:', error);
+    setAssets([]);
+    setFiltered([]);
+  } finally {
+    setLoading(false);  
+  }
+};
   
   const fetchCategories = async () => {
     try {
@@ -76,7 +78,6 @@ function AssetIndex() {
   }, [selectedFilters.category]);
 
   const applyFilters = () => {
-  if (!assets) return;  
     let temp = [...assets];
     const { category, type, status } = selectedFilters;
 
@@ -182,6 +183,7 @@ function AssetIndex() {
         setModalData={setModalData}
         fetchAssets={fetchAssets}
         selectedFilters={selectedFilters}
+        loading={loading}
       />
 
       {modalData.show && (

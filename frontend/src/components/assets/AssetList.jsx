@@ -1,7 +1,7 @@
 import React from 'react';
 import AssetActions from './AssetActions';
 
-const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters }) => {
+const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading }) => {
   return (
     <table className="min-w-full bg-white border border-gray-200">
       <thead>
@@ -16,7 +16,7 @@ const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters }) => {
         </tr>
       </thead>
       <tbody>
-        {!assets ? (
+        {loading ? (
           <tr>
             <td colSpan="7" className="p-8">
               <div className="flex items-center justify-center gap-3 text-gray-600">
