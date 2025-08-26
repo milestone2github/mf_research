@@ -5,6 +5,7 @@ import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import { BLOG_URL } from "../../../utils/urlConstants";
 import { BLOG_CREATE_SUCCESSFUL, BLOG_CREATION_FAIL_ERROR, BLOG_FETCH_ERROR, BLOG_SUBMIT_FAIL_ERROR, BLOG_UPDATE_SUCCESSFUL } from "../../../utils/stringConstants";
+import BackButton from "../../common/BackButton"; 
 
 function AddBlog() {
   const { slug } = useParams();
@@ -131,9 +132,13 @@ function AddBlog() {
 
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
-      <h2 className="text-2xl font-bold mb-6">
-        {slug ? 'Edit Blog' : 'Create New Blog'}
-      </h2>
+      {/* Back button */}
+      <div className="flex items-center gap-3 mb-6">
+        <BackButton action={() => navigate(-1)} />
+        <h2 className="text-2xl font-bold">
+          {slug ? 'Edit Blog' : 'Create New Blog'}
+        </h2>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Title */}

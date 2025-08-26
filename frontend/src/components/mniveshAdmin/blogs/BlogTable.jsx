@@ -20,7 +20,16 @@ function BlogTable({ blogs, pagination, onPageChange, setModalData }) {
           </tr>
         </thead>
         <tbody>
-          {blogs.length ? (
+          {!pagination ? (
+            <tr>
+              <td colSpan="5" className="p-8">
+                <div className="flex items-center justify-center gap-3 text-gray-600">
+                  <span className="inline-block h-5 w-5 rounded-full border-2 border-gray-300 border-t-transparent animate-spin" />
+                  Loading blogs...
+                </div>
+              </td>
+            </tr>
+          ) : blogs.length ? (
             blogs.map((blog) => (
               <tr key={blog._id} className="border-b border-gray-200">
                 {/* Blog Image */}
