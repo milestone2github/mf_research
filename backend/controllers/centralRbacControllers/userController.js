@@ -6,17 +6,27 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const usernameRegex = /^[a-zA-Z0-9]{3,20}$/;
 const nameRegex = /^[a-zA-Z\s]+$/;
 
-// Fetch all users
+// Fetch all users / also used to get admins
 const getAllUsers = async (req, res) => {
     try {
-        const { email, department } = req.query;
-        let filter = {};
+        const { email, department, search, isAdminOnly  } = req.query;
+        let query = {};
         let departmentId;
+        let message = "";
+
+
+         // 🔍 Search by name/email (if provided)
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: "i" } },
+                { email: { $regex: search, $options: "i" } }
+            ];
+        }
 
         // Email filter
         if (email) {
             const regex = new RegExp(`@${email}$`, "i");
-            filter.email = regex;
+            query.email = regex;
         }
 
         // Department filter
@@ -30,10 +40,15 @@ const getAllUsers = async (req, res) => {
                     data: []
                 });
             }
-            filter.department = deptDoc._id;
+            query.department = deptDoc._id;
         }
-        
-        const users = await User.find(filter).populate("department role permissions");
+
+        // 🔑 Admin filter
+        if (isAdminOnly === "true") {
+            query.internalDashboardRole = { $in: ["Admin", "Super Admin"] };
+        }
+
+        const users = await User.find(query).populate("department role permissions");
 
         if (users.length === 0) {
             return res.status(404).json({
@@ -42,12 +57,22 @@ const getAllUsers = async (req, res) => {
                 data: []
             });
         }
+        // 📝 Decide message ,as i used these in toast
+        if (search) {
+            message = "User's Found";
+        } else if (email) {
+            message = "Users filtered by Email";
+        } else if (department) {
+            message = "Users filtered by Department";
+        } else if (isAdminOnly === "true") {
+            message = "Admins fetched successfully";
+        } else {
+            message = "All users fetched";
+        }
 
         res.status(200).json({
             success: true,
-            message: email || department
-                ? "Filtered users fetched successfully"
-                : "All users fetched successfully",
+            message,
             data: users
         });
     } catch (error) {
@@ -151,42 +176,4 @@ const deleteUser = async (req, res) => {
     }
 };
 
-const searchByNameOrEmail = async (req, res) => {
-    try {
-        const { search, isAdminOnly } = req.query;
-        const query = {};
-
-        if (!search) {
-            return res.status(400).json({ success: false, message: "Search query is required" });
-        }
-
-        query.$or = [
-            { name: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } }
-        ];
-
-        if (isAdminOnly === 'true') {
-            query.internalDashboardRole = { $in: ['Admin', 'Super Admin'] };
-        }
-
-        const users = await User.find(query).populate("department role");
-
-        if (users.length === 0) {
-            return res.status(200).json({
-                success: true,
-                message: "No users found with this name or email",
-                data: []
-            });
-        }
-        
-
-        return res.status(200).json({ success: true, data: users });
-    } catch (error) {
-        console.error("Error searching users:", error);
-        return res.status(500).json({ success: false, message: "Server error" });
-    }
-};
-
-
-
-module.exports = { getAllUsers, getUserById, createUser, updateUser, deleteUser, searchByNameOrEmail };
+module.exports = { getAllUsers, getUserById, createUser, updateUser, deleteUser };

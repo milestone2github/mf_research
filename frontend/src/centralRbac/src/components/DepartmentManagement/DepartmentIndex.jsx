@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 
 function DepartmentIndex() {
   const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filtered, setFiltered] = useState([]);
   const [modalData, setModalData] = useState({ show: false, deleteTitle: '', deleteUrl: '' });
   const [roleCounts, setRoleCounts] = useState({}); // Maps department id with roles assigned
@@ -24,6 +25,7 @@ function DepartmentIndex() {
   
   // Fetch all departments
   const fetchDepartments = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(FETCH_DEPARTMENT_URL(''));
       const data = res.data.data;
@@ -32,6 +34,8 @@ function DepartmentIndex() {
     } catch (error) {
       console.error('Error fetching departments:', error);
       toast.error('Failed to fetch departments.', { position: 'top-right', autoClose: 3000, transition: Slide });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -140,6 +144,7 @@ function DepartmentIndex() {
         departments={filtered} 
         setModalData={setModalData} 
         roleCounts={roleCounts}
+        loading={loading}
       />
 
       {modalData.show && (
