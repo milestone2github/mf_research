@@ -359,6 +359,60 @@ const createAssetType = async (req, res) => {
     }
 }
 
+const getAssignedAssets = async (req, res) => {
+	try {
+		const { q, sortBy } = req.query; // q = search term ; sortBy = sort the allocated time
+
+		// Base filter: only allocated assets
+		const filter = { allocatedTo: { $ne: null } };
+
+		// Fetch assets with population
+		let assets = await Assets.find(filter)
+			.populate("allocatedTo", "name email")
+			.populate("updatedBy", "name email")
+			.select("name remarks allocatedTo updatedBy updatedAt")
+			.lean();
+
+		// Apply regex filtering on populated fields
+		let queryResponse = assets;
+		if (q) {
+			const regex = new RegExp(q, "i");
+			queryResponse = assets.filter((asset) =>
+                regex.test(asset.name) ||
+                regex.test(asset.allocatedTo?.name || "") ||
+                regex.test(asset.updatedBy?.name || "") ||
+                regex.test(asset.remarks || "")
+			);
+		}
+
+		// Sorting by allotment date (updatedAt) if available
+		if (sortBy === "asc") {
+			queryResponse = queryResponse.sort(
+				(a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)
+			);
+		} else {
+			queryResponse = queryResponse.sort(
+				(a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+			);
+		}
+
+		// Format response
+		const result = queryResponse.map((asset) => ({
+			assetName: asset.name,
+			userName: asset.allocatedTo?.name || "N.A.",
+			updatedBy: asset.updatedBy?.name || "N.A.",
+			remarks: asset.remarks || "",
+			allotmentDate: asset.updatedAt,
+		}));
+
+		res.status(200).json({ message: "Assigned assets fetched successfully", data: result });
+	} catch (err) {
+		console.error(INTERNAL_ERROR_CONSOLE("fetching assigned assets"), err);
+		res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+	}
+};
+
+
 module.exports = {
     createAsset,
     getAssetById,
@@ -369,5 +423,6 @@ module.exports = {
     createNewAssetCategory,
     getAllAssetTypes,
     createAssetType,
-    getAssetsByTypeId
+    getAssetsByTypeId,
+    getAssignedAssets
 }
