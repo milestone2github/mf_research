@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SearchModal from '../common/SearchModal';
 import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AssetList from './AssetList';
 import { ASSET_DELETE_MESSAGE } from '../../utils/stringConstants';
 import {
@@ -21,6 +21,7 @@ function AssetIndex() {
   const [categories, setCategories] = useState([]);
   const [types, setTypes] = useState([]);
   const [status, setStatus] = useState(['available', 'allocated', 'repair', 'removed']);
+  const navigate = useNavigate();
 
   const [selectedFilters, setSelectedFilters] = useState({
     category: '',
@@ -120,82 +121,99 @@ function AssetIndex() {
   };
 
   return (
-    <div className="p-4">
-      <div className='text-4xl font-bold text-white pb-5 text-center'>
-        <h2>ASSETS MANAGEMENT</h2>
-        <div className="mt-2 mx-auto w-72 border-b-2 border-orange-400" />
-      </div>
+		<div className="p-4">
+			<div className="text-4xl font-bold text-white pb-5 text-center">
+				<h2>ASSETS MANAGEMENT</h2>
+				<div className="mt-2 mx-auto w-72 border-b-2 border-orange-400" />
+			</div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
-        <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
-          <SearchModal onSearch={handleSearch} />
+			{/* Filters */}
+			<div className="flex flex-wrap gap-4 justify-between items-center mb-6">
+				<div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
+					<SearchModal onSearch={handleSearch} />
 
-          {/* Category Filter */}
-          <select
-            className="border px-3 py-2 rounded-md w-36"
-            value={selectedFilters.category}
-            onChange={e => handleFilterChange('category', e.target.value)}
-          >
-            <option value="">Category</option>
-            {categories.map(cat => (
-              <option key={cat._id} value={cat._id}>{cat.name}</option>
-            ))}
-          </select>
+					{/* Category Filter */}
+					<select
+						className="border px-3 py-2 rounded-md w-36"
+						value={selectedFilters.category}
+						onChange={(e) => handleFilterChange("category", e.target.value)}
+					>
+						<option value="">Category</option>
+						{categories.map((cat) => (
+							<option key={cat._id} value={cat._id}>
+								{cat.name}
+							</option>
+						))}
+					</select>
 
-          {/* Type Filter */}
-          <select
-            className="border px-3 py-2 rounded-md w-36"
-            value={selectedFilters.type}
-            onChange={e => handleFilterChange('type', e.target.value)}
-            disabled={!selectedFilters.category}
-          >
-            <option value="">Type</option>
-            {types.map(t => (
-              <option key={t._id} value={t._id}>{t.name}</option>
-            ))}
-          </select>
+					{/* Type Filter */}
+					<select
+						className="border px-3 py-2 rounded-md w-36"
+						value={selectedFilters.type}
+						onChange={(e) => handleFilterChange("type", e.target.value)}
+						disabled={!selectedFilters.category}
+					>
+						<option value="">Type</option>
+						{types.map((t) => (
+							<option key={t._id} value={t._id}>
+								{t.name}
+							</option>
+						))}
+					</select>
 
-          {/* Status Filter */}
-          <select
-            className="border px-3 py-2 rounded-md w-36"
-            value={selectedFilters.status}
-            onChange={e => handleFilterChange('status', e.target.value)}
-          >
-            <option value="">Status</option>
-            {status.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
+					{/* Status Filter */}
+					<select
+						className="border px-3 py-2 rounded-md w-36"
+						value={selectedFilters.status}
+						onChange={(e) => handleFilterChange("status", e.target.value)}
+					>
+						<option value="">Status</option>
+						{status.map((s) => (
+							<option key={s} value={s}>
+								{s}
+							</option>
+						))}
+					</select>
+				</div>
 
-        <Link
-          to="/assets/add"
-          state={{ types, categories }}
-          className="w-full md:w-auto"
-        >
-          <button className="bg-green-600 text-white px-5 py-2 rounded-md w-full md:w-auto">
-            + Add Assets
-          </button>
-        </Link>
-      </div>
+				<Link
+					to="/assets/add"
+					state={{ types, categories }}
+					className="w-full md:w-auto"
+				>
+					<button className="bg-green-600 text-white px-5 py-2 rounded-md w-full md:w-auto">
+						+ Add Assets
+					</button>
+				</Link>
 
-      <AssetList 
-        assets={filtered} 
-        setModalData={setModalData}
-        fetchAssets={fetchAssets}
-        selectedFilters={selectedFilters}
-        loading={loading}
-      />
+				{/* Switches to User Assigned Asset View Page */}
+				<Link to="/assets/assigned" className="w-full md:w-auto">
+					<button className="px-5 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md">
+						User View
+					</button>
+				</Link>
+			</div>
 
-      {modalData.show && (
-        <DeleteConfirmationModal
-          modalData={modalData}
-          onClose={() => setModalData({ show: false, deleteTitle: '', deleteUrl: '' })}
-          onDeleteConfirm={handleDeleteConfirm}
-          message={ASSET_DELETE_MESSAGE}
-        />
-      )}
-    </div>
-  );
+			<AssetList
+				assets={filtered}
+				setModalData={setModalData}
+				fetchAssets={fetchAssets}
+				selectedFilters={selectedFilters}
+				loading={loading}
+			/>
+
+			{modalData.show && (
+				<DeleteConfirmationModal
+					modalData={modalData}
+					onClose={() =>
+						setModalData({ show: false, deleteTitle: "", deleteUrl: "" })
+					}
+					onDeleteConfirm={handleDeleteConfirm}
+					message={ASSET_DELETE_MESSAGE}
+				/>
+			)}
+		</div>
+	);
 }
 
 export default AssetIndex;

@@ -32,7 +32,7 @@ const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading
               <td className="py-2 px-4 border-b text-center">{asset.type?.name || '-'}</td>
               <td className="py-2 px-4 border-b text-center">{asset.serialNumber}</td>
               <td className="py-2 px-4 border-b text-center">{asset.type?.category?.name || ''}</td>
-              <td className="py-2 px-4 border-b text-center">{asset.allocatedTo?.email || '-'}</td>
+              <td className="py-2 px-4 border-b text-center">{asset.allocatedTo?.name || '-'}</td>
               <td className="py-2 px-4 border-b text-center">{asset.status}</td>
               <td className="py-2 px-4 border-b">
                 <AssetActions
