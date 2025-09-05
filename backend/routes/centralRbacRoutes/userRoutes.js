@@ -3,7 +3,7 @@ const userRouter = express.Router();
 const userController = require("../../controllers/centralRbacControllers/userController");
 
 //User Actions
-userRouter.get("/search", userController.searchByNameOrEmail);// Static, comes first 
+// userRouter.get("/search", userController.searchByNameOrEmail);// Static, comes first 
 
 // User Routes
 userRouter.get('/', userController.getAllUsers); // Admin 

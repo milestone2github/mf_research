@@ -22,14 +22,19 @@ const getAvatarColor = (key) => {
 
 function AdminList() {
     const [admins, setAdmins] = useState([]);
+    const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("");
     const [deleteModal, setDeleteModal] = useState({ show: false, userId: null, userName: "", });
     const [isAddAdminModalOpen, setIsAddAdminModalOpen] = useState(false);
     const navigate = useNavigate();
 
     const fetchAdmins = useCallback(async () => {
+        setLoading(true);
         try {
-            const response = await axios.get(`${RBAC_BASE_URL}/admin`);
+            const query = searchQuery.trim() ? `?search=${searchQuery}&isAdminOnly=true` : `?isAdminOnly=true`;
+
+            const response = await axios.get(`${RBAC_BASE_URL}/users${query}`);
+
             if (response.data.success) {
                 setAdmins(response.data.data);
             } else {
@@ -42,49 +47,20 @@ function AdminList() {
         } catch (error) {
             console.error("Error fetching admins:", error);
             toast.error("Could not fetch admins.",
-                { position: "top-right", autoClose: 3000, transition: Slide, });
+                { position: "top-right", autoClose: 3000, transition: Slide, }); 
+        } finally {
+            setLoading(false);
         }
-    }, []);
+    }, [searchQuery]);
 
+    // Effect uses fetchAdmins with debounce
     useEffect(() => {
-        fetchAdmins();
-    }, [fetchAdmins]);
-
-    useEffect(() => {
-        const fetchSearchedAdmins = async () => {
-            try {
-                let response;
-                if (searchQuery.trim() === "") {
-                    response = await axios.get(`${RBAC_BASE_URL}/admin`);
-                } else {
-                    response = await axios.get(
-        `${RBAC_BASE_URL}/users/search?search=${searchQuery}&isAdminOnly=true`
-                    );
-                }
-
-                if (response.data.success) {
-                    setAdmins(response.data.data);
-                } else {
-                    console.error("Error fetching admins:", response.data.message);
-                    toast.error(response.data.message || "Could not fetch admins.", {
-                        position: "top-right", autoClose: 3000, transition: Slide,
-                    });
-                }
-            } catch (error) {
-                console.error("Error fetching admins:", error);
-                toast.error("Could not fetch admins.",
-                    {
-                        position: "top-right", autoClose: 3000, transition: Slide,
-                    });
-            }
-        };
-
         const delayDebounceFn = setTimeout(() => {
-            fetchSearchedAdmins();
+            fetchAdmins();
         }, 500);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [searchQuery]);
+    }, [fetchAdmins]);
 
     const handleRemoveAdmin = (id, name, role) => {
         // Disable delete for Super Admins
@@ -133,7 +109,7 @@ function AdminList() {
 
     return (
         <div className="p-6" style={{}}>
-              <ToastContainer />
+            <ToastContainer />
             <div className="relative flex items-center mb-5">
                 <button
                     onClick={() => navigate("/rbac")}
@@ -165,45 +141,84 @@ function AdminList() {
                 className="bg-gray-900 rounded-md shadow-lg overflow-x-auto border-2 border-gray-500"
                 style={{}}
             >
-                <table className="w-full text-left text-gray-300">
-                    <thead>
-                        <tr className="bg-teal-600 text-gray-200 text-base">
-                            <th className="p-2">Sr. No</th>
-                            <th className="p-2">Avatar</th>
-                            <th className="p-2">Full Name</th>
-                            <th className="p-2">Email</th>
-                            <th className="p-2">Role</th>
-                            <th className="p-2 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {admins.map((admin, index) => (
-                            <tr key={admin._id} className="hover:bg-gray-800 border-b border-gray-700">
-                                <td className="p-2">{index + 1}</td>
-                                <td className="p-2">
-                                    <div
-                                        className={`rounded-full h-8 w-8 flex items-center justify-center ${getAvatarColor(
-                                            admin.name
-                                        )}`}
-                                    >
-                                        {getInitials(admin.name)}
-                                    </div>
-                                </td>
-                                <td className="p-2  text-gray-200">{admin.name}</td>
-                                <td className="p-2 text-gray-200">{admin.email}</td>
-                                <td className="p-2 text-green-500 ">{admin.internalDashboardRole}</td>
-                                <td className="p-2 text-center">
-                                <button onClick={() => handleRemoveAdmin(admin._id, admin.name, admin.internalDashboardRole)}
-                                        className={`text-red-600 hover:text-red-400 p-2 ${admin.internalDashboardRole === 'Super Admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        disabled={admin.internalDashboardRole === 'Super Admin'}
-                                    >
-                                        <FaTrash size={20} />
-                                    </button>
-                                </td>
+                {loading ? (
+                    <table className="w-full text-left text-gray-300">
+                        <thead>
+                            <tr className="bg-teal-600 text-gray-200 text-base">
+                                <th className="p-2">Sr. No</th>
+                                <th className="p-2">Avatar</th>
+                                <th className="p-2">Full Name</th>
+                                <th className="p-2">Email</th>
+                                <th className="p-2">Role</th>
+                                <th className="p-2 text-center">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {[...Array(8)].map((_, i) => (
+                                <tr key={i} className="animate-pulse border-b border-gray-700">
+                                    <td className="p-2 text-center">
+                                        <div className="h-4 w-8 bg-gray-600 rounded mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <div className="h-8 w-8 bg-gray-600 rounded-full mx-auto"></div>
+                                    </td>
+                                    <td className="p-2">
+                                        <div className="h-4 w-32 bg-gray-600 rounded mx-auto"></div>
+                                    </td>
+                                    <td className="p-2">
+                                        <div className="h-4 w-40 bg-gray-600 rounded mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <div className="h-4 w-24 bg-gray-600 rounded mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center flex justify-center space-x-2">
+                                        <div className="h-6 w-8 bg-gray-600 rounded"></div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <table className="w-full text-left text-gray-300">
+                        <thead>
+                            <tr className="bg-teal-600 text-gray-200 text-base">
+                                <th className="p-2">Sr. No</th>
+                                <th className="p-2">Avatar</th>
+                                <th className="p-2">Full Name</th>
+                                <th className="p-2">Email</th>
+                                <th className="p-2">Role</th>
+                                <th className="p-2 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {admins.map((admin, index) => (
+                                <tr key={admin._id} className="hover:bg-gray-800 border-b border-gray-700">
+                                    <td className="p-2">{index + 1}</td>
+                                    <td className="p-2">
+                                        <div
+                                            className={`rounded-full h-8 w-8 flex items-center justify-center ${getAvatarColor(
+                                                admin.name
+                                            )}`}
+                                        >
+                                            {getInitials(admin.name)}
+                                        </div>
+                                    </td>
+                                    <td className="p-2  text-gray-200">{admin.name}</td>
+                                    <td className="p-2 text-gray-200">{admin.email}</td>
+                                    <td className="p-2 text-green-500 ">{admin.internalDashboardRole}</td>
+                                    <td className="p-2 text-center">
+                                        <button onClick={() => handleRemoveAdmin(admin._id, admin.name, admin.internalDashboardRole)}
+                                            className={`text-red-600 hover:text-red-400 p-2 ${admin.internalDashboardRole === 'Super Admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            disabled={admin.internalDashboardRole === 'Super Admin'}
+                                        >
+                                            <FaTrash size={20} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             <AddAdmin

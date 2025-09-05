@@ -11,6 +11,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 function RolesIndex() {
   const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filtered, setFiltered] = useState([]);
   const [modalData, setModalData] = useState({ show: false, deleteTitle: '', deleteUrl: '' });
   const navigate = useNavigate();
@@ -20,14 +21,17 @@ function RolesIndex() {
   
   // Fetch All Roles
   const fetchRoles = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(FETCH_ALL_ROLES_URL);
       setRoles(res.data.data);
       setFiltered(res.data.data);
     } catch (error) {
       console.error('Error fetching roles:', error);
-      toast.error('Failed to fetch roles.', 
+      toast.error('Failed to fetch roles.',
         { position: 'top-right', autoClose: 3000, transition: Slide });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,7 +121,7 @@ const handleDeleteConfirm = async () => {
         </div>
       </div>
 
-      <RolesList roles={filtered} setModalData={setModalData} />
+      <RolesList roles={filtered} setModalData={setModalData} loading={loading}/>
 
       {modalData.show && (
         <DeleteConfirmationModal

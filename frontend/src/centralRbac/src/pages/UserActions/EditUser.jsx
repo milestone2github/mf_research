@@ -294,15 +294,24 @@ function EditUser() {
             toast.error("Failed to save changes", { position: "top-right" });
         }
     };
-    
+
 
     if (loading) {
         return (
-            <div className="p-6 bg-gray-800 min-h-screen text-white flex justify-center items-center">
-                <p>Loading user details...</p>
+            <div className="p-6 bg-gray-900 min-h-screen flex justify-center items-center">
+                <div className="relative flex flex-col items-center">
+                    <div className="relative w-20 h-20">
+                        <div className="w-20 h-20 border-4 border-t-transparent border-blue-600 rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex justify-center items-center">
+                            <div className="w-6 h-6 bg-blue-400 rounded-full animate-ping"></div>
+                        </div>
+                    </div>
+                    <p className="mt-6 text-lg text-blue-400 animate-pulse">
+                        Loading user details...
+                    </p>
+                </div>
             </div>
-        );
-    }
+        )}
 
     return (
         <div className="p-6 bg-gray-800 min-h-screen text-white">
