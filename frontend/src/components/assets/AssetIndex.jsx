@@ -188,7 +188,7 @@ function AssetIndex() {
 
 				{/* Switches to User Assigned Asset View Page */}
 				<Link to="/assets/assigned" className="w-full md:w-auto">
-					<button className="px-5 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md">
+					<button className="px-5 py-2 bg-slate-600 hover:bg-slate-300 text-white hover:text-slate-700 rounded-md">
 						User View
 					</button>
 				</Link>

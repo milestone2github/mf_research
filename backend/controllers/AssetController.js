@@ -375,7 +375,6 @@ const getAssignedAssets = async (req, res) => {
 
 		// Apply regex filtering on populated fields
 		let queryResponse = assets;
-        console.log("Assets fetched --> ", assets);
 		if (q) {
 			const regex = new RegExp(q, "i");
 			queryResponse = assets.filter((asset) =>
