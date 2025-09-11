@@ -74,17 +74,27 @@ const ndaSignStatusDbUpdate = async (req, res) => {
             userId,
             { $set: update },
             { new: true }
-        );
+            );
 
-        if (!updatedUser) {
+            if (!updatedUser) {
             console.warn(`⚠️ No user found with ID: ${userId}`);
             return res.status(404).json({ success: false, message: 'User not found.' });
-        }
-        // console.log(`✅ NDA updated for: ${updatedUser.email} | Status: ${status}`);
-        if (status === 'success') {
+            }
+
+            if (status === 'success') {
             await newEmployeeSetup(userId);
-        }
-        return res.status(200).json({ success: true, message, userId });
+
+            // Fire-and-forget OR await — choose one:
+            // fire-and-forget (won't delay response):
+            sendOnboardingWelcomePack(userId).catch(err =>
+                console.error("WelcomePack dispatch error:", err)
+            );
+
+            // If you prefer to ensure send completes before responding, use:
+            // await sendOnboardingWelcomePack(userId);
+            }
+
+            return res.status(200).json({ success: true, message, userId });
 
     } catch (error) {
         console.error('🔥 Error updating NDA status:', error);
@@ -92,7 +102,82 @@ const ndaSignStatusDbUpdate = async (req, res) => {
     }
 };
 
+// Only require Gotra; HR Policy is optional (env or left blank)
+const GOTRA_URL = process.env.AZURE_GOTRA_URL
+  || "https://mfdatafeed.blob.core.windows.net/organization-policies/HR guideline.pdf";
 
+const HR_POLICY_URL = process.env.AZURE_HR_POLICY_URL || ""; // empty means "skip"
+
+// Fetch PDF but don’t throw on 404; return null instead
+async function fetchPdfBufferSafe(url, label) {
+  if (!url) return null;
+  try {
+    const resp = await axios.get(url, { responseType: "arraybuffer" });
+    return Buffer.from(resp.data);
+  } catch (err) {
+    const status = err?.response?.status;
+    console.warn(`[WelcomePack] Failed to fetch ${label} (${url}) status=${status || 'n/a'}`);
+    return null; // <- swallow; we’ll just not attach this file
+  }
+}
+
+// idempotent send (don’t send twice)
+async function sendOnboardingWelcomePack(userId) {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      console.warn(`[WelcomePack] No user for ID: ${userId}`);
+      return false;
+    }
+
+    // prevent duplicates
+    if (user.onboarding?.welcomeEmail?.sent) {
+      console.log("[WelcomePack] Already sent; skipping");
+      return true;
+    }
+
+    const to =  user.onboarding?.hrFilledInfo?.personalEmail;
+    const name = user.onboarding?.hrFilledInfo?.name || "there";
+    if (!to) {
+      console.warn(`[WelcomePack] No recipient email for user ${userId}`);
+      return false;
+    }
+
+    // Try to fetch attachments; attach only those that succeed
+    const [gotraBuf, hrPolicyBuf] = await Promise.all([
+      fetchPdfBufferSafe(GOTRA_URL, "Gotra"),
+      fetchPdfBufferSafe(HR_POLICY_URL, "HR Policy"),
+    ]);
+
+    const attachments = [];
+    if (gotraBuf) attachments.push({ filename: "Gotra_Guideline.pdf", content: gotraBuf });
+    if (hrPolicyBuf) attachments.push({ filename: "HR_Policy.pdf", content: hrPolicyBuf });
+
+    await sendEmail({
+      toAddress: to,
+      subject: "Thanks for completing onboarding — documents attached",
+      body: `
+        <p>Dear ${name},</p>
+        <p>Thank you for completing your onboarding form and signing the NDA.</p>
+        <p>Please find attached the relevant HR documents for your reference.</p>
+        <p>Regards,<br/>HR Team</p>
+      `,
+      attachments, // can be [] — email still sends
+    });
+
+    // mark flags
+    user.onboarding = user.onboarding || {};
+    user.onboarding.gotra = { ...(user.onboarding.gotra || {}), sent: !!gotraBuf, sentAt: gotraBuf ? new Date() : user.onboarding?.gotra?.sentAt };
+    user.onboarding.hrPolicy = { ...(user.onboarding.hrPolicy || {}), sent: !!hrPolicyBuf, sentAt: hrPolicyBuf ? new Date() : user.onboarding?.hrPolicy?.sentAt };
+    user.onboarding.welcomeEmail = { sent: true, sentAt: new Date() };
+    await user.save();
+
+    return true;
+  } catch (err) {
+    console.error("❌ sendOnboardingWelcomePack failed:", err.message);
+    return false;
+  }
+}
 
 //Supporting function for below embeddedsigning controller to get User Details
 const extractUserDetails = (user) => {

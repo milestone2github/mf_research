@@ -59,7 +59,7 @@ const fetchPackageAndAddCandidate = async (userId, userDetails) => {
         uan_number: '',
         tags: [],
         // resume: 'https://drive.google.com/drive/folders/13zLbyEBD6X2Vg0LbuO-EDhlVfyH-4_p',
-        resume: userDetails.resume,
+        resume: userDetails.educationalCertificatesAndDegree.latestUpdateCv,
         invite: true,
         is_consent_undertaking_letter: false,
         category_id: 200,

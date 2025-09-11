@@ -14,6 +14,7 @@ const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STR
 const ONBOARDING_FORM_LINK = process.env.ONBOARDING_FORM_LINK;
 const WRITER_DOCUMENT_ID = process.env.WRITER_DOCUMENT_ID; 
 const FormData = require("form-data");
+const mongoose = require('mongoose');
 require("dotenv").config();
 
 // Sending Gotra to new employees Via Mail
@@ -201,10 +202,11 @@ async function saveJoineeDetails(req, res) {
       gender
     } = req.body;
 
+    const deptIsId = mongoose.isValidObjectId(department);
+    const roleIsId = mongoose.isValidObjectId(role);
+
     const update = {
       email: personalEmail,
-      department,
-      role,
       onboarding: {
         hrFilledInfo: {
           name,
@@ -224,38 +226,41 @@ async function saveJoineeDetails(req, res) {
           initiatedAt: new Date(),
         },
       },
-    };    
-    let savedUser = await User.findOne({ email: personalEmail });
+    };
+    if (deptIsId) update.department = department;
+    if (roleIsId) update.role = role;
 
+    let savedUser = await User.findOne({ email: personalEmail });
     if (!savedUser) {
       savedUser = await User.create(update);
     } else {
       await User.updateOne({ email: personalEmail }, { $set: update });
     }
 
-    // 🟡 Fetch role name before generating PDF
-    const roleData = await Role.findById(role);
-    const roleName = roleData?.name || 'Role';
-
+    // 🟡 Role name: use ID lookup if valid ObjectId, else treat as free text
+    let roleName = 'Role';
+    if (roleIsId) {
+      const roleData = await Role.findById(role).lean();
+      roleName = roleData?.name || roleName;
+    } else if (typeof role === 'string' && role.trim()) {
+      roleName = role.trim(); // free text from "Other"
+    }
     const salutation = gender === 'female' ? 'Ms.' : 'Mr.';
 
     const mergeData = {
-    "Name_Salutation": salutation,                          // salutation
-    "Name_First": name.split(" ")[0],                  // first name
-    "Name_Last": name.split(" ").slice(1).join(" "),   // last name
-    "SingleLine": city,                                // city
-    "Dropdown": roleName,                              // designation
-    "Date": formatDate(doj),                                       // date of joining
-    "Number": annualCtc,                               // gross salary
-    "Number1": baseSalary,                             // in-hand salary
-    "Dropdown1": reportingLocation                     // reporting location
-  };
-
-
+      "Name_Salutation": salutation,
+      "Name_First": name.split(" ")[0],
+      "Name_Last": name.split(" ").slice(1).join(" "),
+      "SingleLine": city,
+      "Dropdown": roleName,                // ✅ designation: ID name or free text
+      "Date": formatDate(doj),
+      "Number": annualCtc,
+      "Number1": baseSalary,
+      "Dropdown1": reportingLocation
+    };
   // 2. Generate Offer Letter PDF
   const pdfBuffer = await mergeOfferLetter(mergeData);
   // console.log("Offer Letter PDF generated");
-  
     const { subject, body } = getOfferLetterEmailTemplate({
       name,
       doj,
@@ -266,9 +271,9 @@ async function saveJoineeDetails(req, res) {
       subject,
       body,
       toAddress: personalEmail,
-      ccAddress: "",
+      ccAddress: "hr@niveshonline.com",
       attachments: [
-        { filename: "offerLetter.pdf", content: pdfBuffer },
+        { filename: "Offer Letter-Mr Vipul Kumar.pdf", content: pdfBuffer },
       ],
     });
 
@@ -281,7 +286,6 @@ async function saveJoineeDetails(req, res) {
     };
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData);
-
     if (!updatedUser) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -420,12 +424,18 @@ const fetchUserOnboardingInfo = async (req, res) => {
     const user = await User.findById(req.user.userId).lean();
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const savedInfo = user.onboarding?.userFilledInfo || {};
+    const hrInfo = user.onboarding?.hrFilledInfo || {};
+    const userInfo = user.onboarding?.userFilledInfo || {};
     const ndaInfo = user.onboarding?.nda || {};
 
     res.status(200).json({
-      ...savedInfo,
-      nda:ndaInfo
+      hrFilledInfo: hrInfo,
+      personalDetails: userInfo.personalDetails || {},
+      referenceDetails: userInfo.referenceDetails || {},
+      bankDetails: userInfo.bankDetails || {},
+      educationalCertificatesAndDegree: userInfo.educationalCertificatesAndDegree || {},
+      submittedAt: userInfo.submittedAt || null,
+      nda: ndaInfo
     });
   } catch (error) {
     console.error("Error fetching onboarding info:", error);

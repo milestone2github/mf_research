@@ -29,6 +29,12 @@ const EmployeeOnboardingForm = () => {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
 
+//For "Other" handling
+const [departmentIsOther, setDepartmentIsOther] = useState(false);
+const [roleIsOther, setRoleIsOther] = useState(false);
+const [departmentOtherText, setDepartmentOtherText] = useState("");
+const [roleOtherText, setRoleOtherText] = useState("");
+
   // Fetch departments on mount
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -63,19 +69,44 @@ const EmployeeOnboardingForm = () => {
       ...(name === 'department' ? { role: '' } : {}), // Reset role if department changes
     }));
 
-    if (name === 'department') {
+  // --- Department ---
+  if (name === 'department') {
+    if (value === '__other__') {
+      setDepartmentIsOther(true);
+      setRoles([]);           // no roles to fetch
+      setRoleIsOther(false);  // reset roleOther state if switching dept
+    } else {
+      setDepartmentIsOther(false);
       await fetchRoles(value);
     }
-  };
+  }
+
+  // --- Role ---
+  if (name === 'role') {
+    if (value === '__other__') {
+      setRoleIsOther(true);
+    } else {
+      setRoleIsOther(false);
+    }
+  }
+};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+    // Map final department/role values
+    const payload = {
+      ...formData,
+      department: departmentIsOther ? (departmentOtherText || '').trim() : formData.department,
+      role: (roleIsOther || departmentIsOther) ? (roleOtherText || '').trim() : formData.role,
+    };
+
       const response = await fetch(`${LOCAL_API_BASE}/onboarding-form`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -163,19 +194,42 @@ const EmployeeOnboardingForm = () => {
             {departments.map((dept) => (
               <option key={dept._id} value={dept._id}>{dept.name}</option>
             ))}
+            <option value="__other__">Other…</option>
           </select>
+          {departmentIsOther && (
+            <input
+              type="text"
+              className="mt-2 border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500"
+              placeholder="Enter department"
+              value={departmentOtherText}
+              onChange={(e) => setDepartmentOtherText(e.target.value)}
+              required
+            />
+          )}
         </div>
 
         {/* Role */}
         <div className="flex flex-col">
           <label htmlFor="role" className="mb-1 text-sm font-medium text-gray-700">Role</label>
           <select name="role" id="role" value={formData.role} onChange={handleChange}
-            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900" required>
+            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900" required disabled={departmentIsOther}  // optional: disable select if dept is Other
+>
             <option value="">Select Role</option>
             {roles.map((role) => (
               <option key={role._id} value={role._id}>{role.name}</option>
             ))}
+              <option value="__other__">Other…</option>
           </select>
+          {(roleIsOther || departmentIsOther) && (
+            <input
+              type="text"
+              className="mt-2 border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500"
+              placeholder="Enter role/designation"
+              value={roleOtherText}
+              onChange={(e) => setRoleOtherText(e.target.value)}
+              required
+            />
+          )}
         </div>
 
         {/* Annual CTC */}
