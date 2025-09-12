@@ -51,10 +51,6 @@ function UserManagementDashboard() {
 
       if (response.data.success) {
           setUsers(response.data.data);
-          toast.success(response.data.message,
-              {
-                  position: "top-right", autoClose: 1000, transition: Slide,
-              });
       } else {
         toast.error(response.data.message || "Failed to fetch users.", {
           position: "top-right",
@@ -257,14 +253,14 @@ function UserManagementDashboard() {
                     <table className="w-full text-left text-gray-300">
                         <thead>
                             <tr className="bg-teal-600 text-gray-200 text-base ">
-                                <th className="p-2">Sr. No</th>
-                                <th className="p-2">Avatar</th>
-                                <th className="p-2">Full Name</th>
-                                <th className="p-2">Email</th>
-                                <th className="p-2">Role</th>
-                                <th className="p-2">Department</th>
-                                <th className="p-2">Active Status</th>
-                                <th className="p-2 text-center">Actions</th>
+                                <th className="p-2 whitespace-nowrap">Sr. No</th>
+                                <th className="p-2 whitespace-nowrap">Avatar</th>
+                                <th className="p-2 whitespace-nowrap">Full Name</th>
+                                <th className="p-2 whitespace-nowrap">Email</th>
+                                <th className="p-2 whitespace-nowrap">Role</th>
+                                <th className="p-2 whitespace-nowrap">Department</th>
+                                <th className="p-2 whitespace-nowrap">Active Status</th>
+                                <th className="p-2 text-center whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                     <tbody>
@@ -284,9 +280,15 @@ function UserManagementDashboard() {
                                 <td className="p-2">{user.role?.name}</td>
                                 <td className="p-2">{user.department?.name}</td>
                                 <td className="p-2">
-                                    <span className={`px-2 py-1 rounded-full text-white text-xs font-semibold ${user.emp_status === "Active" ? "bg-green-600" : "bg-red-600"
+                                    <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold
+                                    ${ user.status === "active"? "bg-green-600"
+                                            : user.status === "inactive" ? "bg-red-600"
+                                            : user.status === "pending" ? "bg-orange-500"
+                                            : user.status === "onboarding" ? "bg-yellow-600"
+                                            : user.status === "terminated" ? "bg-gray-500"
+                                            : "bg-gray-400"
                                         }`}>
-                                        {user.emp_status}
+                                        {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                                     </span>
                                 </td>
                                 <td className="p-2 flex justify-center gap-2">

@@ -26,12 +26,6 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "PERMISSIONS"
     }],
-    emp_status: {
-        type: String,
-        enum: ["Active", "Inactive"],
-        required: true,
-        default: "Active"
-    },
     internalDashboardRole: {
         type: String,
         enum: ["Admin", "Super Admin", ""],
