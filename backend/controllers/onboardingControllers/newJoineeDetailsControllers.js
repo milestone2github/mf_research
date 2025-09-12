@@ -399,11 +399,11 @@ async function updateAssetAllocationStatus(req, res) {
     }
 
     // Sending Gotra Document 
-    const hasGotraSent = await sendGotraDocument(user);
+    // const hasGotraSent = await sendGotraDocument(user);
 
-    if (!hasGotraSent) {
-      throw new Error('Unable to Send Gotra Document.')
-    }
+    // if (!hasGotraSent) {
+    //   throw new Error('Unable to Send Gotra Document.')
+    // }
     //sending New joinee Mail to all Employees
     await sentNewJoineeMailNotification(user);
 

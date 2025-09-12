@@ -71,7 +71,7 @@ const [roleOtherText, setRoleOtherText] = useState("");
 
   // --- Department ---
   if (name === 'department') {
-    if (value === '__other__') {
+    if (value === 'others') {
       setDepartmentIsOther(true);
       setRoles([]);           // no roles to fetch
       setRoleIsOther(false);  // reset roleOther state if switching dept
@@ -83,7 +83,7 @@ const [roleOtherText, setRoleOtherText] = useState("");
 
   // --- Role ---
   if (name === 'role') {
-    if (value === '__other__') {
+    if (value === 'others') {
       setRoleIsOther(true);
     } else {
       setRoleIsOther(false);
@@ -194,7 +194,7 @@ const [roleOtherText, setRoleOtherText] = useState("");
             {departments.map((dept) => (
               <option key={dept._id} value={dept._id}>{dept.name}</option>
             ))}
-            <option value="__other__">Other…</option>
+            <option value="others">Others</option>
           </select>
           {departmentIsOther && (
             <input
@@ -218,7 +218,7 @@ const [roleOtherText, setRoleOtherText] = useState("");
             {roles.map((role) => (
               <option key={role._id} value={role._id}>{role.name}</option>
             ))}
-              <option value="__other__">Other…</option>
+              <option value="others">Others</option>
           </select>
           {(roleIsOther || departmentIsOther) && (
             <input
