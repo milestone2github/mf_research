@@ -12,11 +12,11 @@ const userSchema = new mongoose.Schema({
     department: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "DEPARTMENTS",
-        required: true
+        required: false
     },
     role: {
         type: mongoose.Schema.Types.ObjectId,
-        require: true,
+        require: false,
         ref: "ROLES"
     },
     customRole: { type: String, trim: true },

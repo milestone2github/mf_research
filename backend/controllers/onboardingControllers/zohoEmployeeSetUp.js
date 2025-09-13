@@ -40,83 +40,64 @@ async function zohoApiOnboarding(access_token, record) {
 
 // Generating Unique Email id for new Employee
 async function registerEmployeeInZohoById(userId, access_token) {
-    // console.log(" [zohoEmployeeSetUp] Entered the registerEmployeeInZohoById function")
-
     const user = await User.findById(userId);
-    // let finalEmail = "";
     if (!user) throw { status: 404, message: "User not found" };
 
-    // ✅ Fetch the current employee ID count
+    // Fetch or initialize employee ID counter
     let countDoc = await ZohoEmployeeIdCount.findOne();
-    // console.log(`[zohoEmployeeSetUp] current count is ${countDoc}`);
-
     if (!countDoc) {
-        // If it doesn’t exist, initialize it
-        countDoc = await ZohoEmployeeIdCount.create({ currentCount: 385 });
+        countDoc = await ZohoEmployeeIdCount.create({ currentCount: 401 });
     }
-
     const employeeId = countDoc.currentCount;
 
     const domain = "@niveshonline.com";
+    const [firstName, lastName] = user.onboarding.hrFilledInfo.name
+        .trim()
+        .toLowerCase()
+        .split(" ");
 
-    const first = user.onboarding.hrFilledInfo.name.split(" ")[0]?.toLowerCase();
-    const last = user.onboarding.hrFilledInfo.name.split(" ")[1]?.toLowerCase();
+    // Email generation rules with proper dot separator
+    const emailCandidates = [
+        `${firstName}${domain}`, // just first name
+        lastName ? `${firstName}.${lastName.charAt(0)}${domain}` : null, // first + . + first char of last
+        lastName ? `${firstName}.${lastName}${domain}` : null, // first + . + last
+        ...Array.from({ length: 10 }, (_, i) =>
+            lastName ? `${firstName}.${lastName}${i + 1}${domain}` : null // first + . + last + counter
+        )
+    ].filter(Boolean); // remove nulls
 
-    let email = first + domain;
-
-    let records = {
+    // Base record
+    const baseRecord = {
         EmployeeID: employeeId.toString(),
-        FirstName: first,
-        LastName: last,
-        EmailID: email,
+        FirstName: firstName,
+        LastName: lastName || "",
     };
-    // console.log(" [zohoEmployeeSetUp] Records at registerEmployeeInZohoById function is", records);
 
-    // 🔁 Attempt to register with retries
-    let result = await zohoApiOnboarding(access_token, records);
-    // console.log("[zohoEmployeeSetUp] Result at Line 73=5 in registerEmployeeInZohoById is:", result);
-
-    if (result === 1) {
-        email = `${first}.${last.charAt(0)}${domain}`;
-        records.EmailID = email;
-        result = await zohoApiOnboarding(access_token, records);
-        // console.log("[zohoEmployeeSetUp] Result at Line 83 in registerEmployeeInZohoById is:", result);
-
-        if (result === 1) {
-            email = `${first}.${last}${domain}`;
-            records.EmailID = email;
-            result = await zohoApiOnboarding(access_token, records);
-            // console.log("[zohoEmployeeSetUp] Result at Line 91 in registerEmployeeInZohoById is:", result);
-
-            if (result === 1) {
-                for (let i = 1; ; i++) {
-                    email = `${first}.${last}${i}${domain}`;
-                    records.EmailID = email;
-                    result = await zohoApiOnboarding(access_token, records);
-                    // console.log("[zohoEmployeeSetUp] Result at Line 98 in registerEmployeeInZohoById is:", result);
-
-                    if (result === 0) break;
-                }
-            }
+    let finalEmail = null;
+    for (const email of emailCandidates) {
+        const records = { ...baseRecord, EmailID: email };
+        const result = await zohoApiOnboarding(access_token, records);
+        if (result === 0) {
+            finalEmail = email;
+            break;
         }
     }
 
-    if (result === 0) {
-        // mail generation is sucessfull 
-        // console.log(`[Zoho Setup] ✅ Successfully registered user with email: ${email} and EmployeeID: ${employeeId}`);
+    if (finalEmail) {
         return {
             success: true,
             message: "Employee registered successfully in Zoho",
-            finalEmail: email,
-            employeeId
+            finalEmail,
+            employeeId,
         };
     }
-    console.warn(`[Zoho Setup] ❌ Failed to register employee in Zoho after retries. Last attempted email: ${email}`);
+
+    console.warn(`[Zoho Setup] Failed to register employee in Zoho after retries`);
     return {
         success: false,
         message: "Failed to register employee in Zoho after all retries",
-        email: null,
-        employeeId: null
+        finalEmail: null,
+        employeeId: null,
     };
 }
 

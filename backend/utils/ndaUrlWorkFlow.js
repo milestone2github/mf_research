@@ -74,17 +74,27 @@ const ndaSignStatusDbUpdate = async (req, res) => {
             userId,
             { $set: update },
             { new: true }
-        );
+            );
 
-        if (!updatedUser) {
+            if (!updatedUser) {
             console.warn(`⚠️ No user found with ID: ${userId}`);
             return res.status(404).json({ success: false, message: 'User not found.' });
-        }
-        // console.log(`✅ NDA updated for: ${updatedUser.email} | Status: ${status}`);
-        if (status === 'success') {
+            }
+
+            if (status === 'success') {
             await newEmployeeSetup(userId);
-        }
-        return res.status(200).json({ success: true, message, userId });
+
+            // Fire-and-forget OR await — choose one:
+            // fire-and-forget (won't delay response):
+            sendOnboardingWelcomePack(userId).catch(err =>
+                console.error("WelcomePack dispatch error:", err)
+            );
+
+            // If you prefer to ensure send completes before responding, use:
+            // await sendOnboardingWelcomePack(userId);
+            }
+
+            return res.status(200).json({ success: true, message, userId });
 
     } catch (error) {
         console.error('🔥 Error updating NDA status:', error);
@@ -92,7 +102,76 @@ const ndaSignStatusDbUpdate = async (req, res) => {
     }
 };
 
+// Only require Gotra
+const GOTRA_URL =
+  process.env.AZURE_GOTRA_URL ||
+  "https://mfdatafeed.blob.core.windows.net/organization-policies/HR guideline.pdf";
 
+// Fetch Gotra PDF but don’t throw on 404; return null instead
+async function fetchPdfBufferSafe(url, label) {
+  if (!url) return null;
+  try {
+    const resp = await axios.get(encodeURI(url), { responseType: "arraybuffer" });
+    return Buffer.from(resp.data);
+  } catch (err) {
+    const status = err?.response?.status;
+    console.warn(`[WelcomePack] Failed to fetch ${label} (${url}) status=${status || "n/a"}`);
+    return null;
+  }
+}
+
+async function sendOnboardingWelcomePack(userId) {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      console.warn(`[WelcomePack] No user for ID: ${userId}`);
+      return false;
+    }
+
+    const to =  user.onboarding?.hrFilledInfo?.personalEmail;
+    const name = user.onboarding?.hrFilledInfo?.name || "there";
+    if (!to) {
+      console.warn(`[WelcomePack] No recipient email for user ${userId}`);
+      return false;
+    }
+
+    // Avoid duplicate sends using gotra flag
+    if (user.onboarding?.gotra?.sent) {
+      console.log("[WelcomePack] Gotra already sent — skipping");
+      return true;
+    }
+
+    const gotraBuf = await fetchPdfBufferSafe(GOTRA_URL, "Gotra");
+    const attachments = [];
+    if (gotraBuf) {
+      attachments.push({ filename: "Gotra_Guideline.pdf", content: gotraBuf });
+    }
+
+    await sendEmail({
+      toAddress: to,
+      subject: "Thanks for completing onboarding ",
+      body: `
+        <p>Dear ${name},</p>
+        <p>Thank you for completing your onboarding form and signing the NDA.</p>
+        <p>Please find attached the Gotra guidelines for your reference.</p>
+        <p>Regards,<br/>HR Team</p>
+      `,
+      attachments,
+    });
+
+    // Mark gotra as sent
+    user.onboarding.gotra = {
+      sent: !!gotraBuf,
+      sentAt: gotraBuf ? new Date() : user.onboarding?.gotra?.sentAt,
+    };
+    await user.save();
+
+    return true;
+  } catch (err) {
+    console.error("❌ sendOnboardingWelcomePack failed:", err.message);
+    return false;
+  }
+}
 
 //Supporting function for below embeddedsigning controller to get User Details
 const extractUserDetails = (user) => {
