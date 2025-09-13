@@ -25,6 +25,7 @@ const calculators = [
     title: "Retirement Calculator",
     description: "Calculate the future value of your retirement savings.",
     route: "retirement-calculator",
+    key: "retirement_calculator",
   },
   {
     name: 'Target Calculator',
@@ -33,6 +34,7 @@ const calculators = [
     description:
       "determine how much they could accumulate by a specified date using target-date mutual funds.",
     route: "target-date-calculator",
+    key: "target_calculator",
   },
   {
     name: 'MF Portfolio Calculator',
@@ -41,6 +43,7 @@ const calculators = [
     description:
       "Analyzes multiple mutual fund holdings to identify common stocks or securities.",
     route: "mf-overlap-tool",
+    key: "mf_portfolio_calculator",
   },
   {
     name: 'MF to ETF Comparison Calculator',
@@ -48,6 +51,7 @@ const calculators = [
     title: "Mutual Fund to ETF Comparison Calculator",
     description: "To compare MF performance with ETF.",
     route: "mf-vs-etf-calculator",
+    key: "mf_to_etf_comparison_calculator",
   },
   {
     name: 'Asset Allocation Tool',
@@ -56,6 +60,7 @@ const calculators = [
     description:
       "Develop and recommend customized asset allocation strategies for clients based on their risk profiles, investment goals, and time horizons.",
     route: "asset-allocation-tool",
+    key: "asset_allocation_tool",
   },
   {
     name: 'MF Cash Flow Planning Calculator',
@@ -64,6 +69,7 @@ const calculators = [
     description:
       "Forecast and plan cash flows for clients by calculating expected dividends and capital gains.",
     route: "cash-flow-calculator",
+    key: "mf_cash_flow_planning_calculator",
   },
   {
     name: 'Goal Based Investment Calculator',
@@ -72,6 +78,7 @@ const calculators = [
     description:
       "Create investment plans for clients' specific financial goals.",
     route: "goal-based-investment-calculator",
+    key: "goal_based_investment_calculator",
   },
   {
     name: 'MF Comparison Tool',
@@ -79,6 +86,7 @@ const calculators = [
     title: "Mutual Fund Comparison Tool",
     description: "Compare various mutual funds based on multiple criteria.",
     route: "mf-comparison",
+    key: "mf_comparison_tool",
   },
   {
     name: 'Education Planning Calculator',
@@ -87,6 +95,7 @@ const calculators = [
     description:
       "Planning how much needs to be invested in mutual funds to cover future education costs.",
     route: "education-planning-calculator",
+    key: "education_planning_calculator",
   },
   {
     name: 'MF Withdrawal Plan Calculator',
@@ -95,6 +104,7 @@ const calculators = [
     description:
       "Planning systematic withdrawals for clients who need regular income from their mutual fund investments.",
     route: "SWP-calculator",
+    key: "mf_withdrawal_plan_calculator",
   },
   {
     name: 'Risk Analyzer',
@@ -102,6 +112,7 @@ const calculators = [
     title: "Risk Analyzer",
     description: "Analyze the risk associated with your investments.",
     route: "risk-analyzer",
+    key: "risk_analyzer",
   },
   {
     name: 'MF Performance Attribution Calculator',
@@ -109,6 +120,7 @@ const calculators = [
     title: "Mutual Fund Performance Attribution Calculator",
     description: "Analyze the sources of a mutual fund's performance.",
     route: "mf-performance-attribution-calculator",
+    key: "mf_performance_attribution_calculator",
   },
 
   {
@@ -117,6 +129,7 @@ const calculators = [
     title: "SIP Calculator",
     description: "To calculate the SIP required to achieve a certain target.",
     route: "sip-calculator",
+    key: "sip_calculator",
   },
   {
     name: 'Lumpsum Calculator',
@@ -125,14 +138,15 @@ const calculators = [
     description:
       "To calculate the Lumpsum investment required to achieve a certain target.",
     route: "lumpsum-calculator",
+    key: "lumpsum_calculator",
   },
 ];
 
 const CalculatorList = () => {
   const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions || [];
+  const permissions = userData?.permissions || [];
   const allowedCalculators = calculators.filter(calculator => (
-    permissions?.includes(calculator.name)
+    permissions?.includes(calculator.key)
   ))
 
   return (

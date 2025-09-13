@@ -144,7 +144,7 @@ const createUser = async (req, res) => {
 // Update existing user
 const updateUser = async (req, res) => {
     try {
-        const { department, role, emp_status, mintUsername, insuranceDashboardID, permissions } = req.body;
+        const { department, role, status, mintUsername, insuranceDashboardID, folderId, permissions } = req.body;
 
         if (mintUsername && !usernameRegex.test(mintUsername)) {
             return res.status(400).json({ success: false, message: "Invalid username format (3-20 alphanumeric characters)" });
@@ -152,7 +152,7 @@ const updateUser = async (req, res) => {
 
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
-            { department, role, emp_status, mintUsername, insuranceDashboardID, permissions },
+            { department, role, status, mintUsername, insuranceDashboardID, folderId, permissions },
             { new: true, runValidators: true }
         ).populate("department role permissions");
 
