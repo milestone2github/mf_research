@@ -24,6 +24,7 @@ import Assets from '../components/pages/Assets'
 import { assetRoutes } from './assetRoutes'
 import OnboardingLayout from '../components/onboarding/OnboardingLayout';
 import Leaderboard from '../components/pages/Leaderboard';
+import InsuranceLeadUpdate from '../components/pages/InsuranceLeadUpdate';
 import onboardingRoutes from './onboarding'
 import RbacLayout from '../centralRbac/src/pages/RbacLayout'
 import { centralRbacRoutes } from './centralRbacRoutes'
@@ -213,7 +214,6 @@ export const appRoutes = [
 
 	// Login
 	{
-		requiredPermission: "login",
 		to: "/login",
 		element: <Loginpage />,
 		protected: false,
@@ -273,6 +273,16 @@ export const appRoutes = [
 		protected: true,
 		showInSidebar: true,
 	},
+	
+	// insurance lead update
+	{ 
+		requiredPermission: "insurance_lead_update",
+		to: '/insurance-lead-update',
+		label: 'Insurance Lead Update',
+		element: <InsuranceLeadUpdate />,
+		protected: true,
+		showInSidebar: true
+  },
 
 	// Wild Card to catch all other routes
 	{
