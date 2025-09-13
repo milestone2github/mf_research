@@ -163,8 +163,9 @@ const zohoCallback = async (req, res) => {
     let role = await Role.findOne({ name: zohoUser.Title });
 
     if (!role) {
-      role = await Role.create({ name: zohoUser.Title });
+      role = await Role.create({ name: zohoUser.Title, department: department._id });
       // console.log("Created new role:", role);
+      // console.log(`[ROLE-CREATE] New role "${role.name}" created under department "${department.name}" with ID ${role._id}`);
     }
 
     // Step 6: Create new user in the database
@@ -176,7 +177,7 @@ const zohoCallback = async (req, res) => {
       department: department._id,
       role: role._id,
       status: 'active',
-      internalDashboardRole: zohoUser.InternalDashboardRole || "",
+      internalDashboardRole: zohoUser.internalDashboardRole || "",
       lastSyncedWithZoho: new Date()
     });
 

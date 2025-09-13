@@ -126,11 +126,11 @@ const handleSpringVerifyAction = async (userId, action) => {
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Offer Letter</th>
               <th className="px-4 py-2">Form Submission</th>
-              <th className="px-6 py-2 w-40">Verification</th>
               <th className="px-4 py-2">NDA</th>
+              <th className="px-6 py-2 w-40">Verification</th>
               <th className="px-4 py-2">User Setup</th>
-              <th className="px-4 py-2">Assets</th>
               <th className="px-4 py-2">Gotra</th>
+              <th className="px-4 py-2">Assets</th>
               <th className="px-4 py-2">Notify</th>
               <th className='px-4 py-2'>Actions</th>
             </tr>
@@ -148,7 +148,6 @@ const handleSpringVerifyAction = async (userId, action) => {
     const isEligibleForAllocation =
       offerGenerated &&
       formStatus === 'Submitted' &&
-      backgroundVerified &&
       ndaSigned &&
       zohoCreated;
 
@@ -159,6 +158,12 @@ const handleSpringVerifyAction = async (userId, action) => {
 
         <td className="px-4 py-2">{renderStatus(offerGenerated ? 'Completed' : 'Pending')}</td>
         <td className="px-4 py-2">{renderStatus(formStatus)}</td>
+
+        {/* NDA status  */}
+        <td className="px-4 py-2">
+          {renderStatus(ndaSigned ? 'Completed' : 'Pending')}
+        </td>
+
         <td className="px-6 py-2 w-40">
   {offerGenerated &&
   formStatus === 'Submitted' &&
@@ -184,13 +189,20 @@ const handleSpringVerifyAction = async (userId, action) => {
        
 
 
-        {/* NDA status  */}
-        <td className="px-4 py-2">
-          {renderStatus(ndaSigned ? 'Completed' : 'Pending')}
-        </td>
+        
         {/* Zoho user status  */}
         <td className="px-4 py-2">
           {renderStatus(zohoCreated ? 'Completed' : 'Pending')}
+        </td>
+
+
+        {/* Gotra */}
+        <td className="px-4 py-2">
+          {renderStatus(
+            onboarding?.gotra?.sent
+              ? 'Completed'
+              : 'Pending'
+          )}
         </td>
 
         <td className="px-4 py-2">
@@ -209,19 +221,12 @@ const handleSpringVerifyAction = async (userId, action) => {
 </td>
 
 
-        {/* Gotra: show only after eligible */}
-        <td className="px-4 py-2">
-          {renderStatus(
-            isEligibleForAllocation && onboarding?.gotra?.sent
-              ? 'Completed'
-              : 'Pending'
-          )}
-        </td>
+        
 
         {/* Notify: show only after eligible */}
         <td className="px-4 py-2">
           {renderStatus(
-            isEligibleForAllocation && onboarding?.hasNotifiedToAll
+            onboarding?.hasNotifiedToAll
               ? 'Completed'
               : 'Pending'
           )}

@@ -29,44 +29,36 @@ Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run eject`
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# Calculators
+fix calculator - it isn't rendering
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# Employee onbaording
+- EMP onboarding - missing back button on add emp form [done]
+- v1.2 - offer letter modification [done]
+- v1.2 - sending gotra just after nda sign [done]
+- v1.2 - others option in department and role select menu inside HR form [done]
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+# mNivesh admin
+- missing back button on create new Blog [done]
+- loader on blog listing page [done]
+- loader on FD list page [done]
+- loader on IPO list page [done]
 
-## Learn More
+# asset management
+- missing loader on assets list page [done]
+- users list with their assigned assets page [done]
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- show asset serial no also on user view page
+- add sort by user name (may use email in backend) also, to show all assest assigned to a user at once
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+# RBAC
+- loader on users list page inside user management [done]
+- loader on permissions list page inside permission management [done]
+- loader on dept list page inside dept management [done]
+- loader on admins list page inside admins management [done]
 
-### Code Splitting
+- wrong active status is rendering
+- toast is showing up after fetching users list on user management, which isn't required
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# mf_Research_report
-# mf_Research_report

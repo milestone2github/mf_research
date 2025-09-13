@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 
 function PermissionIndex() {
   const [permissions, setPermissions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filtered, setFiltered] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState(null);
@@ -22,6 +23,7 @@ function PermissionIndex() {
 
   // Function to fetch and store search-based results
   const fetchPermissions = async () => {
+    setLoading(true); 
     try {
       const res = await axios.get(FETCH_PERMISSION_URL);
       setPermissions(res.data.permissionData);
@@ -30,6 +32,8 @@ function PermissionIndex() {
       console.error('Error fetching permissions:', error);
       toast.error('Failed to fetch permissions.', 
         { position: 'top-right', autoClose: 3000, transition: Slide });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -121,6 +125,7 @@ function PermissionIndex() {
           setShowModal(true);
         }}
         setModalData={setModalData}
+        loading={loading}
       />
 
       {/* Add/Edit Modal */}

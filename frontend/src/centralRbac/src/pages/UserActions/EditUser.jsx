@@ -29,7 +29,7 @@ function EditUser() {
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const [activeStatus, setActiveStatus] = useState("Active");
+    const [activeStatus, setActiveStatus] = useState("active");
     const [selectedRole, setSelectedRole] = useState(null);
     const [selectedDepartment, setSelectedDepartment] = useState(null);
 
@@ -53,7 +53,7 @@ function EditUser() {
                 const userResponse = await axios.get(`${RBAC_BASE_URL}/users/${userId}`);
                 const userData = userResponse.data.data;
                 setUser(userData);
-                setActiveStatus(userData.emp_status || "Active");
+                setActiveStatus(userData.status || "pending");
 
                 // Set initial department and role
                 if (userData.department?._id) {
@@ -276,8 +276,9 @@ function EditUser() {
                 role: selectedRole,
                 mintUsername: user.mintUsername,
                 insuranceDashboardID: user.insuranceDashboardID,
+                folderId: user.folderId,
                 permissions: permissionIds,
-                emp_status: activeStatus,
+                status: activeStatus,
             });
     
             if (response.data.success) {
@@ -294,15 +295,24 @@ function EditUser() {
             toast.error("Failed to save changes", { position: "top-right" });
         }
     };
-    
+
 
     if (loading) {
         return (
-            <div className="p-6 bg-gray-800 min-h-screen text-white flex justify-center items-center">
-                <p>Loading user details...</p>
+            <div className="p-6 bg-gray-900 min-h-screen flex justify-center items-center">
+                <div className="relative flex flex-col items-center">
+                    <div className="relative w-20 h-20">
+                        <div className="w-20 h-20 border-4 border-t-transparent border-blue-600 rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex justify-center items-center">
+                            <div className="w-6 h-6 bg-blue-400 rounded-full animate-ping"></div>
+                        </div>
+                    </div>
+                    <p className="mt-6 text-lg text-blue-400 animate-pulse">
+                        Loading user details...
+                    </p>
+                </div>
             </div>
-        );
-    }
+        )}
 
     return (
         <div className="p-6 bg-gray-800 min-h-screen text-white">
@@ -315,27 +325,36 @@ function EditUser() {
             </button>
 
             {/* Top Profile Section */}
-            <div className="bg-gray-900 p-6 rounded-lg shadow-lg flex flex-wrap justify-between items-center border-2 border-green-700 mb-6 gap-4">
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg flex flex-wrap justify-between items-center border-2 border-green-700 mb-6 gap-4 md:gap-3">
                 {/* Left Section - Avatar, Name, Email */}
-                <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full text-white font-bold text-lg md:text-xl ${getAvatorColor(user._id)}`}>
+                <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 flex items-center justify-center rounded-full text-white font-bold text-lg md:text-xl ${getAvatorColor(user._id)}`}>
                         {getInitials(user?.name).toUpperCase()}
                     </div>
                     <div>
-                        <h2 className="text-lg md:text-xl font-bold text-white">{user?.name}</h2>
-                        <p className="text-gray-300 text-sm md:text-base">{user?.email}</p>
+                        <h2 className="text-lg md:text-lg font-bold text-white">{user?.name}</h2>
+                        <p className="text-gray-300 text-sm md:text-sm">{user?.email}</p>
                     </div>
                 </div>
 
                 {/* Status */}
                 <div>
                     <select
-                        className={`px-3 py-2 md:px-4 md:py-2 font-medium rounded-lg focus:outline-white text-sm md:text-base ${activeStatus === "Active" ? "bg-green-600" : "bg-red-600"}`}
+                        className={`px-3 py-2 md:px-3 md:py-2 font-medium rounded-lg focus:outline-white text-sm md:text-base
+                            ${ activeStatus === "active"? "bg-green-600"
+                              : activeStatus === "inactive" ? "bg-red-600"
+                              : activeStatus === "pending" ? "bg-orange-500"
+                              : activeStatus === "onboarding" ? "bg-yellow-600"
+                              : activeStatus === "terminated" ? "bg-gray-500"
+                              : "bg-gray-400" }`}
                         value={activeStatus}
                         onChange={(e) => setActiveStatus(e.target.value)}
                     >
-                        <option value="Active" className="bg-green-600">Active</option>
-                        <option value="Inactive" className="bg-red-600">Inactive</option>
+                        <option value="active" className="bg-gray-600" >Active</option>
+                        <option value="inactive" className="bg-gray-600" >Inactive</option>
+                        <option value="pending" className="bg-gray-600" >Pending</option>
+                        <option value="onboarding" className="bg-gray-600" >Onboarding</option>
+                        <option value="terminated" className="bg-gray-600" >Terminated</option>
                     </select>
                 </div>
 
@@ -346,9 +365,9 @@ function EditUser() {
                         value={selectedDepartment || ""}
                         onChange={(e) => handleDepartmentChange(e.target.value)}
                     >
-                        <option value="">Select Department</option>
+                        <option value="" className="bg-gray-700">Select Department</option>
                         {departments.map((dept) => (
-                            <option key={dept._id} value={dept._id}>
+                            <option key={dept._id} value={dept._id} className="bg-gray-700">
                                 {dept.name}
                             </option>
                         ))}
@@ -360,9 +379,9 @@ function EditUser() {
                         onChange={(e) => handleRoleChange(e.target.value)}
                         disabled={!selectedDepartment}
                     >
-                        <option value="">Select Role</option>
+                        <option value="" className="bg-gray-700">Select Role</option>
                         {roles.map((role) => (
-                            <option key={role._id} value={role._id} title={role.name}>
+                            <option key={role._id} value={role._id} title={role.name} className="bg-gray-700">
                                 {role.name.length > 30 ? `${role.name.slice(0, 30)}...` : role.name}
                             </option>
                         ))}
@@ -370,7 +389,7 @@ function EditUser() {
 
                     <button
                         onClick={handleSave}
-                        className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-lg focus:outline-none w-full md:w-auto text-sm md:text-base"
+                        className="bg-green-600 hover:bg-green-800 border border-transparent hover:border-white text-white px-3 py-2 rounded-lg focus:outline-none w-full md:w-auto text-sm md:text-base"
                         disabled={!selectedDepartment || !selectedRole}
                     >
                         Save Changes
@@ -385,24 +404,40 @@ function EditUser() {
                     {/* User Info */}
                     <div className="mb-6">
                         <h3 className="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">User Info</h3>
-                        <div className="mb-4">
-                            <label className="block text-gray-300 mb-2 text-sm md:text-base">Mint Username</label>
+
+                        {/* Mint Username */}
+                        <div className="flex items-center mb-3">
+                            <label className="w-32 text-gray-300 text-sm md:text-base">Mint Username :</label>
                             <input
                                 type="text"
-                                className="w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none text-sm md:text-base"
+                                className="flex-1 px-3 py-1 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none text-sm md:text-base"
                                 value={user?.mintUsername || ""}
                                 onChange={(e) => setUser({ ...user, mintUsername: e.target.value })}
                                 placeholder="Enter Mint username"
                             />
                         </div>
-                        <div>
-                            <label className="block text-gray-300 mb-2 text-sm md:text-base">Dashboard ID</label>
+
+                        {/* Dashboard ID */}
+                        <div className="flex items-center mb-3">
+                            <label className="w-32 text-gray-300 text-sm md:text-base">Dashboard ID :</label>
                             <input
                                 type="text"
-                                className="w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none text-sm md:text-base"
+                                className="flex-1 px-3 py-1 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none text-sm md:text-base"
                                 value={user?.insuranceDashboardID || ""}
                                 onChange={(e) => setUser({ ...user, insuranceDashboardID: e.target.value })}
                                 placeholder="Enter Dashboard ID"
+                            />
+                        </div>
+
+                        {/* Folder ID */}
+                        <div className="flex items-center mb-3">
+                            <label className="w-32 text-gray-300 text-sm md:text-base">Folder ID :</label>
+                            <input
+                                type="text"
+                                className="flex-1 px-3 py-1 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none text-sm md:text-base"
+                                value={user?.folderId || ""}
+                                onChange={(e) => setUser({ ...user, folderId: e.target.value })}
+                                placeholder="Enter Folder ID"
                             />
                         </div>
                     </div>

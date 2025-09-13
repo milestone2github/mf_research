@@ -12,11 +12,11 @@ const userSchema = new mongoose.Schema({
     department: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "DEPARTMENTS",
-        required: true
+        required: false
     },
     role: {
         type: mongoose.Schema.Types.ObjectId,
-        require: true,
+        require: false,
         ref: "ROLES"
     },
     customRole: { type: String, trim: true },
@@ -26,12 +26,6 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "PERMISSIONS"
     }],
-    emp_status: {
-        type: String,
-        enum: ["Active", "Inactive"],
-        required: true,
-        default: "Active"
-    },
     internalDashboardRole: {
         type: String,
         enum: ["Admin", "Super Admin", ""],
