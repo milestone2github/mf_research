@@ -328,7 +328,7 @@ function EditUser() {
             <div className="bg-gray-900 p-6 rounded-lg shadow-lg flex flex-wrap justify-between items-center border-2 border-green-700 mb-6 gap-4 md:gap-3">
                 {/* Left Section - Avatar, Name, Email */}
                 <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full text-white font-bold text-lg md:text-xl ${getAvatorColor(user._id)}`}>
+                    <div className={`w-12 h-12 flex items-center justify-center rounded-full text-white font-bold text-lg md:text-xl ${getAvatorColor(user._id)}`}>
                         {getInitials(user?.name).toUpperCase()}
                     </div>
                     <div>
@@ -389,7 +389,7 @@ function EditUser() {
 
                     <button
                         onClick={handleSave}
-                        className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-lg focus:outline-none w-full md:w-auto text-sm md:text-base"
+                        className="bg-green-600 hover:bg-green-800 border border-transparent hover:border-white text-white px-3 py-2 rounded-lg focus:outline-none w-full md:w-auto text-sm md:text-base"
                         disabled={!selectedDepartment || !selectedRole}
                     >
                         Save Changes
