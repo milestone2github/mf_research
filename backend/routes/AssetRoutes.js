@@ -5,6 +5,7 @@ const {
     createAsset,
     updateAsset,
     changeAssetStatus,
+    changeMultipleAssetStatus,
     // getAllAssetCategories,
     createNewAssetCategory,
     getAllAssetTypes,
@@ -26,6 +27,7 @@ assetRouter.get("/assigned", getAssignedAssets);    // Fetch User's Assets
 assetRouter.get("/:id", getAssetById);
 assetRouter.get("/", getAssetByQuery);
 assetRouter.put("/:id", verifyUser, updateAsset);
+assetRouter.patch("/bulk/status", verifyUser, changeMultipleAssetStatus); 
 assetRouter.patch("/:id/:status", verifyUser, changeAssetStatus);
 
 // Asset Category Routes

@@ -1,5 +1,6 @@
 const AssetCategories = require("../models/AssetCategories");
 const Assets = require("../models/Assets");
+const User = require("../models/User"); 
 const AssetType = require("../models/AssetType");
 const {
     REQUIRED_FIELDS_NOT_FOUND, 
@@ -241,6 +242,70 @@ const changeAssetStatus = async (req, res) => {
     }
 }
 
+// Bulk change asset statuses (allocate / deallocate multiple)
+const changeMultipleAssetStatus = async (req, res) => {
+  try {
+    const { assets, userId } = req.body; // <-- include userId
+    if (!Array.isArray(assets) || assets.length === 0) {
+      return res.status(400).json({ message: "No assets provided" });
+    }
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    const updates = [];
+
+    for (const item of assets) {
+      const { assetId, op, assignedTo, remarks } = item || {};
+
+      if (!assetId || !op) {
+        return res.status(400).json({ message: "assetId and op are required" });
+      }
+      if (!VALID_STATUS_ACTIONS.includes(op)) {
+        return res.status(400).json({ message: "Status doesn't match any valid action." });
+      }
+
+      const updateFields = {
+        status: STATUS_MAP[op],       // allocate -> allocated, deallocate -> available, ...
+        updatedBy: req.user._id
+      };
+
+      if (op === "allocate") updateFields.allocatedTo = assignedTo;
+      if (op === "deallocate") updateFields.allocatedTo = null;
+      if (remarks !== undefined) updateFields.remarks = remarks;
+
+      updates.push(
+        Assets.findByIdAndUpdate(assetId, updateFields, {
+          new: true,
+          runValidators: true
+        }).select("-__v -createdAt -updatedAt")
+      );
+    }
+
+    const updatedAssets = await Promise.all(updates);
+
+    // 🔒 (Optional) If you want to ensure all ops are for the same target user, you can assert here.
+    // const onlyOneAssignedTo = new Set(assets.filter(a => a.op === 'allocate').map(a => a.assignedTo)).size <= 1
+
+    // ✅ Flip the onboarding flag for this user in the same request
+    await User.findByIdAndUpdate(
+      userId,
+      { $set: { "onboarding.hasAssestAllocated": true } },
+      { new: true }
+    ).select("_id onboarding.hasAssestAllocated");
+
+    return res.status(200).json({
+      message: "Bulk asset status update successful",
+      data: updatedAssets
+    });
+  } catch (err) {
+    console.error("Error bulk updating assets:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
 // Asset Category Controllers
 
 // const getAllAssetCategories = async (_req, res) => {
@@ -419,6 +484,7 @@ module.exports = {
     getAssetByQuery,
     updateAsset,
     changeAssetStatus,
+    changeMultipleAssetStatus,
     // getAllAssetCategories,
     createNewAssetCategory,
     getAllAssetTypes,
