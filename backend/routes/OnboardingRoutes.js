@@ -13,7 +13,7 @@ const {
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
 
 const verifyUser = require('../middlewares/VerifyUser');
-const verifyToken = require('../middlewares/verifyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { uploadOnboardingDocs } = require('../middlewares/uploadOnboardingDocs');
 
 

@@ -7,6 +7,7 @@ const { ACCESS_TOKEN_NOT_FOUND } = require('../utils/stringConstants');
 const { refreshZohoAccessToken } = require('../utils/refreshZohoAccessToken ');
 const { fetchZohoPeopleData } = require('../utils/fetchZohoPeopleData');
 const Department = require('../models/Department');
+const { FE } = require('../models/RouteOptimization');
 
 
 // Initiates login with Zoho OAuth
@@ -367,6 +368,39 @@ async function getCombinedPermissions(user) {
   return combinedPermissionKeys;
 }
 
+// Generate JWT token (currently for Field Executives) out of Contact Number
+const generateJWT = async (req, res) => {
+	try {
+		const { contactNumber } = req.body;
+		if (!contactNumber) {
+			return res.status(400).json({ error: "Phone number required." });
+		}
+
+		// Find Field Executive (FE) by phone number
+		const fe = await FE.findOne({ contactNumber });
+		if (!fe) {
+			return res.status(404).json({ error: "Field Executive not found." });
+		}
+
+    if (fe.status.toLowerCase() !== 'active') {
+      console.log(`User: ${fe.name} having employeeId: ${fe.employeeId} is ${fe.status}`);  // debug
+      return res.status(403).json({ error: `User: ${fe.name} is ${fe.status}` });
+    }
+    
+		// Create token
+		const token = jwt.sign(
+			{ contactNumber, employeeId: fe.employeeId },
+			process.env.JWT_SECRET,
+			{ expiresIn: "60d" }
+		);
+
+		res.status(200).json({ token });
+	} catch (err) {
+		console.error("Problem in generate-jwt API", err);
+		res.status(500).json({ message: "Internal Server Error." });
+	}
+};
+
 module.exports = {
   loginWithZoho,
   zohoCallback,
@@ -374,5 +408,6 @@ module.exports = {
   verifyGoogleUser,
   logout,
   fetchSMList,
-  fetchRMList
+  fetchRMList,
+  generateJWT
 }
