@@ -8,6 +8,7 @@ const mintRoutes = require('./Mint');
 const AdminRoute = require("./mniveshAdminRoutes/mniveshAdminRoutes");
 const OnboardingRoutes = require('./OnboardingRoutes');
 const rbacRoutes = require('./centralRbacRoutes');
+const RouteOptimization = require('./RouteOptimization');
 
 router.use("/assets", assetRoutes);
 router.use('/users', userRoutes);
@@ -17,5 +18,6 @@ router.use('/mint', mintRoutes);
 router.use('/mnivesh/admin',AdminRoute);
 router.use('/onboarding', OnboardingRoutes);
 router.use('/rbac', rbacRoutes);
+router.use('/route-plan', RouteOptimization);
 
 module.exports = router;
