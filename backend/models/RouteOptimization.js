@@ -6,6 +6,7 @@ const clientSchema = new Schema(
 		name: { type: String, required: true },
 		address: { type: String, required: true },
 		contactNumber: { type: String, required: true },
+		isCompleted: { type: Boolean, default: false },
 		availability: {
 			start: { type: Date, required: true },
 			end: { type: Date, required: true },
@@ -13,6 +14,7 @@ const clientSchema = new Schema(
 		location: {
 			type: { type: String, enum: ["Point"], default: "Point" },
 			coordinates: { type: [Number], required: true }, // [LONGITUDE, LATITUDE]
+			urlString: { type: String, required: true }
 		},
 		purposeOfVisit: { type: String, required: true },
 		priority: { type: Number, default: 0 },
@@ -72,8 +74,8 @@ const routeSchema = new Schema(
 	{
 		fe: { type: Schema.Types.ObjectId, ref: "FE", required: true },
 		client: { type: Schema.Types.ObjectId, ref: "Client", required: true },
-		visitStart: { type: Date, required: true },
-		visitEnd: { type: Date, required: true },
+		actualVisitStart: { type: Date, required: true },	// Actual starting time from current location
+		actualVisitEnd: { type: Date, required: true },		// Actual end-time afte the task marked as completed
 		order: { type: Number },
 		status: {
 			type: String,
@@ -95,6 +97,17 @@ const routeOptimizationSchema = new Schema(
 	},
 	{ timestamps: true }
 );
+
+// // Convert date to midnight UTC before saving
+// routeOptimizationSchema.pre("save", function (next) {
+// 	if (this.date) {
+// 		const d = new Date(this.date);
+// 		this.date = new Date(
+// 			Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+// 		);
+// 	}
+// 	next();
+// });
 
 // -------------------- Models --------------------
 const Client = model("Client", clientSchema);

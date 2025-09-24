@@ -1,5 +1,5 @@
 // Update Field Executive's current location
-const { FE, FERoute, RouteOptimization } = require("../models/RouteOptimization");
+const { FE, FERoute, RouteOptimization, Client } = require("../models/RouteOptimization");
 const { baseLocation } = require("../utils/constants");
 
 // Update Current Location of Field Executive
@@ -7,25 +7,12 @@ const updateUserLocation = async (req, res) => {
 	try {
 		const { long, lat } = req.body;
 		const feId = req.feId;
-		// REDUNDANT CODE --> NOW HANDLED BY feStatusCheck MIDDLEWARE
-		// const contactNumber = req.contactNumber;
-		// const empId = req.employeeId;
-
-		// // Check for contactNumber and empId in FE schema
-		// const fe = await FE.findOne({
-		// 	contactNumber,
-		// 	employeeId: empId,
-		// 	status: "ACTIVE",
-		// });
-		// if (!fe) {
-		// 	return res.status(404).json({ info: "Active FE not found" });
-		// }
 
 		// Check for Longitude and Latitude
 		if (!lat || !long) {
 			return res
 				.status(400)
-				.json({ error: "Latitude and longitude are required" });
+				.json({ error: "Longitude and Latitude are required" });
 		}
 
 		// Update currentLocation in FE Route schema
@@ -59,51 +46,127 @@ const updateUserLocation = async (req, res) => {
 // GET tasks (pending + optimized order)
 const getTasks = async (req, res) => {
 	try {
-		const feId = req.feId;
-		const today = new Date();
-		const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-		const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+		const feId = req.feId; // from JWT
+		const { startDate, endDate } = req.query; // optional filter for range of dates
 
-		const tasks = await RouteOptimization.aggregate([
-			{
-				$match: {
-					date: { $gte: startOfDay, $lte: endOfDay },
-					feList: { $in: [feId] },
+		const today = new Date();
+		const todayUTC = new Date(
+			Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+		);
+
+		const startOfDay = startDate ? new Date(startDate) : todayUTC;
+		const endOfDay = endDate
+			? new Date(endDate)
+			: new Date(todayUTC.getTime() + 24 * 60 * 60 * 1000 - 1); // end of today UTC
+
+		console.log("start Day & end Day: ", startOfDay, endOfDay); // debug
+		console.log("Field Exec. Object Id: --> ", feId); // debug
+
+		/** AGGREGATED TEST QUERY
+		const testTasks = await RouteOptimization.aggregate([
+				{
+					$match: {
+						feList: { $in: [feId] },
+						date: { $gte: startOfDay, $lte: endOfDay },
+					}
 				},
-			},
-			{ $unwind: "$routes" }, // destructure routes into separate steps
+			{ $unwind: "$routes" }, // optional, if you want routes separate
+			{ $match: { "routes.fe": feId } },
 			{
 				$lookup: {
 					from: "clients",
 					localField: "routes.client",
 					foreignField: "_id",
-					as: "client",
+					as: "clientDetails",
 				},
 			},
-			{ $unwind: "$client" },
-			{ $match: { "routes.status": "pending" } },
+			{ $unwind: "$clientDetails" }, // optional
 			{
-				$sort: {
-					"routes.order": 1,
-					"client.priority": -1, // higher priority first if same order
+				$lookup: {
+					from: "fes",
+					localField: "routes.fe",
+					foreignField: "_id",
+					as: "feInfo",
 				},
 			},
+			{ $unwind: "$feInfo" }, // optional
 			{
 				$project: {
-					_id: 0,
-					task_id: "$routes._id",
-					client_name: "$client.name",
-					task_status: "$routes.status",
-					task_priority: "$client.priority",
-					visitStart: "$routes.visitStart",
-					visitEnd: "$routes.visitEnd",
-					order: "$routes.order",
+					_id: 1,
+					date: 1,
+					generatedAt: 1,
+					feList: 1,
+					clients: 1,
+					routes: 1,
+					clientDetails: 1,
+					feInfo: 1,
 				},
 			},
 		]);
 
+		console.log("Test data: ==> ", testTasks);	// debug
+		**/
+
+		// /*
+		const tasks = await RouteOptimization.aggregate([
+			{
+				$match: {
+					feList: { $in: [feId] },
+					date: { $gte: startOfDay, $lte: endOfDay },
+				},
+			},
+			{ $unwind: "$routes" },
+			{ $match: { "routes.fe": feId } }, // only routes assigned to this FE
+			{
+				$lookup: {
+					from: "clients",
+					localField: "routes.client",
+					foreignField: "_id",
+					as: "clientDetails",
+				},
+			},
+			{ $unwind: "$clientDetails" },
+			{
+				$lookup: {
+					from: "fes",
+					localField: "routes.fe",
+					foreignField: "_id",
+					as: "feInfo",
+				},
+			},
+			{ $unwind: "$feInfo" },
+			{
+				$project: {
+					// _id: 1,
+					taskId: "$routes._id",
+					feName: "$feInfo.name",
+					feEmpId: "$feInfo.employeeId",
+					clientId: "$clientDetails._id",
+					clientName: "$clientDetails.name",
+					clientAddress: "$clientDetails.address",
+					clientContactNumber: "$clientDetails.contactNumber",
+					clientAvailability: "$clientDetails.availability",
+					isCompleted: "$clientDetails.isCompleted",
+					locationUrl: "$clientDetails.location.urlString",
+					purposeOfVisit: "$clientDetails.purposeOfVisit",
+					priority: "$clientDetails.priority",
+					feComments: "$clientDetails.feComments",
+					actualVisitStart: "$routes.actualVisitStart",
+					actualVisitEnd: "$routes.actualVisitEnd",
+					order: "$routes.order",
+					taskStatus: "$routes.status",
+				},
+			},
+			{ $sort: { order: 1, priority: -1 } }, // sort by route order then client priority
+		]);
+		// */
+
+		// console.log("Task data: --> ", tasks); // debug
+		// if (!testTasks.length) { // debug
 		if (!tasks.length) {
-			return res.status(404).json({ message: "No tasks found for today" });
+			return res
+				.status(404)
+				.json({ message: "No tasks found for the selected date(s)" });
 		}
 
 		return res.json(tasks);
@@ -111,9 +174,99 @@ const getTasks = async (req, res) => {
 		return res
 			.status(500)
 			.json({ error: "Failed to fetch tasks", details: err.message });
+		}
+	};
+	
+// Mark the isCompleted flag as true and move to next client in the list
+const markVisited = async (req, res) => {
+	try {
+		const feId = req.feId;
+		const { clientId, feComments } = req.body;
+
+		// 1. Verify client exists
+		const client = await Client.findById(clientId);
+		if (!client) {
+			return res.status(404).json({ error: "Client not found" });
+		}
+
+		// 2. Verify client is assigned to this FE (check RouteOptimization)
+		const today = new Date();
+		const todayUTC = new Date(
+			Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+		);
+
+		const routeOpt = await RouteOptimization.findOne({
+			date: todayUTC,
+			"routes.fe": feId,
+			"routes.client": clientId,
+		});
+		if (!routeOpt) {
+			return res
+				.status(403)
+				.json({ error: "Client not assigned to this field executive" });
+		}
+
+		// 3. Already completed?
+		if (client.isCompleted) {
+			return res.json({ message: "Client already marked as completed" });
+		}
+
+		// 4. Update client
+		client.isCompleted = true;
+		client.priority = 0; // remove priority
+		if (feComments) client.feComments = feComments;
+		await client.save();
+
+		// 5. Update route
+		const route = routeOpt.routes.find(
+			(r) =>
+				r.fe.toString() === feId.toString() &&
+				r.client.toString() === clientId.toString()
+		);
+		if (route) {
+			route.status = "completed";
+			route.actualVisitEnd = new Date();
+			if (!route.actualVisitStart) route.actualVisitStart = new Date(); // fallback --> // To-Do: get actualVisitStart field in body
+		}
+		await routeOpt.save();
+
+		// 6. Find next pending client for FE
+		const feRoutes = routeOpt.routes
+			.filter((r) => r.fe.toString() === feId.toString())
+			.sort((a, b) => a.order - b.order);
+
+		const currentIndex = feRoutes.findIndex(
+			(r) => r.client.toString() === clientId.toString()
+		);
+
+		let nextClientId = null;
+		if (currentIndex >= 0 && currentIndex < feRoutes.length - 1) {
+			const nextRoute = feRoutes
+				.slice(currentIndex + 1)
+				.find((r) => r.status === "pending");
+			if (nextRoute) nextClientId = nextRoute.client;
+		}
+
+		// 7. Update FE’s route tracking
+		await FERoute.findOneAndUpdate(
+			{ feId },
+			{ currentClient: nextClientId }
+		);
+
+		return res.json({
+			message: "Client visit marked as completed",
+			completedClient: clientId,
+			nextClient: nextClientId,
+		});
+	} catch (err) {
+		return res.status(500).json({
+			error: "Failed to mark client as visited",
+			details: err.message,
+		});
 	}
 };
 
+/*
 // GET completed tasks
 const getCompletedTasks = async (req, res) => {
 	try {
@@ -145,10 +298,12 @@ const getCompletedTasks = async (req, res) => {
 			.json({ error: "Failed to fetch completed tasks", details: err.message });
 	}
 };
+*/
 
 
 module.exports = {
 	updateUserLocation,
   getTasks,
-  getCompletedTasks
+	markVisited
+  // getCompletedTasks
 };
