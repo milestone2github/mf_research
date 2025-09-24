@@ -10,6 +10,7 @@ const generateOTP = () =>
 // Controller function
 const sendOtpViaWhatsApp = async (req, res) => {
 	try {
+		// console.log("Inside Send Otp via WhatsApp controller...") // debug
 		const phone = req.contactNumber;
 		const employeeId = req.employeeId;
 		if (!phone || !employeeId) {
@@ -17,7 +18,7 @@ const sendOtpViaWhatsApp = async (req, res) => {
 		}
 
 		// Find Field Executive (FE) by phone number
-		const fe = await FE.findOne({ contactNumber, employeeId });
+		const fe = await FE.findOne({ contactNumber: phone, employeeId });
 		if (!fe) {
 			return res.status(404).json({ error: "Field Executive not found." });
 		}
@@ -32,6 +33,7 @@ const sendOtpViaWhatsApp = async (req, res) => {
 
 		const otpCode = generateOTP();
 
+		// console.log("Generated OTP ==> ", otpCode); // debug
 		// Save OTP instance to DB (auto-expires in 5 minutes)
 		await OtpWati.create({ phone, otp: otpCode });
 

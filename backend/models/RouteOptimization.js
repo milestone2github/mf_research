@@ -11,7 +11,7 @@ const clientSchema = new Schema({
 	},
 	location: {
 		type: { type: String, enum: ["Point"], default: "Point" },
-		coordinates: { type: [Number], required: true }, // [longitude, latitude]
+		coordinates: { type: [Number], required: true },  // [LONGITUDE, LATITUDE]
 	},
 	purposeOfVisit: { type: String, required: true },
 	priority: { type: Number, default: 0 },
@@ -32,11 +32,11 @@ const fieldExecutiveRouteSchema = new Schema({
 	feId: { type: Schema.Types.ObjectId, ref: "FE", required: true },
 	baseLocation: {
 		type: { type: String, enum: ["Point"], default: "Point" },
-		coordinates: { type: [Number], required: true }, // [longitude, latitude]
+		coordinates: { type: [Number], required: true },  // [LONGITUDE, LATITUDE]
 	},
 	currentLocation: {
 		type: { type: String, enum: ["Point"], default: "Point" },
-		coordinates: { type: [Number] },
+		coordinates: { type: [Number] },  // [LONGITUDE, LATITUDE]
 	},
 	availability: [
 		{

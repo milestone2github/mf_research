@@ -1,24 +1,52 @@
 // Update Field Executive's current location
-const { FE } = require("../models");
-const { RouteOptimization } = require("../models");
+const { FE, FERoute, RouteOptimization } = require("../models/RouteOptimization");
+const { baseLocation } = require("../utils/constants");
 
 // Update Current Location of Field Executive
-exports.updateUserLocation = async (req, res) => {
+const updateUserLocation = async (req, res) => {
 	try {
-		const { lat, long } = req.body;
-		const feId = req.user.id; // parsed from JWT middleware
+		const { long, lat } = req.body;
+		const contactNumber = req.contactNumber;
+		const empId = req.employeeId;
 
+		// Check for contactNumber and empId in FE schema
+		const fe = await FE.findOne({
+			contactNumber,
+			employeeId: empId,
+			status: "ACTIVE",
+		});
+		if (!fe) {
+			return res.status(404).json({ info: "Active FE not found" });
+		}
+
+		// Check for Longitude and Latitude
 		if (!lat || !long) {
 			return res
 				.status(400)
 				.json({ error: "Latitude and longitude are required" });
 		}
 
-		await FE.findByIdAndUpdate(feId, {
-			currentLocation: { type: "Point", coordinates: [long, lat] },
-		});
+		// Update currentLocation in FE Route schema
+    await FERoute.findOneAndUpdate(
+			{ feId: fe._id }, // filter by FE id
+			{
+				$set: {
+					currentLocation: {
+						type: "Point",
+						coordinates: [longitude, latitude], // [LONG, LAT]
+					},
+				},
+				$setOnInsert: {
+					baseLocation: {
+						type: "Point",
+						coordinates: baseLocation,
+					},
+				},
+			},
+			{ new: true, upsert: true }
+		);
 
-		return res.status(200).json({ message: "Location updated successfully" });
+		return res.status(200).json({ message: "Current Location updated successfully" });
 	} catch (err) {
 		return res
 			.status(500)
@@ -27,7 +55,7 @@ exports.updateUserLocation = async (req, res) => {
 };
 
 // GET tasks (pending + optimized order)
-exports.getTasks = async (req, res) => {
+const getTasks = async (req, res) => {
 	try {
 		const feId = req.user.id; // from JWT
 		const today = new Date();
@@ -85,7 +113,7 @@ exports.getTasks = async (req, res) => {
 };
 
 // GET completed tasks
-exports.getCompletedTasks = async (req, res) => {
+const getCompletedTasks = async (req, res) => {
 	try {
 		const feId = req.user.id;
 
@@ -114,4 +142,11 @@ exports.getCompletedTasks = async (req, res) => {
 			.status(500)
 			.json({ error: "Failed to fetch completed tasks", details: err.message });
 	}
+};
+
+
+module.exports = {
+	updateUserLocation,
+  getTasks,
+  getCompletedTasks
 };
