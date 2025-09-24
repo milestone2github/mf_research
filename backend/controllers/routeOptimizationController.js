@@ -6,18 +6,20 @@ const { baseLocation } = require("../utils/constants");
 const updateUserLocation = async (req, res) => {
 	try {
 		const { long, lat } = req.body;
-		const contactNumber = req.contactNumber;
-		const empId = req.employeeId;
+		const feId = req.feId;
+		// REDUNDANT CODE --> NOW HANDLED BY feStatusCheck MIDDLEWARE
+		// const contactNumber = req.contactNumber;
+		// const empId = req.employeeId;
 
-		// Check for contactNumber and empId in FE schema
-		const fe = await FE.findOne({
-			contactNumber,
-			employeeId: empId,
-			status: "ACTIVE",
-		});
-		if (!fe) {
-			return res.status(404).json({ info: "Active FE not found" });
-		}
+		// // Check for contactNumber and empId in FE schema
+		// const fe = await FE.findOne({
+		// 	contactNumber,
+		// 	employeeId: empId,
+		// 	status: "ACTIVE",
+		// });
+		// if (!fe) {
+		// 	return res.status(404).json({ info: "Active FE not found" });
+		// }
 
 		// Check for Longitude and Latitude
 		if (!lat || !long) {
@@ -28,12 +30,12 @@ const updateUserLocation = async (req, res) => {
 
 		// Update currentLocation in FE Route schema
     await FERoute.findOneAndUpdate(
-			{ feId: fe._id }, // filter by FE id
+			{ feId }, // filter by FE id
 			{
 				$set: {
 					currentLocation: {
 						type: "Point",
-						coordinates: [longitude, latitude], // [LONG, LAT]
+						coordinates: [long, lat], // [LONGITUDE, LATITUDE]
 					},
 				},
 				$setOnInsert: {
@@ -57,7 +59,7 @@ const updateUserLocation = async (req, res) => {
 // GET tasks (pending + optimized order)
 const getTasks = async (req, res) => {
 	try {
-		const feId = req.user.id; // from JWT
+		const feId = req.feId;
 		const today = new Date();
 		const startOfDay = new Date(today.setHours(0, 0, 0, 0));
 		const endOfDay = new Date(today.setHours(23, 59, 59, 999));

@@ -29,8 +29,8 @@ router.get("/zoho/fetchRelationshipManager", fetchRMList);
 router.post("/generate-jwt", generateJWT);
 
 // Wati-based OTP Authentication
-router.post("/sendOtp", verifyJWT, sendOtpViaWhatsApp);
-router.post("/validateOtp", verifyJWT, verifyOtpWati);
+router.post("/send-otp", verifyJWT, sendOtpViaWhatsApp);
+router.post("/validate-otp", verifyJWT, verifyOtpWati);
 
 /* // Add sample data to Internal -> RouteOptimization and related db
 const {
