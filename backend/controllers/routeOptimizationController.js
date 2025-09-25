@@ -306,6 +306,10 @@ const addComments = async (req, res) => {
 			return res.status(404).json({ error: "Client not found" });
 		}
 
+		if (!remarksByFE) {
+			return res.status(404).json({ error: "No comments/remarks found" });
+		}
+
 		// 2. Get FE name (for denormalization)
 		const fe = await FE.findById(feId).select("name");
 		const feName = fe ? fe.name : "Unknown FE";
@@ -343,6 +347,57 @@ const addComments = async (req, res) => {
 		});
 	}
 };
+
+// Fetch all the client's coordinates based on their sequence of visit
+const getAllCoordinates = async (req, res) => {
+	try {
+		const feId = req.feId;
+
+		const today = new Date();
+		const todayUTC = new Date(
+			Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+		);
+		// Get today's routes for this FE
+		const routesToday = await RouteOptimization.aggregate([
+			{ $match: { date: todayUTC, feList: { $in: [feId] } } },
+			{ $unwind: "$routes" },
+			{ $match: { "routes.fe": feId } },
+			{
+				$lookup: {
+					from: "clients",
+					localField: "routes.client",
+					foreignField: "_id",
+					as: "clientDetails",
+				},
+			},
+			{ $unwind: "$clientDetails" },
+			{
+				$project: {
+					_id: 0,
+					clientId: "$clientDetails._id",
+					order: "$routes.order",
+					coordinates: "$clientDetails.location.coordinates",
+				},
+			},
+			{ $sort: { order: 1 } },
+		]);
+
+		return res.json({
+			message: "Coordinates fetched successfully",
+			data: routesToday,
+		});
+	} catch (err) {
+		return res.status(500).json({
+			error: "Failed to fetch the coordinates",
+			details: err.message,
+		});
+	}
+}
+
+
+/*----------------------------------------------------------------*/
+
+
 
 /*
 // GET completed tasks
@@ -384,5 +439,6 @@ module.exports = {
   getTasks,
 	markCompleted,
 	addComments,
+	getAllCoordinates,
   // getCompletedTasks
 };

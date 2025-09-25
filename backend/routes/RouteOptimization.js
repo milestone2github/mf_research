@@ -1,6 +1,6 @@
 // Efficient routing of RMs based on Client-data
 const express = require("express");
-const { getTasks, updateUserLocation, markCompleted, addComments } = require("../controllers/routeOptimizationController");
+const { getTasks, updateUserLocation, markCompleted, addComments, getAllCoordinates } = require("../controllers/routeOptimizationController");
 const { verifyJWT } = require("../middlewares/verifyToken");
 const { feStatusCheck } = require("../middlewares/checkActiveFE");
 const router = express.Router();
@@ -16,6 +16,9 @@ router.put("/mark-completed", verifyJWT, feStatusCheck, markCompleted);
 
 // Add remarks to the client
 router.post("/add-remarks", verifyJWT, feStatusCheck, addComments);
+
+// Get all the coordinates for current day
+router.get("/get-all-coordinates", verifyJWT, feStatusCheck, getAllCoordinates);
 
 // GET /api/tasks/completed -> Completed tasks of all time
 // router.get("/completed", getCompletedTasks);

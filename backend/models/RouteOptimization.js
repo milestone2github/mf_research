@@ -1,12 +1,11 @@
 const { Schema, model } = require("mongoose");
 
-
 // -------------------- Field Executive Comments --------------------
 const feCommentSchema = new Schema({
 	text: { type: String, required: true },
 	by: { type: Schema.Types.ObjectId, ref: "FE" }, // optional, track who added
 	byName: { type: String },
-	location: {
+	location: {  // store current location of FE when he writes comments (on Mark as Complete OR just adding comments)
 		type: { type: String, enum: ["Point"], default: "Point" },
 		coordinates: {
 			type: [Number],
@@ -18,7 +17,6 @@ const feCommentSchema = new Schema({
 	},
 	createdAt: { type: Date, default: Date.now },
 });
-
 
 // -------------------- Client --------------------
 const clientSchema = new Schema(
@@ -69,10 +67,6 @@ const fieldExecutiveRouteSchema = new Schema(
 			type: { type: String, enum: ["Point"], default: "Point" },
 			coordinates: { type: [Number] }, // [LONGITUDE, LATITUDE]
 		},
-		// commentLocation: {		// store current location of FE when he writes comments (on Mark as Complete OR just adding comments)
-		// 	type: { type: String, enum: ["Point"], default: "Point" },
-		// 	coordinates: { type: [Number] }, // [LONGITUDE, LATITUDE]
-		// },
 		availability: [
 			{
 				start: { type: Date, required: true },
