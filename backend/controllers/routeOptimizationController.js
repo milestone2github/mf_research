@@ -60,7 +60,7 @@ const getTasks = async (req, res) => {
 			: new Date(todayUTC.getTime() + 24 * 60 * 60 * 1000 - 1); // end of today UTC
 
 		console.log("start Day & end Day: ", startOfDay, endOfDay); // debug
-		console.log("Field Exec. Object Id: --> ", feId); // debug
+		// console.log("Field Exec. Object Id: --> ", feId); // debug
 
 		/** AGGREGATED TEST QUERY
 		const testTasks = await RouteOptimization.aggregate([
@@ -147,10 +147,11 @@ const getTasks = async (req, res) => {
 					clientContactNumber: "$clientDetails.contactNumber",
 					clientAvailability: "$clientDetails.availability",
 					isCompleted: "$clientDetails.isCompleted",
+					onHold: "$clientDetails.onHold",
 					locationUrl: "$clientDetails.location.urlString",
 					purposeOfVisit: "$clientDetails.purposeOfVisit",
 					priority: "$clientDetails.priority",
-					feComments: "$clientDetails.feComments",
+					// feComments: "$clientDetails.feComments",	// Not shown in FE's dashboard cards
 					actualVisitStart: "$routes.actualVisitStart",
 					actualVisitEnd: "$routes.actualVisitEnd",
 					order: "$routes.order",
@@ -178,10 +179,10 @@ const getTasks = async (req, res) => {
 	};
 	
 // Mark the isCompleted flag as true and move to next client in the list
-const markVisited = async (req, res) => {
+const markCompleted = async (req, res) => {
 	try {
 		const feId = req.feId;
-		const { clientId, feComments } = req.body;
+		const { clientId, remarksByFE, markCommentLocation } = req.body;
 
 		// 1. Verify client exists
 		const client = await Client.findById(clientId);
@@ -189,7 +190,7 @@ const markVisited = async (req, res) => {
 			return res.status(404).json({ error: "Client not found" });
 		}
 
-		// 2. Verify client is assigned to this FE (check RouteOptimization)
+		// 2. Verify client is assigned to this FE
 		const today = new Date();
 		const todayUTC = new Date(
 			Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
@@ -214,7 +215,29 @@ const markVisited = async (req, res) => {
 		// 4. Update client
 		client.isCompleted = true;
 		client.priority = 0; // remove priority
-		if (feComments) client.feComments = feComments;
+
+		// add FE comment (if provided)
+		if (remarksByFE) {
+			const fe = await FE.findById(feId).select("name");
+			const feName = fe ? fe.name : "Unknown FE";
+
+			const newComment = {
+				text: remarksByFE,
+				by: feId,
+				byName: feName,
+				createdAt: new Date(),
+			};
+
+			if (markCommentLocation?.coordinates?.length === 2) {
+				newComment.location = {
+					type: "Point",
+					coordinates: markCommentLocation.coordinates,
+				};
+			}
+
+			client.feComments.push(newComment);
+		}
+
 		await client.save();
 
 		// 5. Update route
@@ -226,7 +249,7 @@ const markVisited = async (req, res) => {
 		if (route) {
 			route.status = "completed";
 			route.actualVisitEnd = new Date();
-			if (!route.actualVisitStart) route.actualVisitStart = new Date(); // fallback --> // To-Do: get actualVisitStart field in body
+			if (!route.actualVisitStart) route.actualVisitStart = new Date(); // fallback ; To-Do: how to add actual start visit for each clients?
 		}
 		await routeOpt.save();
 
@@ -248,10 +271,15 @@ const markVisited = async (req, res) => {
 		}
 
 		// 7. Update FE’s route tracking
-		await FERoute.findOneAndUpdate(
-			{ feId },
-			{ currentClient: nextClientId }
-		);
+		const updatePayload = { currentClient: nextClientId };
+		if (markCommentLocation?.coordinates?.length === 2) {
+			updatePayload.currentLocation = {
+				type: "Point",
+				coordinates: markCommentLocation.coordinates,
+			};
+		}
+
+		await FERoute.findOneAndUpdate({ feId }, updatePayload);
 
 		return res.json({
 			message: "Client visit marked as completed",
@@ -261,6 +289,56 @@ const markVisited = async (req, res) => {
 	} catch (err) {
 		return res.status(500).json({
 			error: "Failed to mark client as visited",
+			details: err.message,
+		});
+	}
+};
+
+// POST the comment by FE to client
+const addComments = async (req, res) => {
+	try {
+		const feId = req.feId;
+		const { clientId, remarksByFE, markCommentLocation } = req.body;
+
+		// 1. Verify client exists
+		const client = await Client.findById(clientId);
+		if (!client) {
+			return res.status(404).json({ error: "Client not found" });
+		}
+
+		// 2. Get FE name (for denormalization)
+		const fe = await FE.findById(feId).select("name");
+		const feName = fe ? fe.name : "Unknown FE";
+
+		// 3. Build comment object
+		const newComment = {
+			text: remarksByFE,
+			by: feId,
+			byName: feName,
+			createdAt: new Date(),
+		};
+
+		if (markCommentLocation?.coordinates?.length === 2) {
+			newComment.location = {
+				type: "Point",
+				coordinates: markCommentLocation.coordinates,
+			};
+		}
+
+		// 4. Push new comment and mark client on hold
+		client.feComments.push(newComment);
+		client.onHold = true;
+
+		await client.save();
+
+		return res.json({
+			message: "Comment posted successfully, client put on hold",
+			clientId,
+			comment: newComment,
+		});
+	} catch (err) {
+		return res.status(500).json({
+			error: "Failed to add the comments by FE",
 			details: err.message,
 		});
 	}
@@ -304,6 +382,7 @@ const getCompletedTasks = async (req, res) => {
 module.exports = {
 	updateUserLocation,
   getTasks,
-	markVisited
+	markCompleted,
+	addComments,
   // getCompletedTasks
 };
