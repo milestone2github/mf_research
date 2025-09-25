@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 import { updateToast } from "../../reducers/ToastSlice";
 import Toast from "../common/Toast";
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const DirectClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -46,7 +47,7 @@ const DirectClientPayouts = () => {
     setLoading(true);
     axios
       .get(
-        "[api_url]"  // Replace with actual API URL
+        `${apiBaseUrl}/api/payout/insurance-data?mode=dir`
       )
       .then((response) => {
         let responseData = response.data.map((item) => ({
@@ -220,7 +221,7 @@ const DirectClientPayouts = () => {
 
     try {
       const response = await fetch(
-        "[api_url]",  // Replace with actual API URL
+        `${apiBaseUrl}/api/payout/update-insurance-accounts`,
         {
           method: "POST",
           headers: {
