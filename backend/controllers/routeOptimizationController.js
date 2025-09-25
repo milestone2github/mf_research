@@ -375,6 +375,7 @@ const getAllCoordinates = async (req, res) => {
 				$project: {
 					_id: 0,
 					clientId: "$clientDetails._id",
+					clientName: "$clientDetails.name",
 					order: "$routes.order",
 					coordinates: "$clientDetails.location.coordinates",
 				},
