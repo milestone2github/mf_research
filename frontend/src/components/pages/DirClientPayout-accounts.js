@@ -46,7 +46,7 @@ const DirectClientPayouts = () => {
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=dir"
+        "[api_url]"  // Replace with actual API URL
       )
       .then((response) => {
         let responseData = response.data.map((item) => ({
@@ -220,7 +220,7 @@ const DirectClientPayouts = () => {
 
     try {
       const response = await fetch(
-        "https://milestone-api.azurewebsites.net/api/UpdateInsuracePayout_Accounts?code=zaCGvV0xsN5tMHJfSos0km4FRT3RH784csNXGRpC6P1bAzFu2Aj-6w==",
+        "[api_url]",  // Replace with actual API URL
         {
           method: "POST",
           headers: {

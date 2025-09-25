@@ -54,7 +54,8 @@ const AssociatePayout = () => {
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=ass", {
+        "[api_url]", // Replace with actual API URL
+         {
       }
       )
       .then((response) => {
@@ -131,7 +132,7 @@ const AssociatePayout = () => {
   const requestEarlyRelease = async (record) => {
     setLoadingRelease(true)
     const baseUrl =
-      "https://milestone-api.azurewebsites.net/api/InsuranceEarlyPayout?code=ALwp8tdA-jpWhKhmbT7rfd1XG8ZA3jSypCsMHPoSho4cAzFu4WX-Cw==";
+      "[api_url]";  // Replace with actual API URL
 
     // Construct the query parameters
     const queryParams = new URLSearchParams({
