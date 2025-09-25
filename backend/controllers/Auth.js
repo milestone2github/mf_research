@@ -277,38 +277,55 @@ const verifyGoogleUser = async (req, res) => {
   }
 }
 
-// Extract access_token and fetch list of SM users
 const fetchSMList = async (req, res) => {
   try {
-    let access_token = req.session.user?.access_token;
-    const refresh_token = req.session.user?.refresh_token;
 
-    if (!access_token && !refresh_token) {
-      return res.status(401).json({ message: ACCESS_TOKEN_NOT_FOUND });
-    }
-    
-    if (!access_token && refresh_token) {
-      access_token = await refreshZohoAccessToken(refresh_token);
-      req.session.user.access_token = access_token;
-    }
-  
-    const peopleUrl = 'https://people.zoho.com/people/api/forms/P_EmployeeView/records';
-    const fetchPeople = await axios.get(peopleUrl, {
-      headers: {
-        'Authorization': `Zoho-oauthtoken ${access_token}`
-      }
-    });
-    
-    const serviceManagers = fetchPeople.data
-    .filter(person => person.Title === 'Service Manager')
-    .map(person => `${person['First Name']} ${person['Last Name']}`.trim());
-    
-    res.status(200).json({ data: serviceManagers });
+    const serviceManagers = await User.find({status:"active"})
+      .populate("role")
+      .then(users => 
+        users.filter(u => u.role?.name === "Service Manager" || u.role?.name === "Chief Operation Officer" && u.name) // skip null/empty names
+          .map(u => u.name)
+      );
+
+    res.status(200).json({ success: true, data: serviceManagers });
   } catch (err) {
-    console.error("Error in fetchSMList: \n", err);
-    res.status(500).json({success: false, msg: "Internal server error"});
+    console.error("Error in fetchSMList:", err);
+    res.status(500).json({ success: false, msg: "Internal server error" });
   }
-}
+};
+
+// Extract access_token and fetch list of SM users
+// const fetchSMList = async (req, res) => {
+//   try {
+//     let access_token = req.session.user?.access_token;
+//     const refresh_token = req.session.user?.refresh_token;
+
+//     if (!access_token && !refresh_token) {
+//       return res.status(401).json({ message: ACCESS_TOKEN_NOT_FOUND });
+//     }
+    
+//     if (!access_token && refresh_token) {
+//       access_token = await refreshZohoAccessToken(refresh_token);
+//       req.session.user.access_token = access_token;
+//     }
+  
+//     const peopleUrl = 'https://people.zoho.com/people/api/forms/P_EmployeeView/records';
+//     const fetchPeople = await axios.get(peopleUrl, {
+//       headers: {
+//         'Authorization': `Zoho-oauthtoken ${access_token}`
+//       }
+//     });
+    
+//     const serviceManagers = fetchPeople.data
+//     .filter(person => person.Title === 'Service Manager')
+//     .map(person => `${person['First Name']} ${person['Last Name']}`.trim());
+    
+//     res.status(200).json({ data: serviceManagers });
+//   } catch (err) {
+//     console.error("Error in fetchSMList: \n", err);
+//     res.status(500).json({success: false, msg: "Internal server error"});
+//   }
+// }
 
 // Fetch RM Names from Zoho People
 const fetchRMList = async (req, res) => {

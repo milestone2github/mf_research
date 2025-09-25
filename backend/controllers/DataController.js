@@ -192,22 +192,25 @@ const postTransForm = async (req, res) => {
     let formData = req.body.formData;
     let allFormsData = []; // to post all entries at once to zoho flow
 
+     const io = req.app.get("io"); // get socket.io instance
+
     // modify transaction preference from string to Date 
     const { transactionPreference, relationshipManager } = formData.commonData;
 
-// ✅ Check and insert new RM if needed
-if (relationshipManager && typeof relationshipManager === 'string') {
-  const existingEmployee = await Employee.findOne({ name: relationshipManager.trim() }).lean();
+    // ✅ Check and insert new RM if needed
+    if (relationshipManager && typeof relationshipManager === 'string') {
+      // rm name in title case
+      const nameInTitleCase = toTitleCase(relationshipManager.trim());
+      const existingEmployee = await Employee.findOne({ name: nameInTitleCase }).lean();
 
-  if (!existingEmployee) {
-    await Employee.create({
-      name: relationshipManager.trim(),
-      department: 'Sales',
-      role: 'relationship manager',
-    });
-    // console.log(`New Relationship Manager '${relationshipManager}' added to Employee list.`);
-  }
-}
+      if (!existingEmployee) {
+        await Employee.create({
+          name: nameInTitleCase,
+          department: 'Sales',
+          role: 'relationship manager',
+        });
+      }
+    }
 
     if (transactionPreference === 'ASAP') {
       formData.commonData.transactionPreference = new Date()
@@ -383,14 +386,19 @@ if (relationshipManager && typeof relationshipManager === 'string') {
 
       // send email to user 
       sendEmail({
-        from: "noreply@mnivesh.niveshonline.com", 
-        subject: "MF Transactions", 
-        body: generateHtmlContent(mailData), 
-        toAddress: email, 
+        from: "noreply@mnivesh.niveshonline.com",
+        subject: "MF Transactions",
+        body: generateHtmlContent(mailData),
+        toAddress: email,
         ccAddress: "pramod@niveshonline.com"
       });
 
-      res.status(200).json(results);
+      // ✅ Broadcast new transaction to all clients
+      io.emit("newTransaction", allFormsData);
+
+      res.status(201).json({ message: "Saved", data: allFormsData });
+
+      // res.status(200).json(results);
     } else {
       res.status(400).json({ message: "No valid form data provided" });
     }

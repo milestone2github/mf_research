@@ -1,4 +1,6 @@
 require("dotenv").config();
+const http = require("http");
+const { Server } = require("socket.io");
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -18,6 +20,9 @@ const { TRANSACTION_DB_NAME } = require("./utils/stringConstants");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
 const leaderboardRoutes = require('./routes/leaderboard'); 
+
+// wrap express in http server
+const server = http.createServer(app);
 
 // Configure session middleware
 app.use(
@@ -40,6 +45,26 @@ app.use(
 
 // Get allowed origins from environment variable
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
+
+// create socket server
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true
+  }
+});
+
+// Socket connection handler
+io.on("connection", (socket) => {
+  console.log("🟢 New client connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Client disconnected:", socket.id);
+  });
+});
+
+// make io accessible in routes/controllers
+app.set("io", io);
 
 // CORS configuration
 const corsOptions = {
@@ -78,7 +103,7 @@ app.get("*", (_req, res) => {
 });
 
 // Start the server and connect to MongoDB
-app.listen(port, async () => {
+server.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
   // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
