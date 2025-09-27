@@ -1,4 +1,5 @@
 const { loginWithZoho, zohoCallback, verifySession, verifyGoogleUser, logout, fetchSMList, fetchRMList } = require('../controllers/Auth');
+const verifyUser = require('../middlewares/VerifyUser');
 
 const router = require('express').Router();
 
@@ -18,7 +19,7 @@ router.post("/google/verify", verifyGoogleUser)
 router.post("/logout", logout)
 
 // route to fetch service manager from zoho people
-router.get("/zoho/fetchServiceManager", fetchSMList);
+router.get("/zoho/fetchServiceManager", verifyUser, fetchSMList);
 
 // route to fetch service manager from zoho people
 router.get("/zoho/fetchRelationshipManager", fetchRMList);

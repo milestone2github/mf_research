@@ -6,6 +6,7 @@ import { MdOutlineCurrencyRupee } from "react-icons/md";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 import { updateToast } from "../../reducers/ToastSlice";
 import Toast from "../common/Toast";
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const AssociatePayout = () => {
   const [total, setTotal] = useState(0)
@@ -54,7 +55,7 @@ const AssociatePayout = () => {
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=ass", {
+        `${apiBaseUrl}/api/payout/insurance-data?mode=ass`, {
       }
       )
       .then((response) => {
@@ -129,82 +130,57 @@ const AssociatePayout = () => {
   };
 
   const requestEarlyRelease = async (record) => {
-    setLoadingRelease(true)
-    const baseUrl =
-      "https://milestone-api.azurewebsites.net/api/InsuranceEarlyPayout?code=ALwp8tdA-jpWhKhmbT7rfd1XG8ZA3jSypCsMHPoSho4cAzFu4WX-Cw==";
+  setLoadingRelease(true);
 
-    // Construct the query parameters
-    const queryParams = new URLSearchParams({
-      id: record.id,
-      Lead_Name: record.Lead_Name, // Update parameter names as needed
-      Associate_Name : record.Associate_Name,
-      Associate_Payout: record.Associate_Payout,
-      Associate_Payout1: record.Associate_Payout1,
-    }).toString();
+  try {
+    const response = await axios.post(
+      `${apiBaseUrl}/api/payout/early-release`,
+      {
+        id: record.id,
+        leadID: record.Lead_ID,
+        leadName: record.Lead_Name,
+        associateName: record.Associate_Name,
+        associatePayout: record.Associate_Payout,
+        insuranceType: record.Insurance_Type,
+        mergedReferralFee: record.Associate_Payout,
+        referralAmount: record.Associate_Payout1,
+        payoutReleaseDate: record.Payout_Release_Date,
+      },
+      { withCredentials: true }
+    );
 
-    // console.log(baseUrl, "&", queryParams);
-    const emailData = {
-      from: 'insuranceearlypayout@mnivesh.niveshonline.com',
-      subject: "Test for Early Payout Release",
-      // subject: "Request for Early Payout Release",
-      body: `
-        <p>Dear Sir/Madam,</p>
-        <p>I am requesting an early release of payout for the following record:</p>
-        <p>Lead Name: ${record.Lead_Name}</p>
-        <p>Lead ID: ${record.Lead_ID}</p>
-        <p>Insurance Type: ${record.Insurance_Type}</p>
-        <p>Associate Payout: ${record.Associate_Payout}%</p>
-        <p>Associate Payout1: ₹ ${record.Associate_Payout1}</p>
-        <p>Payout Release Date: ${record.Payout_Release_Date}</p>
-        <p><a href="${baseUrl}&${queryParams}">Approve Early Payout</a></p>
-        <p>Please process the payout at your earliest convenience.</p>
-        <p>Regards,<br/>Milestone Team</p>
-      `,
-      toAddress: "insurancemgmt@niveshonline.com"
-    };
-
-    try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/api/send-mail`,
-        emailData,
-        { withCredentials: true }
-      );
-      
-      if(response.status !== 200) {
-        throw new Error(response.data.error || 'something went wrong ')
-      }
-      // console.log("Email sent:", response.data?.message);
-  
-      setButtonStates(prevState => ({
-        ...prevState,
-        [record.id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
-      }));
-  
-      dispatch(
-        updateToast({ type: "success", message: "Request sent" })
-      );
-    } catch (error) {
-      console.error("Error sending email:", error.message);
-  
-      dispatch(
-        updateToast({ type: "error", message: `Error sending request for release` })
-      );
+    if (response.status !== 200) {
+      throw new Error(response.data.error || "Something went wrong");
     }
-  };
+
+    setButtonStates((prevState) => ({
+      ...prevState,
+      [record.id]: { text: "Request Sent", color: "#60a5fa", disabled: true },
+    }));
+
+    dispatch(updateToast({ type: "success", message: "Request sent" }));
+  } catch (error) {
+    console.error("Error sending request:", error.message);
+    dispatch(
+      updateToast({ type: "error", message: "Error sending request for release" })
+    );
+  }
+};
 
   const handleProceedPayout = async (name) => {
     if (name?.toLowerCase() !== selectedPayoutItem?.Lead_Name?.toLowerCase()) {
-      setPayoutModalError('Lead name does not match!')
-      return
+      setPayoutModalError("Lead name does not match!");
+      return;
     }
 
-    await requestEarlyRelease(selectedPayoutItem)
+    await requestEarlyRelease(selectedPayoutItem);
 
-    setLoadingRelease(false)
-    setIsConfimPayoutModalOpen(false)
-    setPayoutModalError(null)
-    setSelectedPayoutItem(null)
-  }
+    setLoadingRelease(false);
+    setIsConfimPayoutModalOpen(false);
+    setPayoutModalError(null);
+    setSelectedPayoutItem(null);
+  };
+
 
   if (loading) return <div className=" h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>
