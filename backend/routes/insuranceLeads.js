@@ -3,7 +3,7 @@ const express = require("express");
 const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
-
+const InsuranceRecoFile = require("../models/InsuranceRecoFile");
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -65,6 +65,22 @@ router.post("/ingest", upload.single("file"), async (req, res) => {
     return res
       .status(status)
       .json({ message: "forward failed", detail: data });
+  }
+});
+
+// ---------------- New companies route ----------------
+router.get("/companies", async (req, res) => {
+  try {
+    // find or create single doc
+    let doc = await InsuranceRecoFile.findOne();
+    if (!doc) {
+      doc = await InsuranceRecoFile.create({ filenames: [] });
+    }
+
+    res.json(doc.filenames);
+  } catch (err) {
+    console.error("[insurance-leads] companies error:", err);
+    res.status(500).json({ message: "Failed to fetch companies" });
   }
 });
 
