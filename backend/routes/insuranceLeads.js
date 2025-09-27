@@ -10,7 +10,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 // POST /api/insurance-leads/ingest
 router.post("/ingest", upload.single("file"), async (req, res) => {
   try {
-    const { company, fileType } = req.body;
+    const { company, fileType, reupload } = req.body;
     const file = req.file;
 
     if (!file) {
@@ -28,14 +28,11 @@ router.post("/ingest", upload.single("file"), async (req, res) => {
     const url = new URL(baseUrl);
     url.searchParams.set("company", company);
     url.searchParams.set("type", fileType);
+    url.searchParams.set("reupload", reupload === "true");
     const targetUrl = url.toString();
-
+    
     console.log("[insurance-leads] Forwarding to:", targetUrl);
-    console.log("[insurance-leads] File:", {
-      name: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size,
-    });
+    
 
     // Build multipart form-data
     const form = new FormData();
