@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 import { updateToast } from "../../reducers/ToastSlice";
 import Toast from "../common/Toast";
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const DirectClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -46,7 +47,7 @@ const DirectClientPayouts = () => {
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=dir"
+        `${apiBaseUrl}/api/payout/insurance-data?mode=dir`
       )
       .then((response) => {
         let responseData = response.data.map((item) => ({
@@ -220,7 +221,7 @@ const DirectClientPayouts = () => {
 
     try {
       const response = await fetch(
-        "https://milestone-api.azurewebsites.net/api/UpdateInsuracePayout_Accounts?code=zaCGvV0xsN5tMHJfSos0km4FRT3RH784csNXGRpC6P1bAzFu2Aj-6w==",
+        `${apiBaseUrl}/api/payout/update-insurance-accounts`,
         {
           method: "POST",
           headers: {

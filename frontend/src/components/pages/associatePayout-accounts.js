@@ -3,6 +3,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const AssociatePayoutAccounts = () => {
   const [originalData, setOriginalData] = useState([]);
@@ -57,7 +58,7 @@ const AssociatePayoutAccounts = () => {
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=ass"
+        `${apiBaseUrl}/api/payout/insurance-data?mode=ass`
       )
       .then((response) => {
         setOriginalData(response.data);
@@ -352,9 +353,8 @@ const AssociatePayoutAccounts = () => {
 
       const recordIds = filteredRecords.map((record) => record.id);
 
-      // const response = await fetch('https://jsonplaceholder.typicode.com/posts')
       const response = await fetch(
-        "https://milestone-api.azurewebsites.net/api/UpdateInsuracePayout_Accounts?code=zaCGvV0xsN5tMHJfSos0km4FRT3RH784csNXGRpC6P1bAzFu2Aj-6w==",
+        `${apiBaseUrl}/api/payout/update-insurance-accounts`,
         {
           method: "POST",
           headers: {

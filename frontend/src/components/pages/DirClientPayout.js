@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 import Toast from "../common/Toast";
 import { updateToast } from "../../reducers/ToastSlice";
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const DirClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -46,7 +47,7 @@ const DirClientPayouts = () => {
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=dir"
+        `${apiBaseUrl}/api/payout/insurance-data?mode=dir`
       )
       .then((response) => {
         setData(
@@ -95,82 +96,81 @@ const DirClientPayouts = () => {
     Referral_Amount,
     payoutReleaseDate
   ) => {
-    setLoadingRelease(true)
-    const baseUrl =
-      "https://milestone-api.azurewebsites.net/api/InsuranceEarlyPayout?code=ALwp8tdA-jpWhKhmbT7rfd1XG8ZA3jSypCsMHPoSho4cAzFu4WX-Cw==";
-
-    // Construct the query parameters
-    const queryParams = new URLSearchParams({
-      id,
-      Lead_Name: leadName, // Update parameter names as needed
-      Associate_Name,
-      Associate_Payout: Merged_Referral_Fee,
-      Associate_Payout1: Referral_Amount,
-    }).toString();
-
-    // console.log(baseUrl, "&", queryParams);
-    const emailData = {
-      from: 'insuranceearlypayout@mnivesh.niveshonline.com',
-      subject: "Request for Early Payout Release",
-      body: `
-        <p>Dear Sir/Madam,</p>
-        <p>I am requesting an early release of payout for the following record:</p>
-        <p>Lead Name: ${leadName}</p>
-        <p>Lead ID: ${leadID}</p>
-        <p>Insurance Type: ${insuranceType}</p>
-        <p>Refferal Payout %: ${Merged_Referral_Fee}%</p>
-        <p>Refferal Payout ₹: ₹ ${Referral_Amount}</p>
-        <p>Payout Release Date: ${payoutReleaseDate}</p>
-        <p><a href="${baseUrl}&${queryParams}">Approve Early Payout</a></p>
-        <p>Please process the payout at your earliest convenience.</p>
-        <p>Regards,<br/>Milestone Team</p>
-      `,
-      toAddress: "insurancemgmt@niveshonline.com"
-    };
+    setLoadingRelease(true);
 
     try {
       const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/api/send-mail`,
-        emailData,
+        `${apiBaseUrl}/api/payout/early-release`,
+        {
+          id,
+          leadID,
+          leadName,
+          associateName: Associate_Name,
+          insuranceType,
+          mergedReferralFee: Merged_Referral_Fee,
+          referralAmount: Referral_Amount,
+          payoutReleaseDate,
+          associatePayout: Merged_Referral_Fee,
+        },
         { withCredentials: true }
       );
 
       if (response.status !== 200) {
-        throw new Error(response.data.error || 'something went wrong ')
+        throw new Error(response.data.error || "Something went wrong");
       }
-      // console.log("Email sent:", response.data?.message);
 
-      setButtonStates(prevState => ({
+      setButtonStates((prevState) => ({
         ...prevState,
-        [id]: { text: "Request Sent", color: "#60a5fa", disabled: true }
+        [id]: { text: "Request Sent", color: "#60a5fa", disabled: true },
       }));
 
-      dispatch(
-        updateToast({ type: "success", message: "Request sent" })
-      );
+      dispatch(updateToast({ type: "success", message: "Request sent" }));
     } catch (error) {
-      console.error("Error sending email:", error.message);
+      console.error("Error sending request:", error.message);
 
       dispatch(
-        updateToast({ type: "error", message: `Error sending request for release` })
+        updateToast({
+          type: "error",
+          message: "Error sending request for release",
+        })
       );
     }
   };
 
   const handleProceedPayout = async (name) => {
     if (name?.toLowerCase() !== selectedPayoutItem?.leadName?.toLowerCase()) {
-      setPayoutModalError('Client name does not match!')
-      return
+      setPayoutModalError("Client name does not match!");
+      return;
     }
 
-    let { id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate } = selectedPayoutItem
-    await requestEarlyRelease(id, leadID, leadName, Associate_Name, insuranceType, Merged_Referral_Fee, Referral_Amount, payoutReleaseDate)
+    let {
+      id,
+      leadID,
+      leadName,
+      Associate_Name,
+      insuranceType,
+      Merged_Referral_Fee,
+      Referral_Amount,
+      payoutReleaseDate,
+    } = selectedPayoutItem;
 
-    setLoadingRelease(false)
-    setIsConfimPayoutModalOpen(false)
-    setPayoutModalError(null)
-    setSelectedPayoutItem(null)
-  }
+    await requestEarlyRelease(
+      id,
+      leadID,
+      leadName,
+      Associate_Name,
+      insuranceType,
+      Merged_Referral_Fee,
+      Referral_Amount,
+      payoutReleaseDate
+    );
+
+    setLoadingRelease(false);
+    setIsConfimPayoutModalOpen(false);
+    setPayoutModalError(null);
+    setSelectedPayoutItem(null);
+  };
+
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>
