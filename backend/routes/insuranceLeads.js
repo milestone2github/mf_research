@@ -3,14 +3,14 @@ const express = require("express");
 const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
-
+const InsuranceRecoFile = require("../models/InsuranceRecoFile");
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // POST /api/insurance-leads/ingest
 router.post("/ingest", upload.single("file"), async (req, res) => {
   try {
-    const { company, fileType } = req.body;
+    const { company, fileType, reupload } = req.body;
     const file = req.file;
 
     if (!file) {
@@ -28,14 +28,11 @@ router.post("/ingest", upload.single("file"), async (req, res) => {
     const url = new URL(baseUrl);
     url.searchParams.set("company", company);
     url.searchParams.set("type", fileType);
+    url.searchParams.set("reupload", reupload === "true");
     const targetUrl = url.toString();
-
+    
     console.log("[insurance-leads] Forwarding to:", targetUrl);
-    console.log("[insurance-leads] File:", {
-      name: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size,
-    });
+    
 
     // Build multipart form-data
     const form = new FormData();
@@ -65,6 +62,22 @@ router.post("/ingest", upload.single("file"), async (req, res) => {
     return res
       .status(status)
       .json({ message: "forward failed", detail: data });
+  }
+});
+
+// ---------------- New companies route ----------------
+router.get("/companies", async (req, res) => {
+  try {
+    // find or create single doc
+    let doc = await InsuranceRecoFile.findOne();
+    if (!doc) {
+      doc = await InsuranceRecoFile.create({ filenames: [] });
+    }
+
+    res.json(doc.filenames);
+  } catch (err) {
+    console.error("[insurance-leads] companies error:", err);
+    res.status(500).json({ message: "Failed to fetch companies" });
   }
 });
 
