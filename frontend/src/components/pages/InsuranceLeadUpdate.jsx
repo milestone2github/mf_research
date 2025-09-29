@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { BiCloudUpload, BiLoaderAlt } from "react-icons/bi";
 import { updateToast } from "../../reducers/ToastSlice"; // adjust path if needed
@@ -7,14 +7,6 @@ import Toast from "../common/Toast"; // your existing toast component
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
 const EXCEL_EXTENSIONS = ".xlsx,.xls";
-const COMPANY_OPTIONS = [
-  "HDFC ERGO",
-  // "TATA AIG",
-  // "POLICY BajjaR",
-  // "Girnar",
-  // "Royal Sundaram",
-  "Star Health",
-];
 
 const FILE_TYPES = [
   { label: "MIS", value: "mis" },
@@ -25,11 +17,26 @@ function InsuranceLeadUpdate() {
   const [file, setFile] = useState(null);
   const [company, setCompany] = useState("");
   const [fileType, setFileType] = useState("");
+  const [reupload, setReupload] = useState(false); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [companyOptions, setCompanyOptions] = useState([]);
   const inputRef = useRef(null);
 
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    async function fetchCompanies() {
+      try {
+        const res = await fetch(`${backendUrl}/api/insurance-leads/companies`);
+        const data = await res.json();
+        setCompanyOptions(data || []);
+      } catch (err) {
+        console.error("Failed to load companies:", err);
+      }
+    }
+    fetchCompanies();
+  }, []);
 
   const onDragOver = (e) => e.preventDefault();
   const onDrop = (e) => {
@@ -74,7 +81,7 @@ function InsuranceLeadUpdate() {
       form.append("file", file);
       form.append("company", company);
       form.append("fileType", fileType);
-
+      form.append("reupload", reupload); 
       const res = await fetch(`${backendUrl}/api/insurance-leads/ingest`, {
   method: "POST",
   body: form,
@@ -168,7 +175,7 @@ if (!res.ok) {
               <option value="" disabled>
                 Select company…
               </option>
-              {COMPANY_OPTIONS.map((c) => (
+              {companyOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -199,6 +206,19 @@ if (!res.ok) {
             {errors.fileType && (
               <p className="mt-1 text-sm text-red-600">{errors.fileType}</p>
             )}
+          </div>
+         
+          {/* Reupload checkbox */}
+          <div className="flex items-center gap-2">
+            <input
+              id="reupload"
+              type="checkbox"
+              checked={reupload}
+              onChange={(e) => setReupload(e.target.checked)}
+            />
+            <label htmlFor="reupload" className="text-sm text-gray-600">
+              Reupload this file
+            </label>
           </div>
 
           {/* Submit */}
