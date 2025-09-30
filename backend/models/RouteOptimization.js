@@ -19,30 +19,54 @@ const feCommentSchema = new Schema({
 });
 
 // -------------------- Client --------------------
+// TO handle multiple recurring visits to same client
+const clientVisitSchema = new Schema({
+	visitingAddress: { type: String, required: true },
+	availability: {
+		start: { type: Date, required: true },
+		end: { type: Date, required: true },
+	},
+	location: {
+		type: { type: String, enum: ["Point"], default: "Point" },
+		coordinates: { type: [Number], required: true }, // [LONGITUDE, LATITUDE]
+		urlString: { type: String, required: true },
+	},
+	assignedFE: { type: Schema.Types.ObjectId, ref: "FE" }, // track which FE is assigned
+	purposeOfVisit: { type: String, required: true },
+	priority: { type: Number, default: 0 },
+	isCompleted: { type: Boolean, default: false },
+	onHold: { type: Boolean, default: false },
+	feComments: [feCommentSchema],
+	createdAt: { type: Date, default: Date.now },
+});
+
 const clientSchema = new Schema(
 	{
 		name: { type: String, required: true },
 		address: { type: String, required: true },
-		contactNumber: { type: String, required: true },
-		availability: {
-			start: { type: Date, required: true },
-			end: { type: Date, required: true },
-		},
-		location: {
-			type: { type: String, enum: ["Point"], default: "Point" },
-			coordinates: { type: [Number], required: true }, // [LONGITUDE, LATITUDE]
-			urlString: { type: String, required: true }
-		},
-		purposeOfVisit: { type: String, required: true },
-		priority: { type: Number, default: 0 },
-		isCompleted: { type: Boolean, default: false },
-		onHold: { type: Boolean, default: false },
-		feComments: [feCommentSchema],
+		contactNumber: { type: String, required: true, unique: true },
+		visitDetails: [clientVisitSchema],
+		// availability: {
+		// 	start: { type: Date, required: true },
+		// 	end: { type: Date, required: true },
+		// },
+		// location: {
+		// 	type: { type: String, enum: ["Point"], default: "Point" },
+		// 	coordinates: { type: [Number], required: true }, // [LONGITUDE, LATITUDE]
+		// 	urlString: { type: String, required: true }
+		// },
+		// purposeOfVisit: { type: String, required: true },
+		// priority: { type: Number, default: 0 },
+		// isCompleted: { type: Boolean, default: false },
+		// onHold: { type: Boolean, default: false },
+		// feComments: [feCommentSchema],
 	},
 	{ timestamps: true }
 );
-clientSchema.index({ location: "2dsphere" });
-clientSchema.index({ "feComments.location": "2dsphere" });
+clientSchema.index({ "visitDetails.location": "2dsphere" });
+clientSchema.index({ "visitDetails.feComments.location": "2dsphere" });
+// clientSchema.index({ location: "2dsphere" });
+// clientSchema.index({ "feComments.location": "2dsphere" });
 
 // -------------------- Field Executive --------------------
 const fieldExecutiveSchema = new Schema(

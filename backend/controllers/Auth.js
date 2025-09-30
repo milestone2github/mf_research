@@ -386,10 +386,11 @@ const generateJWT = async (req, res) => {
       console.log(`User: ${fe.name} having employeeId: ${fe.employeeId} is ${fe.status}`);  // debug
       return res.status(403).json({ error: `User: ${fe.name} is ${fe.status}` });
     }
-    
+
 		// Create token
 		const token = jwt.sign(
-			{ contactNumber, employeeId: fe.employeeId },
+			// { contactNumber, employeeId: fe.employeeId },
+			{ feId: fe._id },
 			process.env.JWT_SECRET,
 			{ expiresIn: "60d" }
 		);

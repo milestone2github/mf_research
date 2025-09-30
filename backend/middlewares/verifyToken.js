@@ -33,8 +33,12 @@ const verifyJWT = (req, res, next) => {
 
 		const token = authHeader.split(" ")[1];
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
-		req.contactNumber = decoded.contactNumber;
-		req.employeeId = decoded.employeeId;
+		// req.contactNumber = decoded.contactNumber;
+		// req.employeeId = decoded.employeeId;
+    if (!decoded) {
+      return res.status(401).json({ error: "Invalid or Expired JWT" });
+    }
+    req.feId = decoded.feId;
 		next();
 	} catch (err) {
 		console.error("Unable to verify the JWT Token:", err.message);
