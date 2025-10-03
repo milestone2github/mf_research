@@ -1,6 +1,8 @@
 const AssetCategories = require("../models/AssetCategories");
 const Assets = require("../models/Assets");
 const User = require("../models/User"); 
+const Merchant = require("../models/Merchant");
+const mongoose = require('mongoose');
 const AssetType = require("../models/AssetType");
 const {
     REQUIRED_FIELDS_NOT_FOUND, 
@@ -35,217 +37,289 @@ const {
 
 // Create new asset
 const createAsset = async (req, res) => {
-    try {
-        const { name, type, serialNumber, remarks } = req.body;
-        const addedBy = req.user._id;
-        // Check if any required field is missing in req.body
-        // console.log("User Id: ======> ", req.user);
-        if (!addedBy) {
-            return res.status(401).json({ message: USER_ID_NOT_FOUND });
-        }
-        if (!name || !type || !serialNumber) {
-            return res.status(404).json({
-                message: REQUIRED_FIELDS_NOT_FOUND
-            });
-        }
-        // Check asset if entry already exists
-        const assetExist = await Assets.findOne({ serialNumber, addedBy });
-        if (assetExist) {
-            return res.status(409).json({ message: ASSET_FOUND_IN_DB });
-        }
-        const newAsset = new Assets({ name, type, serialNumber, addedBy, remarks });
-        await newAsset.save();
+  try {
+    const {
+      assetCode,
+      dateOfPurchase,
+      assetName,
+      brandName,
+      modelNumber,
+      serialNumber,
+      assetDescriptionSpecification,
+      warrantyExpiryDate,
+      type,
+      merchantId,
+      remarks
+    } = req.body;
 
-        res.status(200).json({
-            message: ASSET_CREATE_SUCCESS
-        });
-    } catch (err) {
-        console.error(INTERNAL_ERROR_CONSOLE("creating"), err);
-        res.status(500).json({
-            message: INTERNAL_SERVER_ERROR
-        });
+    const addedBy = req.user._id;
+    if (!addedBy) {
+      return res.status(401).json({ message: USER_ID_NOT_FOUND });
     }
-}
+
+    if (!assetName || !type || !serialNumber) {
+      return res.status(400).json({ message: REQUIRED_FIELDS_NOT_FOUND });
+    }
+
+    // check for duplicate serial
+    const assetExist = await Assets.findOne({ serialNumber });
+    if (assetExist) {
+      return res.status(409).json({ message: ASSET_FOUND_IN_DB });
+    }
+
+    // validate merchantId if provided
+    if (merchantId && !mongoose.Types.ObjectId.isValid(merchantId)) {
+      return res.status(400).json({ message: "Invalid merchantId" });
+    }
+
+    const newAsset = new Assets({
+      assetCode,
+      dateOfPurchase,
+      assetName,
+      brandName,
+      modelNumber,
+      serialNumber,
+      assetDescriptionSpecification,
+      warrantyExpiryDate,
+      type,
+      merchantId: merchantId || undefined,
+      remarks,
+      addedBy
+    });
+
+    await newAsset.save();
+    res.status(200).json({ message: ASSET_CREATE_SUCCESS, data: newAsset });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("creating asset"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
+};
 
 // Update asset data
 const updateAsset = async (req, res) => {
-    try {
-        const { name, type, serialNumber, remarks } = req.body;
-        const { id } = req.params;
-        const updatedBy = req.user._id;
-        // console.log("ASSET ID: ", id);
-        if (!id) {
-            return res.status(401).json({ message: ASSET_ID_NOT_FOUND });
-        }
-        if (!updatedBy) {
-            return res.status(401).json({ message: USER_ID_NOT_FOUND });
-        }
+  try {
+    const {
+      assetCode,
+      dateOfPurchase,
+      assetName,
+      brandName,
+      modelNumber,
+      serialNumber,
+      assetDescriptionSpecification,
+      warrantyExpiryDate,
+      type,
+      merchantId,
+      remarks
+    } = req.body;
 
-        // Check and Update if found
-        const updatedData = await Assets.findByIdAndUpdate(
-            id,
-            { name, type, serialNumber, remarks },
-            { new: true }
-        ).select('-__v -createdAt');
-        if (!updatedData) {
-            return res.status(409).json({ message: ASSET_NOT_FOUND_IN_DB });
-        }
+    const { id } = req.params;
+    const updatedBy = req.user._id;
 
-        res.status(200).json({ message: ASSET_UPDATE_SUCCESS, updatedData });
-    } catch(err) {
-        console.error(INTERNAL_ERROR_CONSOLE("updating"), err);
-        res.status(500).json({
-            message: INTERNAL_SERVER_ERROR
-        });
+    if (!id) {
+      return res.status(400).json({ message: ASSET_ID_NOT_FOUND });
     }
-}
+    if (!updatedBy) {
+      return res.status(401).json({ message: USER_ID_NOT_FOUND });
+    }
+
+    // validate merchantId if provided
+    if (merchantId && !mongoose.Types.ObjectId.isValid(merchantId)) {
+      return res.status(400).json({ message: "Invalid merchantId" });
+    }
+
+    const updatedData = await Assets.findByIdAndUpdate(
+      id,
+      {
+        assetCode,
+        dateOfPurchase,
+        assetName,
+        brandName,
+        modelNumber,
+        serialNumber,
+        assetDescriptionSpecification,
+        warrantyExpiryDate,
+        type,
+        merchantId: merchantId || undefined,
+        remarks,
+        updatedBy
+      },
+      { new: true, runValidators: true }
+    ).select("-__v -createdAt");
+
+    if (!updatedData) {
+      return res.status(404).json({ message: ASSET_NOT_FOUND_IN_DB });
+    }
+
+    res.status(200).json({ message: ASSET_UPDATE_SUCCESS, data: updatedData });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("updating asset"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
+};
 
 // Fetch individual asset by id
 const getAssetById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        if (!id) {
-            return res.status(404).json({ message: ASSET_ID_NOT_FOUND });
-        }
-        const getAssetInfo = await Assets.findById(id)
-        .populate({
-            path: 'type',
-            populate: {
-                path: 'category',
-                model: 'AssetCategory'
-            }
-          })
-          .populate('allocatedTo addedBy updatedBy')
-          .select('-__v -createdAt');
-        if (!getAssetInfo) {
-            return res.status(404).json({ message: ASSET_NOT_FOUND_IN_DB });
-        }
-        res.status(200).json({ message: ASSET_FETCH_SUCCESS, data: getAssetInfo });
-    } catch (err) {
-        console.error(INTERNAL_ERROR_CONSOLE("fetching"), err);
-        res.status(500).json({
-            message: INTERNAL_SERVER_ERROR
-        });
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(404).json({ message: ASSET_ID_NOT_FOUND });
     }
-}
+
+    const getAssetInfo = await Assets.findById(id)
+      .populate({
+        path: 'type',
+        populate: { path: 'category', model: 'AssetCategory' }
+      })
+      .populate('merchantId', 'name')
+      .populate({
+        path: 'allocations.userId',
+        select: 'name'
+      })
+      .populate('addedBy updatedBy', 'name')
+      .select('-__v -createdAt')
+      .lean({ virtuals: true }); // ✅ ensure allocatedTo shows
+
+    if (!getAssetInfo) {
+      return res.status(404).json({ message: ASSET_NOT_FOUND_IN_DB });
+    }
+
+    res.status(200).json({ message: ASSET_FETCH_SUCCESS, data: getAssetInfo });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("fetching"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
+};
+
 
 // Search asset by query
 const getAssetByQuery = async (req, res) => {
-    try {
-        // Fetch asset based on given query
-        const { q, type, serialNumber, status } = req.query;
-        const filter = {};
-        if (q) {
-            filter.name = { $regex: q, $options: 'i' };
-        }
-        // if (cat) {
-        //     filter.category = cat;
-        // }
-        if (type) {
-            filter.type = type;
-        }
-        if (serialNumber) {
-            filter.serialNumber = serialNumber;
-        }
-        if (status) {
-            filter.status = status;
-        }
-        // console.log("filter option: ", filter);
-        const fetchedAssets = await Assets.find(filter)
-          .populate({
-            path: 'type',
-            populate: {
-                path: 'category',
-                model: 'AssetCategory'
-            }
-          })
-          .populate('allocatedTo')
-          .select('-__v -createdAt -updatedAt');
-        // console.log("fetched asset ==> ", fetchedAssets);
-        res.status(200).json({ message: ASSET_FETCH_SUCCESS, data: fetchedAssets });
-    } catch (err) {
-        console.error(INTERNAL_ERROR_CONSOLE("fetching data by query of"), err);
-        res.status(500).json({ message: INTERNAL_SERVER_ERROR });
-    }
+  try {
+    const { q, type, serialNumber, status } = req.query;
+    const filter = {};
+
+    if (q) filter.name = { $regex: q, $options: 'i' };
+    if (type) filter.type = type;
+    if (serialNumber) filter.serialNumber = serialNumber;
+    if (status) filter.status = status;
+
+    const fetchedAssets = await Assets.find(filter)
+      .populate({
+        path: 'type',
+        populate: { path: 'category', model: 'AssetCategory' }
+      })
+      .populate('merchantId', 'name')
+      .populate({
+        path: 'allocations.userId',
+        select: 'name'
+      })
+      .select('-__v -createdAt -updatedAt')
+      .lean({ virtuals: true });
+
+    
+
+    res.status(200).json({ message: ASSET_FETCH_SUCCESS, data: fetchedAssets });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("fetching data by query of"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
 };
 
 // Change asset status as per params
 const changeAssetStatus = async (req, res) => {
-    try {
-        const { id, status } = req.params;
-        const updatedBy = req.user._id;
-        
-        if (!id || !status) {
-            return res.status(400).json({ message: ID_STATUS_PARAMS_REQUIRED });
-        }
-        
-        if (!VALID_STATUS_ACTIONS.includes(status)) {
-            return res.status(400).json({ message: INVALID_STATUS_ACTION });
-        }
-        
-        // Fetch asset info for condition based updation
-        const checkAssetInfo = await Assets.findById(id).populate('type allocatedTo');
+  try {
+    const { id, status } = req.params;
+    const updatedBy = req.user._id;
 
-        let allocatedTo = null;
-        let remarks;
-        
-        // Check allocation status before changing it to 'REMOVE'
-        if (status === 'remove') {
-            if (checkAssetInfo.allocatedTo) {
-                return res.status(401).json({ message: ASSET_ALLOTTED_ERROR });
-            }
-        }
-
-        // Check current status for updating to 'REPAIR'
-        if (status === 'repair') {
-            if (checkAssetInfo.status !== 'available') {
-                return res.status(401).json({ message: ASSET_NOT_AVAILABLE_ERROR });
-            }
-        }
-
-        // Take input from body if allocating asset to someone
-        if (status === 'allocate') {
-            allocatedTo = req.body.assignedTo;
-            remarks = req.body.remarks;
-        } else {
-            allocatedTo = null;
-        }
-
-        const updateFields = {
-            status: STATUS_MAP[status],
-            updatedBy,
-            allocatedTo
-        }
-
-        if (remarks !== undefined) {
-            updateFields.remarks = remarks;
-        }
-
-        const dbStatusMessage = STATUS_SUCCESS_MESSAGE_MAP[status];
-        
-        const updatedAsset = await Assets.findByIdAndUpdate(
-            id,
-            updateFields,
-            { new: true }
-        ).select("-__v -createdAt -updatedAt");
-
-        if (!updatedAsset) {
-            return res.status(404).json({ message: ASSET_NOT_FOUND_IN_DB });
-        }
-
-        res.status(200).json({ message: dbStatusMessage, data: updatedAsset });
-    } catch(err) {
-        console.error(INTERNAL_ERROR_CONSOLE("removing the status"), err);
-        res.status(500).json({
-            message: INTERNAL_SERVER_ERROR
-        });
+    if (!id || !status) {
+      return res.status(400).json({ message: ID_STATUS_PARAMS_REQUIRED });
     }
-}
+
+    if (!VALID_STATUS_ACTIONS.includes(status)) {
+      return res.status(400).json({ message: INVALID_STATUS_ACTION });
+    }
+
+    const asset = await Assets.findById(id).populate("type allocations.userId");
+    if (!asset) {
+      return res.status(404).json({ message: ASSET_NOT_FOUND_IN_DB });
+    }
+
+    let remarks;
+    const dbStatusMessage = STATUS_SUCCESS_MESSAGE_MAP[status];
+
+    // 🛑 Prevent removing while allocated
+    if (status === "remove" && asset.allocations.some(a => a.status === "allocated")) {
+      return res.status(401).json({ message: ASSET_ALLOTTED_ERROR });
+    }
+
+    // 🛑 Prevent repair if not available
+    if (status === "repair" && asset.status !== "available") {
+      return res.status(401).json({ message: ASSET_NOT_AVAILABLE_ERROR });
+    }
+
+    if (status === "allocate") {
+      const assignedTo = req.body.assignedTo;
+      remarks = req.body.remarks;
+
+      if (!assignedTo) {
+        return res.status(400).json({ message: "assignedTo is required when allocating" });
+      }
+
+      // 🔹 Add new allocation record
+      asset.allocations.push({
+        userId: assignedTo,
+        allocatedAt: new Date(),
+        status: "allocated"
+      });
+
+      // 🔹 Update user doc
+      await User.findByIdAndUpdate(assignedTo, {
+        $push: {
+          assets: {
+            asset: asset._id,
+            allocatedAt: new Date(),
+            status: "allocated"
+          }
+        },
+        $set: { "onboarding.hasAssestAllocated": true }
+      });
+    }
+
+    if (status === "deallocate") {
+      // 🔹 Mark last allocation as returned
+      const lastAlloc = asset.allocations[asset.allocations.length - 1];
+      if (lastAlloc && lastAlloc.status === "allocated") {
+        lastAlloc.returnedAt = new Date();
+        lastAlloc.status = "returned";
+
+        await User.updateOne(
+          { "assets.asset": asset._id, "assets.status": "allocated" },
+          {
+            $set: {
+              "assets.$.status": "returned",
+              "assets.$.returnedAt": new Date()
+            }
+          }
+        );
+      }
+    }
+
+    asset.status = STATUS_MAP[status];
+    asset.updatedBy = updatedBy;
+    if (remarks !== undefined) asset.remarks = remarks;
+
+    await asset.save();
+
+    res.status(200).json({ message: dbStatusMessage, data: asset });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("changing asset status"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
+};
 
 // Bulk change asset statuses (allocate / deallocate multiple)
 const changeMultipleAssetStatus = async (req, res) => {
   try {
-    const { assets, userId } = req.body; // <-- include userId
+    const { assets, userId } = req.body;
     if (!Array.isArray(assets) || assets.length === 0) {
       return res.status(400).json({ message: "No assets provided" });
     }
@@ -256,43 +330,62 @@ const changeMultipleAssetStatus = async (req, res) => {
     const updates = [];
 
     for (const item of assets) {
-      const { assetId, op, assignedTo, remarks } = item || {};
-
+      const { assetId, op, remarks } = item || {};
       if (!assetId || !op) {
         return res.status(400).json({ message: "assetId and op are required" });
       }
       if (!VALID_STATUS_ACTIONS.includes(op)) {
-        return res.status(400).json({ message: "Status doesn't match any valid action." });
+        return res.status(400).json({ message: "Invalid status action" });
       }
 
-      const updateFields = {
-        status: STATUS_MAP[op],       // allocate -> allocated, deallocate -> available, ...
-        updatedBy: req.user._id
-      };
+      const asset = await Assets.findById(assetId);
+      if (!asset) continue;
 
-      if (op === "allocate") updateFields.allocatedTo = assignedTo;
-      if (op === "deallocate") updateFields.allocatedTo = null;
-      if (remarks !== undefined) updateFields.remarks = remarks;
+      if (op === "allocate") {
+        asset.allocations.push({
+          userId,
+          allocatedAt: new Date(),
+          status: "allocated"
+        });
 
-      updates.push(
-        Assets.findByIdAndUpdate(assetId, updateFields, {
-          new: true,
-          runValidators: true
-        }).select("-__v -createdAt -updatedAt")
-      );
+        await User.findByIdAndUpdate(userId, {
+          $push: {
+            assets: {
+              asset: asset._id,
+              allocatedAt: new Date(),
+              status: "allocated"
+            }
+          },
+          $set: { "onboarding.hasAssestAllocated": true }
+        });
+      }
+
+      if (op === "deallocate") {
+        const lastAlloc = asset.allocations[asset.allocations.length - 1];
+        if (lastAlloc && lastAlloc.status === "allocated") {
+          lastAlloc.returnedAt = new Date();
+          lastAlloc.status = "returned";
+
+          await User.updateOne(
+            { _id: userId, "assets.asset": asset._id, "assets.status": "allocated" },
+            {
+              $set: {
+                "assets.$.status": "returned",
+                "assets.$.returnedAt": new Date()
+              }
+            }
+          );
+        }
+      }
+
+      asset.status = STATUS_MAP[op];
+      asset.updatedBy = req.user._id;
+      if (remarks !== undefined) asset.remarks = remarks;
+
+      updates.push(asset.save());
     }
 
     const updatedAssets = await Promise.all(updates);
-
-    // 🔒 (Optional) If you want to ensure all ops are for the same target user, you can assert here.
-    // const onlyOneAssignedTo = new Set(assets.filter(a => a.op === 'allocate').map(a => a.assignedTo)).size <= 1
-
-    // ✅ Flip the onboarding flag for this user in the same request
-    await User.findByIdAndUpdate(
-      userId,
-      { $set: { "onboarding.hasAssestAllocated": true } },
-      { new: true }
-    ).select("_id onboarding.hasAssestAllocated");
 
     return res.status(200).json({
       message: "Bulk asset status update successful",
@@ -305,6 +398,72 @@ const changeMultipleAssetStatus = async (req, res) => {
 };
 
 
+// Create a new merchant
+const createMerchant = async (req, res) => {
+  try {
+    const { name, phone, email, contactPerson, address } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Merchant name is required" });
+    }
+
+    // optional: prevent duplicate merchants
+    const existing = await Merchant.findOne({ name, email });
+    if (existing) {
+      return res.status(409).json({ message: "Merchant already exists" });
+    }
+
+    const newMerchant = new Merchant({
+      name,
+      phone,
+      email,
+      contactPerson,
+      address,
+    });
+
+    await newMerchant.save();
+    res.status(201).json({ message: "Merchant created successfully", data: newMerchant });
+  } catch (err) {
+    console.error("Error creating merchant:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Update merchant details
+const updateMerchant = async (req, res) => {
+  try {
+    const { id } = req.params; // merchant id
+    const { name, phone, email, contactPerson, address } = req.body;
+
+    if (!id) return res.status(400).json({ message: "Merchant ID required" });
+
+    const updatedMerchant = await Merchant.findByIdAndUpdate(
+      id,
+      { name, phone, email, contactPerson, address },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedMerchant) {
+      return res.status(404).json({ message: "Merchant not found" });
+    }
+
+    res.status(200).json({ message: "Merchant updated successfully", data: updatedMerchant });
+  } catch (err) {
+    console.error("Error updating merchant:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Get all merchants (for dropdown)
+const getAllMerchants = async (req, res) => {
+  try {
+    const merchants = await Merchant.find().select("_id name");
+    res.status(200).json({ success: true, data: merchants });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("fetching merchants"), err);
+    res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR });
+  }
+};
 
 // Asset Category Controllers
 
@@ -490,5 +649,8 @@ module.exports = {
     getAllAssetTypes,
     createAssetType,
     getAssetsByTypeId,
-    getAssignedAssets
+    getAssignedAssets,
+    createMerchant,
+    updateMerchant,
+    getAllMerchants
 }

@@ -164,7 +164,7 @@ const AssetAllocationPage = () => {
   // Visible AVAILABLE (with your existing filters)
   const visibleAvailable = allWithOverlay.filter(asset =>
     asset.__effectiveStatus === 'available' &&
-    asset.name.toLowerCase().includes(search.toLowerCase()) &&
+    (asset.name || '').toLowerCase().includes(search.toLowerCase()) &&
     (!type || asset.type?.name === type) &&
     (!category || asset.type?.category?.name === category)
   );
