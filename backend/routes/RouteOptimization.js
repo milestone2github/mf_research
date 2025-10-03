@@ -6,13 +6,17 @@ const {
 	markCompleted,
 	addComments,
 	getAllCoordinates,
-	getAllFields,
+	getCombinedList,
+	fetchFEDetails,
 	fetchFEList,
-	fetchUnassignedClients,
-  fetchOnHoldClients,
+	fetchClientList,
+	fetchUnassignedClientsToday,
+	fetchUnassignedClientsAllTime,
+	fetchOnHoldClients,
 	createClient,
+	addVisitForExistingClient,
 	createFE,
-	assignClientToFE,
+	assignClientsToFE,
 } = require("../controllers/routeOptimizationController");
 const { verifyJWT } = require("../middlewares/verifyToken");
 // const { feStatusCheck } = require("../middlewares/checkActiveFE");
@@ -38,30 +42,37 @@ router.get("/get-all-coordinates", verifyJWT, getAllCoordinates);
 // Implement Zoho-based Auth in middlewares
 
 // GET FE-Client list
-router.get("/get-combined-list", getAllFields);
+router.get("/get-combined-list", getCombinedList);
 
 // GET FE list
+router.get("/fe/:id/availability", fetchFEDetails);
 router.get("/fe/list", fetchFEList);
 
-// GET Unassigned Client's list
-router.get("/clients/unassigned", fetchUnassignedClients);
-
-// GET onHold Clients' list
-router.get("/clients/onhold", fetchOnHoldClients);
-
-// Fetch Coordinates from Address (google API)
-// router.get()
+// GET Clients list
+router.get("/clients/list", fetchClientList);
 
 // POST the New Client's details
-router.post("/client/create", createClient);
+router.post("/clients/create", createClient);
+
+// POST the New Client's details
+router.post("/clients/add-visit", addVisitForExistingClient);
 
 // POST the New Field Executive's details
 router.post("/fe/create", createFE);
 
+// GET Unassigned Client's list
+router.get("/clients/unassigned/today", fetchUnassignedClientsToday);
+
+router.get("/clients/unassigned/all-time", fetchUnassignedClientsAllTime);
+
+// GET onHold Clients' list
+router.get("/clients/on-hold", fetchOnHoldClients);
+
+// Fetch Coordinates from Address (google API)
+// router.get()
+
 // POST - Assign a client to FE (/*** IMPROVE THE CONTROLLER ***/)
-router.post("/assign-client", assignClientToFE);
-
-
+router.post("/assign-client", assignClientsToFE);
 
 // GET /api/tasks/completed -> Completed tasks of all time
 // router.get("/completed", getCompletedTasks);

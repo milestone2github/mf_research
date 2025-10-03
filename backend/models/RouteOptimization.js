@@ -1,5 +1,15 @@
 const { Schema, model } = require("mongoose");
 
+// -------------------- Client --------------------
+const clientSchema = new Schema(
+	{
+		name: { type: String, required: true },
+		address: { type: String, required: true },
+		contactNumber: { type: String, required: true, unique: true },
+	},
+	{ timestamps: true }
+);
+
 // -------------------- Field Executive Comments --------------------
 const feCommentSchema = new Schema({
 	text: { type: String, required: true },
@@ -18,9 +28,9 @@ const feCommentSchema = new Schema({
 	createdAt: { type: Date, default: Date.now },
 });
 
-// -------------------- Client --------------------
-// TO handle multiple recurring visits to same client
-const clientVisitSchema = new Schema({
+// Handle multiple recurring visits/meetings with same client
+const clientMeetingSchema = new Schema({
+	clientId: { type: Schema.Types.ObjectId, ref: "Client", required: true },
 	visitingAddress: { type: String, required: true },
 	availability: {
 		start: { type: Date, required: true },
@@ -28,10 +38,10 @@ const clientVisitSchema = new Schema({
 	},
 	location: {
 		type: { type: String, enum: ["Point"], default: "Point" },
-		coordinates: { type: [Number], required: true }, // [LONGITUDE, LATITUDE]
+		coordinates: { type: [Number], required: true },
 		urlString: { type: String, required: true },
 	},
-	assignedFE: { type: Schema.Types.ObjectId, ref: "FE" }, // track which FE is assigned
+	assignedFE: { type: Schema.Types.ObjectId, ref: "FE" },
 	purposeOfVisit: { type: String, required: true },
 	priority: { type: Number, default: 0 },
 	isCompleted: { type: Boolean, default: false },
@@ -39,34 +49,8 @@ const clientVisitSchema = new Schema({
 	feComments: [feCommentSchema],
 	createdAt: { type: Date, default: Date.now },
 });
-
-const clientSchema = new Schema(
-	{
-		name: { type: String, required: true },
-		address: { type: String, required: true },
-		contactNumber: { type: String, required: true, unique: true },
-		visitDetails: [clientVisitSchema],
-		// availability: {
-		// 	start: { type: Date, required: true },
-		// 	end: { type: Date, required: true },
-		// },
-		// location: {
-		// 	type: { type: String, enum: ["Point"], default: "Point" },
-		// 	coordinates: { type: [Number], required: true }, // [LONGITUDE, LATITUDE]
-		// 	urlString: { type: String, required: true }
-		// },
-		// purposeOfVisit: { type: String, required: true },
-		// priority: { type: Number, default: 0 },
-		// isCompleted: { type: Boolean, default: false },
-		// onHold: { type: Boolean, default: false },
-		// feComments: [feCommentSchema],
-	},
-	{ timestamps: true }
-);
-clientSchema.index({ "visitDetails.location": "2dsphere" });
-clientSchema.index({ "visitDetails.feComments.location": "2dsphere" });
-// clientSchema.index({ location: "2dsphere" });
-// clientSchema.index({ "feComments.location": "2dsphere" });
+clientMeetingSchema.index({ location: "2dsphere" });
+clientMeetingSchema.index({ "feComments.location": "2dsphere" });
 
 // -------------------- Field Executive --------------------
 const fieldExecutiveSchema = new Schema(
@@ -74,7 +58,7 @@ const fieldExecutiveSchema = new Schema(
 		contactNumber: { type: String, required: true, unique: true },
 		employeeId: { type: String, required: true, unique: true },
 		name: { type: String, required: true },
-		status: { type: String, enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE" },
+		status: { type: String, enum: ["active", "inactive"], default: "active" },
 	},
 	{ timestamps: true }
 );
@@ -100,6 +84,7 @@ const fieldExecutiveRouteSchema = new Schema(
 		bookedSlots: [
 			{
 				client: { type: Schema.Types.ObjectId, ref: "Client" },
+				visit: { type: Schema.Types.ObjectId, ref: "ClientMeeting" },
 				start: { type: Date, required: true },
 				end: { type: Date, required: true },
 			},
@@ -155,8 +140,9 @@ const routeOptimizationSchema = new Schema(
 
 // -------------------- Models --------------------
 const Client = model("Client", clientSchema);
+const ClientMeeting = model("ClientMeeting", clientMeetingSchema);
 const FE = model("FE", fieldExecutiveSchema);
 const FERoute = model("FERoute", fieldExecutiveRouteSchema);
 const RouteOptimization = model("RouteOptimization", routeOptimizationSchema);
 
-module.exports = { Client, FE, FERoute, RouteOptimization };
+module.exports = { Client, ClientMeeting, FE, FERoute, RouteOptimization };

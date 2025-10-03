@@ -395,7 +395,9 @@ const generateJWT = async (req, res) => {
 			{ expiresIn: "60d" }
 		);
 
-		res.status(200).json({ token });
+		res
+			.status(200)
+			.json({ token, feName: fe.name, contactNumber: fe.contactNumber });
 	} catch (err) {
 		console.error("Problem in generate-jwt API", err);
 		res.status(500).json({ message: "Internal Server Error." });
