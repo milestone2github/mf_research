@@ -164,7 +164,7 @@ const AssetAllocationPage = () => {
   // Visible AVAILABLE (with your existing filters)
   const visibleAvailable = allWithOverlay.filter(asset =>
     asset.__effectiveStatus === 'available' &&
-    (asset.name || '').toLowerCase().includes(search.toLowerCase()) &&
+    (asset.assetName || '').toLowerCase().includes(search.toLowerCase()) &&
     (!type || asset.type?.name === type) &&
     (!category || asset.type?.category?.name === category)
   );
@@ -267,7 +267,7 @@ const AssetAllocationPage = () => {
             ) : (
               visibleAvailable.map((asset) => (
                 <tr key={asset._id} className="border-t">
-                  <td className="px-4 py-2">{asset.name}</td>
+                  <td className="px-4 py-2">{asset.assetName}</td>
                   <td className="px-4 py-2">{asset.type?.name}</td>
                   <td className="px-4 py-2">{asset.serialNumber}</td>
                   <td className="px-4 py-2">{asset.type?.category?.name}</td>
@@ -305,7 +305,7 @@ const AssetAllocationPage = () => {
             ) : (
               visibleAllocated.map((asset) => (
                 <tr key={asset._id} className="border-t">
-                  <td className="px-4 py-2">{asset.name}</td>
+                  <td className="px-4 py-2">{asset.assetName}</td>
                   <td className="px-4 py-2">{asset.type?.name}</td>
                   <td className="px-4 py-2">{asset.serialNumber}</td>
                   <td className="px-4 py-2">{asset.type?.category?.name}</td>
