@@ -245,6 +245,7 @@ const addComments = async (req, res) => {
 		// 4. Push comment to ClientMeeting and mark on hold
 		visit.feComments.push(newComment);
 		visit.onHold = true;
+		visit.status = "cancelled";
 
 		await visit.save();
 
