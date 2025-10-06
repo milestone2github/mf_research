@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -15,6 +15,7 @@ export const ViewPlanner = () => {
 		endDate: "",
 	});
 	const [loading, setLoading] = useState(false);
+	const [message, setMessage] = useState("");
 
 	const fetchPlanner = async () => {
 		setLoading(true);
@@ -25,9 +26,17 @@ export const ViewPlanner = () => {
 					params: filters,
 				}
 			);
-			setFes(res.data.data || []);
+			if (res.data.message) {
+				setMessage(res.data.message);
+				setFes([]);
+			} else {
+				setMessage("");
+				setFes(res.data.data || []);
+			}
 		} catch (err) {
 			console.error(err);
+			setMessage("Error fetching data");
+			setFes([]);
 		} finally {
 			setLoading(false);
 		}
@@ -42,6 +51,24 @@ export const ViewPlanner = () => {
 	};
 
 	const handleSearch = () => fetchPlanner();
+
+	const handleClear = () => {
+		setFilters({
+			feName: "",
+			employeeId: "",
+			clientName: "",
+			status: "",
+			startDate: "",
+			endDate: "",
+		});
+		fetchPlanner();
+	};
+
+	const handleKeyPress = (e) => {
+		if (e.key === "Enter") {
+			fetchPlanner();
+		}
+	};
 
 	const utcToLocal = (utc) => new Date(utc).toLocaleString();
 
@@ -68,6 +95,7 @@ export const ViewPlanner = () => {
 					name="feName"
 					value={filters.feName}
 					onChange={handleFilterChange}
+					onKeyPress={handleKeyPress}
 				/>
 				<input
 					className="border p-2 rounded w-48"
@@ -75,6 +103,7 @@ export const ViewPlanner = () => {
 					name="employeeId"
 					value={filters.employeeId}
 					onChange={handleFilterChange}
+					onKeyPress={handleKeyPress}
 				/>
 				<input
 					className="border p-2 rounded w-48"
@@ -82,6 +111,7 @@ export const ViewPlanner = () => {
 					name="clientName"
 					value={filters.clientName}
 					onChange={handleFilterChange}
+					onKeyPress={handleKeyPress}
 				/>
 				<input
 					className="border p-2 rounded"
@@ -89,6 +119,7 @@ export const ViewPlanner = () => {
 					name="startDate"
 					value={filters.startDate}
 					onChange={handleFilterChange}
+					onKeyPress={handleKeyPress}
 				/>
 				<input
 					className="border p-2 rounded"
@@ -96,6 +127,7 @@ export const ViewPlanner = () => {
 					name="endDate"
 					value={filters.endDate}
 					onChange={handleFilterChange}
+					onKeyPress={handleKeyPress}
 				/>
 				<select
 					className="border p-2 rounded"
@@ -113,13 +145,21 @@ export const ViewPlanner = () => {
 				>
 					Search
 				</button>
+				<button
+					className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition"
+					onClick={handleClear}
+				>
+					Clear
+				</button>
 			</div>
 
 			{/* FE Cards */}
 			{loading ? (
 				<p>Loading...</p>
+			) : message ? (
+				<p className="text-center text-gray-600">{message}</p>
 			) : fes.length === 0 ? (
-				<p>No FE assignments found.</p>
+				<p className="text-center text-gray-600">No FE assignments found.</p>
 			) : (
 				<div className="grid gap-6">
 					{fes.map((fe) => (

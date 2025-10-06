@@ -84,7 +84,7 @@ export const ViewUnassignedClients = () => {
 
 				{/* Table */}
 				{clients.length === 0 ? (
-					<p className="text-gray-600">No unassigned client visits 🎉</p>
+					<p className="text-gray-600">No unassigned client visits</p>
 				) : (
 					<div className="overflow-x-auto">
 						<table className="min-w-full border border-gray-200 rounded-lg">

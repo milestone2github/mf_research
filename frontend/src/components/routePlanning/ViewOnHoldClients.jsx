@@ -80,7 +80,7 @@ export const ViewOnHoldClients = () => {
 				</div>
 
 				{clients.length === 0 ? (
-					<p className="text-gray-600">No on-hold clients 🎉</p>
+					<p className="text-gray-600">No on-hold clients</p>
 				) : (
 					<div className="overflow-x-auto">
 						<table className="min-w-full border border-gray-200 rounded-lg">

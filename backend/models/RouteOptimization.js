@@ -46,6 +46,14 @@ const clientMeetingSchema = new Schema({
 	priority: { type: Number, default: 0 },
 	isCompleted: { type: Boolean, default: false },
 	onHold: { type: Boolean, default: false },
+	order: { type: Number },
+	actualVisitStart: { type: Date }, // Actual starting time from current location
+	actualVisitEnd: { type: Date }, // Actual end-time afte the task marked as completed
+	status: {
+		type: String,
+		enum: ["pending", "completed", "cancelled"],
+		default: "pending",
+	},
 	feComments: [feCommentSchema],
 	createdAt: { type: Date, default: Date.now },
 });
@@ -99,33 +107,33 @@ fieldExecutiveRouteSchema.index({
 });
 
 // -------------------- Route --------------------
-const routeSchema = new Schema(
-	{
-		fe: { type: Schema.Types.ObjectId, ref: "FE", required: true },
-		client: { type: Schema.Types.ObjectId, ref: "Client", required: true },
-		actualVisitStart: { type: Date, required: true },	// Actual starting time from current location
-		actualVisitEnd: { type: Date, required: true },		// Actual end-time afte the task marked as completed
-		order: { type: Number },
-		status: {
-			type: String,
-			enum: ["pending", "completed", "cancelled"],
-			default: "pending",
-		},
-	},
-	{ timestamps: true }
-);
+// const routeSchema = new Schema(
+// 	{
+// 		fe: { type: Schema.Types.ObjectId, ref: "FE", required: true },
+// 		client: { type: Schema.Types.ObjectId, ref: "Client", required: true },
+// 		actualVisitStart: { type: Date, required: true },	// Actual starting time from current location
+// 		actualVisitEnd: { type: Date, required: true },		// Actual end-time afte the task marked as completed
+// 		order: { type: Number },
+// 		status: {
+// 			type: String,
+// 			enum: ["pending", "completed", "cancelled"],
+// 			default: "pending",
+// 		},
+// 	},
+// 	{ timestamps: true }
+// );
 
 // -------------------- Route Optimization --------------------
-const routeOptimizationSchema = new Schema(
-	{
-		date: { type: Date, required: true },
-		feList: [{ type: Schema.Types.ObjectId, ref: "FERoute" }],
-		clients: [{ type: Schema.Types.ObjectId, ref: "Client" }],
-		routes: [routeSchema],
-		generatedAt: { type: Date, default: Date.now },
-	},
-	{ timestamps: true }
-);
+// const routeOptimizationSchema = new Schema(
+// 	{
+// 		date: { type: Date, required: true },
+// 		feList: [{ type: Schema.Types.ObjectId, ref: "FERoute" }],
+// 		clients: [{ type: Schema.Types.ObjectId, ref: "Client" }],
+// 		routes: [routeSchema],
+// 		generatedAt: { type: Date, default: Date.now },
+// 	},
+// 	{ timestamps: true }
+// );
 
 // // Convert date to midnight UTC before saving
 // routeOptimizationSchema.pre("save", function (next) {
@@ -143,6 +151,6 @@ const Client = model("Client", clientSchema);
 const ClientMeeting = model("ClientMeeting", clientMeetingSchema);
 const FE = model("FE", fieldExecutiveSchema);
 const FERoute = model("FERoute", fieldExecutiveRouteSchema);
-const RouteOptimization = model("RouteOptimization", routeOptimizationSchema);
+// const RouteOptimization = model("RouteOptimization", routeOptimizationSchema);
 
-module.exports = { Client, ClientMeeting, FE, FERoute, RouteOptimization };
+module.exports = { Client, ClientMeeting, FE, FERoute };
