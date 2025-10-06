@@ -1,12 +1,12 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { BiCloudUpload, BiLoaderAlt } from "react-icons/bi";
-import { updateToast } from "../../reducers/ToastSlice"; // adjust path if needed
+import { updateToast,resetToast } from "../../reducers/ToastSlice"; // adjust path if needed
 import Toast from "../common/Toast"; // your existing toast component
 
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
-const EXCEL_EXTENSIONS = ".xlsx,.xls";
+const EXCEL_EXTENSIONS = ".xlsx,.xls,.csv";
 
 const FILE_TYPES = [
   { label: "MIS", value: "mis" },
@@ -18,7 +18,7 @@ function InsuranceLeadUpdate() {
   const [company, setCompany] = useState("");
   const [fileType, setFileType] = useState("");
   const [reupload, setReupload] = useState(false); 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [companyOptions, setCompanyOptions] = useState([]);
   const inputRef = useRef(null);
@@ -54,8 +54,8 @@ function InsuranceLeadUpdate() {
   const validate = () => {
     const e = {};
     if (!file) e.file = "Please upload an Excel file.";
-    else if (!/\.(xlsx|xls)$/i.test(file.name))
-      e.file = "Only .xlsx or .xls files are allowed.";
+    else if (!/\.(xlsx|xls|csv)$/i.test(file.name))
+    e.file = "Only .xlsx, .xls, or .csv files are allowed.";
     if (!company) e.company = "Select a company.";
     if (!fileType) e.fileType = "Choose the file type.";
     setErrors(e);
@@ -66,58 +66,74 @@ function InsuranceLeadUpdate() {
     setFile(null);
     setCompany("");
     setFileType("");
+    setReupload(false); 
     setErrors({});
     if (inputRef.current) inputRef.current.value = "";
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+  e.preventDefault();
+  if (!validate()) return;
 
-    try {
-      setIsSubmitting(true);
+  setLoading(true); // start loader on button
 
-      const form = new FormData();
-      form.append("file", file);
-      form.append("company", company);
-      form.append("fileType", fileType);
-      form.append("reupload", reupload); 
-      const res = await fetch(`${backendUrl}/api/insurance-leads/ingest`, {
-  method: "POST",
-  body: form,
-});
+  
+  setTimeout(() => {
+    dispatch(
+      updateToast({
+        type: "info",
+        message: "File is processing...",
+      })
+    );
 
-if (!res.ok) {
-  let msg = "Upload failed";
+    // auto-hide toast after 4 seconds
+    setTimeout(() => dispatch(resetToast()), 4000);
+
+    resetForm();      // reset form when toast appears
+    setLoading(false);
+  }, 1000);
+
   try {
-    const errJson = await res.json();
-    msg = errJson?.detail?.error || errJson?.message || msg;
-  } catch (_) {
-    msg = await res.text();
-  }
-  throw new Error(msg);
-}
+    const form = new FormData();
+    form.append("file", file);
+    form.append("company", company);
+    form.append("fileType", fileType);
+    form.append("reupload", reupload);
 
+    const res = await fetch(`${backendUrl}/api/insurance-leads/ingest`, {
+      method: "POST",
+      body: form,
+    });
 
-      // success → toast
-      dispatch(
-        updateToast({
-          type: "success",
-          message: "File uploaded successfully!",
-        })
-      );
-      resetForm();
-    } catch (err) {
-      dispatch(
-        updateToast({
-          type: "error",
-          message: err.message || "Upload failed",
-        })
-      );
-    } finally {
-      setIsSubmitting(false);
+    if (!res.ok) {
+      let msg = "Upload failed";
+      try {
+        const errJson = await res.json();
+        msg = errJson?.detail?.error || errJson?.message || msg;
+      } catch (_) {
+        msg = await res.text();
+      }
+      throw new Error(msg);
     }
-  };
+
+    //  success toast 
+    dispatch(
+      updateToast({
+        type: "success",
+        message: "File uploaded successfully!",
+      })
+    );
+  } catch (err) {
+    //  error toast
+    dispatch(
+      updateToast({
+        type: "error",
+        message: err.message || "Upload failed",
+      })
+    );
+  }
+};
+
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-6">
@@ -135,7 +151,7 @@ if (!res.ok) {
           >
             <BiCloudUpload className="text-5xl mb-3" />
             <p className="font-semibold">Drag & drop your Excel here</p>
-            <p className="text-sm text-gray-500 mb-4">Only .xlsx or .xls</p>
+            <p className="text-sm text-gray-500 mb-4">Only .xlsx or .xls or .csv</p>
 
             <button
               type="button"
@@ -225,11 +241,11 @@ if (!res.ok) {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={loading}
               className="min-w-[180px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 text-white enabled:hover:bg-blue-700 disabled:bg-blue-400"
             >
-              {isSubmitting ? <BiLoaderAlt className="animate-spin" /> : null}
-              {isSubmitting ? "Uploading…" : "Upload & Submit"}
+              {loading ? <BiLoaderAlt className="animate-spin" /> : null}
+              {loading ? "Uploading…" : "Upload & Submit"}
             </button>
           </div>
         </form>
