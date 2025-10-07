@@ -85,7 +85,7 @@ const getTasks = async (req, res) => {
 			return res.status(404).json({ message: "No tasks found for this FE" });
 
 		const formatted = tasks.map((t) => ({
-			taskId: t._id,
+			visitId: t._id,
 			clientId: t.clientId?._id,
 			clientName: t.clientId?.name,
 			clientContact: t.clientId?.contactNumber,
@@ -116,6 +116,12 @@ const markCompleted = async (req, res) => {
 	try {
 		const feId = req.feId;
 		const { clientId, visitId, remarksByFE, markCommentLocation } = req.body;
+
+		if (!visitId) {
+			return res
+				.status(403)
+				.json({ error: "visitId not found" });
+		}
 
 		// 1. Verify ClientMeeting exists and is assigned to this FE
 		const visit = await ClientMeeting.findOne({
@@ -207,7 +213,9 @@ const addComments = async (req, res) => {
 		if (!remarksByFE) {
 			return res.status(400).json({ error: "No comments/remarks found" });
 		}
-
+		if (!visitId) {
+			return res.status(400).json({ error: "No visitId found" });
+		}
 		// 1. Fetch the specific ClientMeeting
 		let visit;
 		if (visitId) {

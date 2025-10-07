@@ -122,7 +122,7 @@ export const ViewUnassignedClients = () => {
 												<button
 													className="px-2 py-1 bg-green-500 text-white rounded"
 													onClick={() =>
-														navigate("/route-plan/assign-client", {
+														navigate("/route-plan/assign-clients", {
 															state: { clientMeetingId: visit._id },
 														})
 													}

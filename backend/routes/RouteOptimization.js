@@ -71,7 +71,7 @@ router.get("/clients/on-hold", fetchOnHoldClients);
 // Fetch Coordinates from Address (google API)
 // router.get()
 
-// POST - Assign a client to FE (/*** IMPROVE THE CONTROLLER ***/)
+// POST - Assign a client to FE
 router.post("/assign-client", assignClientsToFE);
 
 // GET /api/tasks/completed -> Completed tasks of all time
