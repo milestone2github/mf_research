@@ -29,7 +29,8 @@ import onboardingRoutes from './onboarding'
 import RbacLayout from '../centralRbac/src/pages/RbacLayout'
 import { centralRbacRoutes } from './centralRbacRoutes'
 import NotFound from '../components/pages/NotFound'
-
+import { RoutePlanningRoutes } from './RoutePlanningRoutes'
+import PlannerIndex from '../components/routePlanning/PlannerIndex'
 
 export const appRoutes = [
 	// Home
@@ -220,7 +221,7 @@ export const appRoutes = [
 		showInSidebar: false,
 	},
 
-  // Employee Onboarding
+	// Employee Onboarding
 	{
 		requiredPermission: "employee_onboarding",
 		to: "/onboarding",
@@ -231,7 +232,7 @@ export const appRoutes = [
 		nestedRoutes: onboardingRoutes,
 	},
 
-  // RBAC
+	// RBAC
 	{
 		to: "/rbac",
 		label: "RBAC Management",
@@ -242,7 +243,7 @@ export const appRoutes = [
 		nestedRoutes: centralRbacRoutes,
 	},
 
-  // mNivesh Admin
+	// mNivesh Admin
 	{
 		requiredPermission: "mnivesh_admin",
 		to: "/mnivesh-admin",
@@ -253,7 +254,7 @@ export const appRoutes = [
 		nestedRoutes: mniveshAdminRoutes,
 	},
 
-  // Assets
+	// Assets
 	{
 		requiredPermission: "assets",
 		to: "/assets",
@@ -264,7 +265,7 @@ export const appRoutes = [
 		nestedRoutes: assetRoutes,
 	},
 
-  // Leaderboard
+	// Leaderboard
 	{
 		requiredPermission: "leaderboard",
 		to: "/leaderboard",
@@ -283,6 +284,16 @@ export const appRoutes = [
 		protected: true,
 		showInSidebar: true
   },
+
+	// Route Optimization
+	{
+		requiredPermission: "routePlanning",
+		to: "/route-plan",
+		label: "Route Optimization",
+		protected: false,
+		showInSidebar: true,
+		nestedRoutes: RoutePlanningRoutes,
+	},
 
 	// Wild Card to catch all other routes
 	{

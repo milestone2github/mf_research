@@ -9,6 +9,7 @@ const AdminRoute = require("./mniveshAdminRoutes/mniveshAdminRoutes");
 const OnboardingRoutes = require('./OnboardingRoutes');
 const rbacRoutes = require('./centralRbacRoutes');
 const payoutRoutes = require('./PayoutRoutes');
+const RouteOptimization = require('./RouteOptimization');
 
 router.use("/assets", assetRoutes);
 router.use('/users', userRoutes);
@@ -19,5 +20,6 @@ router.use('/mnivesh/admin',AdminRoute);
 router.use('/onboarding', OnboardingRoutes);
 router.use('/rbac', rbacRoutes);
 router.use('/payout', payoutRoutes);
+router.use('/route-plan', RouteOptimization);
 
 module.exports = router;
