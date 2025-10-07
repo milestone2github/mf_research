@@ -194,7 +194,7 @@ const getAssetById = async (req, res) => {
 // Search asset by query
 const getAssetByQuery = async (req, res) => {
   try {
-    const { q, type, serialNumber, status } = req.query;
+    const { q, type, serialNumber, status, page = 1, limit = 12 } = req.query;
     const filter = {};
 
     if (q) filter.name = { $regex: q, $options: 'i' };
@@ -202,22 +202,36 @@ const getAssetByQuery = async (req, res) => {
     if (serialNumber) filter.serialNumber = serialNumber;
     if (status) filter.status = status;
 
-    const fetchedAssets = await Assets.find(filter)
-      .populate({
-        path: 'type',
-        populate: { path: 'category', model: 'AssetCategory' }
-      })
-      .populate('merchantId', 'name')
-      .populate({
-        path: 'allocations.userId',
-        select: 'name'
-      })
-      .select('-__v -createdAt -updatedAt')
-      .lean({ virtuals: true });
+    const skip = (page - 1) * limit;
 
-    
+    const [fetchedAssets, totalCount] = await Promise.all([
+      Assets.find(filter)
+        .populate({
+          path: 'type',
+          populate: { path: 'category', model: 'AssetCategory' }
+        })
+        .populate('merchantId', 'name')
+        .populate({
+          path: 'allocations.userId',
+          select: 'name'
+        })
+        .select('-__v -createdAt -updatedAt')
+        .lean({ virtuals: true })
+        .skip(skip)
+        .limit(Number(limit)),
+      Assets.countDocuments(filter)
+    ]);
 
-    res.status(200).json({ message: ASSET_FETCH_SUCCESS, data: fetchedAssets });
+    res.status(200).json({
+      message: ASSET_FETCH_SUCCESS,
+      data: fetchedAssets,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalCount / limit),
+        totalItems: totalCount,
+        limit: Number(limit)
+      }
+    });
   } catch (err) {
     console.error(INTERNAL_ERROR_CONSOLE("fetching data by query of"), err);
     res.status(500).json({ message: INTERNAL_SERVER_ERROR });

@@ -3,6 +3,7 @@ import AssetActions from './AssetActions';
 
 const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading }) => {
   return (
+    <div className="overflow-x-auto border rounded-lg max-w-full shadow-sm">
     <table className="min-w-full bg-white border border-gray-200 text-sm">
       <thead>
         <tr className="bg-gray-100">
@@ -87,6 +88,7 @@ const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading
         )}
       </tbody>
     </table>
+  </div>
   );
 };
 
