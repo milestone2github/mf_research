@@ -77,7 +77,7 @@ const getTasks = async (req, res) => {
 			.populate("clientId", "name address contactNumber")
 			.populate("assignedFE", "name contactNumber employeeId")
 			.select(
-				"_id clientId visitingAddress availability priority isCompleted onHold order status createdAt actualVisitStart actualVisitEnd"
+				"_id clientId visitingAddress availability priority isCompleted onHold order status createdAt actualVisitStart actualVisitEnd purposeOfVisit location"
 			)
 			.sort({ order: 1, priority: -1 });
 
@@ -100,8 +100,10 @@ const getTasks = async (req, res) => {
 			actualVisitEnd: t.actualVisitEnd,
 			feId: t.assignedFE?._id,
 			feName: t.assignedFE?.name,
+			purposeOfVisit: t.purposeOfVisit,
+			locationString: t.location.urlString,
 		}));
-
+		console.log("Tasks details:--> ", formatted); // debug
 		res.json(formatted);
 	} catch (err) {
 		console.error("getTasks error:", err);
