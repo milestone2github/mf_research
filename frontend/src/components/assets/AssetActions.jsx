@@ -52,7 +52,7 @@ const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => 
 
   return (
     <div className="relative">
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-nowrap">
         {/* Allocate and Deallocate */}
         {
           status === 'available' ? (

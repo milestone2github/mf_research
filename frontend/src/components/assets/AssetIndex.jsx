@@ -22,6 +22,10 @@ function AssetIndex() {
   const [types, setTypes] = useState([]);
   const [status, setStatus] = useState(['available', 'allocated', 'repair', 'removed']);
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const ITEMS_PER_PAGE = 12;
+
 
   const [selectedFilters, setSelectedFilters] = useState({
     category: '',
@@ -29,15 +33,22 @@ function AssetIndex() {
     status: ''
   });
 
-  const fetchAssets = async (filters = {}) => {
+  const fetchAssets = async (filters = {}, page = 1) => {
   try {
-    setLoading(true);   
+    setLoading(true);
     const { type } = filters;
     const url = type ? FETCH_ASSET_BASED_ON_TYPE(type) : FETCH_ASSETS_URL;
-    const res = await axios.get(url);
-    const data = res.data.data;
+    const res = await axios.get(url, {
+      params: { ...filters, page, limit: ITEMS_PER_PAGE }
+    });
+
+    const { data, pagination } = res.data;
     setAssets(data);
     setFiltered(data);
+    if (pagination) {
+      setCurrentPage(pagination.currentPage);
+      setTotalPages(pagination.totalPages);
+    }
   } catch (error) {
     console.error('Error fetching assets:', error);
     setAssets([]);
@@ -212,6 +223,45 @@ function AssetIndex() {
 					message={ASSET_DELETE_MESSAGE}
 				/>
 			)}
+          {/* Pagination */}
+    <div className="flex items-center justify-center mt-6 gap-4">
+      <button
+        onClick={() => {
+          if (currentPage > 1) {
+            fetchAssets(selectedFilters, currentPage - 1);
+          }
+        }}
+        disabled={currentPage === 1}
+        className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
+          currentPage === 1
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:bg-gray-100'
+        }`}
+      >
+        ← Prev
+      </button>
+
+      <span className="px-4 py-2 bg-blue-500 text-white rounded-full">
+        {currentPage}
+      </span>
+
+      <button
+        onClick={() => {
+          if (currentPage < totalPages) {
+            fetchAssets(selectedFilters, currentPage + 1);
+          }
+        }}
+        disabled={currentPage === totalPages}
+        className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
+          currentPage === totalPages
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:bg-gray-100'
+        }`}
+      >
+        Next →
+      </button>
+    </div>
+
 		</div>
 	);
 }

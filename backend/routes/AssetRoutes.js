@@ -11,7 +11,10 @@ const {
     getAllAssetTypes,
     createAssetType,
     getAssetsByTypeId,
-    getAssignedAssets
+    getAssignedAssets,
+    createMerchant,
+    updateMerchant,
+    getAllMerchants
 } = require('../controllers/AssetController');
 const verifyUser = require('../middlewares/VerifyUser');
 
@@ -20,6 +23,11 @@ const verifyUser = require('../middlewares/VerifyUser');
 assetRouter.get("/types", getAllAssetTypes);
 assetRouter.get("/types/:id", getAssetsByTypeId);
 assetRouter.post("/types", createAssetType);
+
+// Merchant routes
+assetRouter.get("/merchants", getAllMerchants);      
+assetRouter.post("/merchants", createMerchant);     
+assetRouter.put("/merchants/:id", updateMerchant);   
 
 // Asset Routes
 assetRouter.post("/", verifyUser, createAsset);
