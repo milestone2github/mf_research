@@ -4,6 +4,7 @@ const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
 const InsuranceRecoFile = require("../models/InsuranceRecoFile");
+const sendEmail = require("../utils/sendEmail");
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -23,7 +24,9 @@ router.post("/ingest", upload.single("file"), async (req, res) => {
         .status(500)
         .json({ message: "INSURANCE_LEADS_API_URL not set" });
     }
+    console.log("File name:", file.originalname);
 
+    
     // Build URL with query params safely
     const url = new URL(baseUrl);
     url.searchParams.set("company", company);
@@ -57,11 +60,36 @@ router.post("/ingest", upload.single("file"), async (req, res) => {
   } catch (err) {
     const status = err?.response?.status || 502;
     const data = err?.response?.data || err.message;
+    const fileName = req.file?.originalname || "N/A";
+    const timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
     console.error("[insurance-leads] Forward error status:", status);
     console.error("[insurance-leads] Forward error data:", data);
-    return res
-      .status(status)
-      .json({ message: "forward failed", detail: data });
+
+    //  Send email notification 
+    try {
+      await sendEmail({
+        toAddress: "abhishek@niveshonline.com",
+        subject: `Insurance Lead Upload Failed (HTTP ${status})`,
+        body: `
+          <h2>Insurance Lead Upload Failed</h2>
+          <p><b>Timestamp:</b> ${timestamp}</p>
+          <p><b>Company:</b> ${req.body?.company}</p>
+          <p><b>File Type:</b> ${req.body?.fileType}</p>
+          <p><b>Reupload:</b> ${req.body?.reupload}</p>
+          <p><b>File Name:</b> ${fileName}</p>
+          <p><b>Status Code:</b> ${status}</p>
+          <p><b>Error Message:</b> ${err.message}</p>
+          <p><b>Details:</b></p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `,
+      });
+    } catch (emailErr) {
+      console.error(" Failed to send error email:", emailErr.message);
+    }
+
+    // Return clean error to frontend
+    return res.status(status).json({ message: "failed to upload the file", detail: data });
   }
 });
 
