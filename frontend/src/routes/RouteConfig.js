@@ -30,7 +30,7 @@ import RbacLayout from '../centralRbac/src/pages/RbacLayout'
 import { centralRbacRoutes } from './centralRbacRoutes'
 import NotFound from '../components/pages/NotFound'
 import { RoutePlanningRoutes } from './RoutePlanningRoutes'
-import PlannerIndex from '../components/routePlanning/PlannerIndex'
+import RouteOptimization from '../components/pages/RouteOptimization'
 
 export const appRoutes = [
 	// Home
@@ -287,10 +287,11 @@ export const appRoutes = [
 
 	// Route Optimization
 	{
-		requiredPermission: "routePlanning",
+		requiredPermission: "route_optimization",
 		to: "/route-plan",
 		label: "Route Optimization",
-		protected: false,
+		element: <RouteOptimization />,
+		protected: true,
 		showInSidebar: true,
 		nestedRoutes: RoutePlanningRoutes,
 	},
