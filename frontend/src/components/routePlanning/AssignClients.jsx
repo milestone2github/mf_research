@@ -16,6 +16,7 @@ export const AssignClients = () => {
 	const [selectedClient, setSelectedClient] = useState(null);
 	const [customSlot, setCustomSlot] = useState({ start: "", end: "" });
 	const [loading, setLoading] = useState(false);
+	const [optimizeCurrentRoute, setOptimizeCurrentRoute] = useState(true); // toggle state
 
 	const animatedComponents = makeAnimated();
 
@@ -46,7 +47,6 @@ export const AssignClients = () => {
 		fetchClients();
 	}, [baseUrl]);
 
-	// Helper: convert UTC date string to "YYYY-MM-DDTHH:MM" local for <input datetime-local>
 	const toDatetimeLocal = (utcString) => {
 		const date = new Date(utcString);
 		const pad = (n) => n.toString().padStart(2, "0");
@@ -55,7 +55,6 @@ export const AssignClients = () => {
 		)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 	};
 
-	// Helper: format local datetime nicely
 	const formatLocalDateTime = (utcString) => {
 		const date = new Date(utcString);
 		return date.toLocaleString("en-GB", {
@@ -81,53 +80,47 @@ export const AssignClients = () => {
 		availabilityEnd: toDatetimeLocal(c.availability.end),
 	}));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedFE || !selectedClient) {
-      toast.error("FE and client selection required");
-      return;
-    }
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		if (!selectedFE || !selectedClient) {
+			toast.error("FE and client selection required");
+			return;
+		}
 
-    // const slotStart = customSlot.start || selectedClient.availabilityStart;
-    // const slotEnd = customSlot.end || selectedClient.availabilityEnd;
-    const slotStart = customSlot.start;
-    const slotEnd = customSlot.end;
+		const slotStart = customSlot.start;
+		const slotEnd = customSlot.end;
 
-    if (!slotStart || !slotEnd) {
-      toast.error("Start and end times are required");
-      return;
-    }
+		if (!slotStart || !slotEnd) {
+			toast.error("Start and end times are required");
+			return;
+		}
 
-    try {
-      setLoading(true);
-      // Convert local datetime to UTC for backend
-      const startUTC = new Date(slotStart);
-      const endUTC = new Date(slotEnd);
+		try {
+			setLoading(true);
+			const startUTC = new Date(slotStart);
+			const endUTC = new Date(slotEnd);
 
-      await axios.post(`${baseUrl}/api/route-plan/assign-client`, {
-        feId: selectedFE,
-        visitId: selectedClient.value,
-        slotStart: startUTC.toISOString(),
-        slotEnd: endUTC.toISOString(),
-      });
+			await axios.post(`${baseUrl}/api/route-plan/assign-client`, {
+				feId: selectedFE,
+				visitId: selectedClient.value,
+				slotStart: startUTC.toISOString(),
+				slotEnd: endUTC.toISOString(),
+				optimizeCurrentRoute: optimizeCurrentRoute,
+			});
 
-      toast.success("Client assigned successfully!");
+			toast.success("Client assigned successfully!");
 
-      // Remove assigned client from the list
-      setClients((prev) => prev.filter((c) => c._id !== selectedClient.value));
-
-      // Clear form
-      setSelectedClient(null);
-      setSelectedFE(null);
-      setCustomSlot({ start: "", end: "" });
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Failed to assign client");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+			setClients((prev) => prev.filter((c) => c._id !== selectedClient.value));
+			setSelectedClient(null);
+			setSelectedFE(null);
+			setCustomSlot({ start: "", end: "" });
+		} catch (err) {
+			console.error(err);
+			toast.error(err.response?.data?.message || "Failed to assign client");
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	return (
 		<div className="max-w-lg mx-auto mt-10 p-6 bg-white shadow-lg rounded-xl relative">
@@ -171,6 +164,18 @@ export const AssignClients = () => {
 						placeholder="Select client"
 						isClearable
 					/>
+				</div>
+
+				<div className="flex items-center gap-2 mt-2">
+					<input
+						type="checkbox"
+						checked={optimizeCurrentRoute}
+						onChange={() => setOptimizeCurrentRoute((prev) => !prev)}
+						id="optimizeToggle"
+					/>
+					<label htmlFor="optimizeToggle" className="text-sm">
+						Optimize route based on FE's current location
+					</label>
 				</div>
 
 				{selectedClient && (
