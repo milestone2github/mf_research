@@ -11,9 +11,7 @@ const getMedal = (index) => {
 };
 
 export default function Leaderboard() {
-  // you already gate pages with your protected route+permissions,
-  // so we don’t do extra login checks here.
-  const { userData } = useSelector((s) => s.user); // not strictly needed, but handy if you later want to personalize
+  const { userData } = useSelector((s) => s.user);
   const [rows, setRows] = useState([]);
   const [isLoading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -77,50 +75,45 @@ export default function Leaderboard() {
 
         {/* Table */}
         <div className="mt-8 overflow-hidden rounded-xl">
-          <table className="w-full text-white text-center">
-            <thead className="sticky top-0 bg-blue-900 text-white text-base md:text-lg z-10">
-              <tr>
-                <th className="py-3 w-16">#</th>
-                <th className="py-3">Employee Name</th>
-                <th className="py-3">Employee ID</th>
-                <th className="py-3">Leads</th>
-                <th className="py-3">Points</th>
-              </tr>
-            </thead>
-          </table>
-
-          {/* Scroll area for body */}
           <div className="max-h-[420px] overflow-y-auto scroll-smooth">
-            <table className="w-full text-white text-center">
+            <table className="w-full text-white text-center border-collapse table-fixed">
+              <thead className="sticky top-0 bg-blue-900 text-white text-base md:text-lg z-10">
+                <tr>
+                  <th className="py-3 w-16">#</th>
+                  <th className="py-3 w-1/3">Employee Name</th>
+                  <th className="py-3 w-1/4">Employee ID</th>
+                  <th className="py-3 w-1/4">Points</th>
+                </tr>
+              </thead>
+
               <tbody>
                 {rows.map((row, index) => (
                   <tr
-                    key={`${row._id}-${index}`}
-                    className={`${
-                      index % 2 === 0 ? "bg-blue-900/50" : "bg-blue-800/50"
-                    } border-b border-blue-700`}
+                    key={`${row.employee_id}-${index}`}
+                    className={`${index % 2 === 0 ? "bg-blue-900/50" : "bg-blue-800/50"
+                      } border-b border-blue-700`}
                   >
                     <td className="py-4 text-2xl md:text-3xl font-bold w-16">
                       {getMedal(index)}
                     </td>
                     <td className="py-4 px-2">{row.employee_name}</td>
-                    <td className="py-4 px-2">{row._id}</td>
-                    <td className="py-4 px-2">{row.lead_count}</td>
+                    <td className="py-4 px-2">{row.employee_id}</td>
                     <td className="py-4 px-2 font-bold flex items-center justify-center gap-2">
-                    <span>{row.total_points}</span>
-                    {index === 0 && (
+                      <span>{row.score}</span>
+                      {index === 0 && (
                         <img
-                        src={trophyIcon}
-                        alt="Trophy icon"
-                        className="w-5 md:w-6 inline"
+                          src={trophyIcon}
+                          alt="Trophy icon"
+                          className="w-5 md:w-6 inline"
                         />
-                    )}
+                      )}
                     </td>
                   </tr>
                 ))}
+
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-10 text-cyan-200">
+                    <td colSpan={4} className="py-10 text-cyan-200">
                       No data yet.
                     </td>
                   </tr>
