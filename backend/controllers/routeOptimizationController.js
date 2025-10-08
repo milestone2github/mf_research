@@ -1,7 +1,8 @@
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
 const { FE, FERoute, Client, ClientMeeting } = require("../models/RouteOptimization");
 const { baseLocation } = require("../utils/constants");
 const { getLocationCoordinates } = require("../utils/getLocationCoordinates");
+const { optimizeFERoute } = require("../utils/routeOptimizer");
 
 // Update Current Location of Field Executive
 const updateUserLocation = async (req, res) => {
@@ -103,7 +104,9 @@ const getTasks = async (req, res) => {
 			purposeOfVisit: t.purposeOfVisit,
 			locationString: t.location.urlString,
 		}));
-		console.log("Tasks details:--> ", formatted); // debug
+
+		// console.log("Tasks details:--> ", formatted); // debug
+		
 		res.json(formatted);
 	} catch (err) {
 		console.error("getTasks error:", err);
@@ -118,9 +121,7 @@ const markCompleted = async (req, res) => {
 		const { clientId, visitId, remarksByFE, markCommentLocation } = req.body;
 
 		if (!visitId) {
-			return res
-				.status(403)
-				.json({ error: "visitId not found" });
+			return res.status(403).json({ error: "visitId not found" });
 		}
 
 		// 1. Verify ClientMeeting exists and is assigned to this FE
@@ -168,11 +169,22 @@ const markCompleted = async (req, res) => {
 
 		await visit.save();
 
-		// 4. Determine next client for FE
+		// 4. Optimize FE route after completion
+		const currentLocation = markCommentLocation?.coordinates || null;
+		await optimizeFERoute(feId, currentLocation);
+
+		// 5. Determine next client for today only
+		const startOfDay = new Date();
+		startOfDay.setUTCHours(0, 0, 0, 0);
+		const endOfDay = new Date();
+		endOfDay.setUTCHours(23, 59, 59, 999);
+
 		const nextMeeting = await ClientMeeting.findOne({
 			assignedFE: feId,
 			isCompleted: false,
 			onHold: false,
+			"availability.start": { $lte: endOfDay },
+			"availability.end": { $gte: startOfDay },
 		})
 			.sort({ order: 1, priority: -1 })
 			.select("clientId");
@@ -181,10 +193,10 @@ const markCompleted = async (req, res) => {
 			currentClient: nextMeeting ? nextMeeting.clientId : null,
 		};
 
-		if (markCommentLocation?.coordinates?.length === 2) {
+		if (currentLocation) {
 			updatePayload.currentLocation = {
 				type: "Point",
-				coordinates: markCommentLocation.coordinates,
+				coordinates: currentLocation,
 			};
 		}
 
@@ -216,6 +228,7 @@ const addComments = async (req, res) => {
 		if (!visitId) {
 			return res.status(400).json({ error: "No visitId found" });
 		}
+
 		// 1. Fetch the specific ClientMeeting
 		let visit;
 		if (visitId) {
@@ -258,6 +271,10 @@ const addComments = async (req, res) => {
 		visit.status = "cancelled";
 
 		await visit.save();
+
+		// 5. Recalculate route for remaining assigned clients
+		const currentLocation = markCommentLocation?.coordinates || null;
+		await optimizeFERoute(feId, currentLocation);
 
 		return res.json({
 			message: "Comment posted successfully, visit put on hold",
@@ -512,7 +529,7 @@ const getCombinedList = async (req, res) => {
 	}
 };
 
-// Fetch Certain FE's availability details
+// Fetch individual FE's availability details
 const fetchFEDetails = async (req, res) => {
 	try {
 		const feId = req.params.id;
@@ -542,7 +559,7 @@ const fetchFEDetails = async (req, res) => {
 	}
 };
 
-// Fetch ACTIVE Field Executive's list
+// Fetch active Field Executive's list
 const fetchFEList = async (_req, res) => {
 	try {
 		const fes = await FE.find({ status: "active" }).select(
@@ -552,6 +569,58 @@ const fetchFEList = async (_req, res) => {
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({ message: "Server error" });
+	}
+};
+
+// Track FE's current location and current client
+const trackFEAndClient = async (req, res) => {
+	try {
+		const feId = req.params.id;
+		if (!feId || !mongoose.Types.ObjectId.isValid(feId)) {
+			return res.status(400).json({ message: "Invalid FE ID" });
+		}
+
+		// Fetch FE route info
+		const feRoute = await FERoute.findOne({ feId })
+			.select("currentLocation currentClient")
+			.lean();
+
+		if (!feRoute)
+			return res
+				.status(404)
+				.json({ message: `FE route not found or No Clients assigned to FE: ${feId}` });
+
+		let clientLocation = null;
+
+		// Fetch today's client meeting location if currentClient exists
+		if (feRoute.currentClient) {
+			const startOfDay = new Date();
+			startOfDay.setHours(0, 0, 0, 0);
+			const endOfDay = new Date();
+			endOfDay.setHours(23, 59, 59, 999);
+
+			const meeting = await ClientMeeting.findOne({
+				clientId: feRoute.currentClient,
+				assignedFE: feId,
+				isCompleted: false,
+				onHold: false,
+				"availability.start": { $gte: startOfDay, $lte: endOfDay },
+			})
+				.select("location")
+				.lean();
+
+			if (meeting?.location?.coordinates?.length === 2)
+				clientLocation = meeting.location;
+		}
+
+		res.status(200).json({
+			message: "FE and client tracking info fetched successfully",
+			feLocation: feRoute.currentLocation || null,
+			clientLocation,
+		});
+	} catch (err) {
+		console.error("Error tracking FE route:", err);
+		res.status(500).json({ message: "Server error", details: err.message });
 	}
 };
 
@@ -636,21 +705,7 @@ const fetchUnassignedClientsAllTime = async (_req, res) => {
 	}
 };
 
-// Fetch onHold clients (clients that weren't catered by any FE due to one or multiple constraints)
-// const fetchOnHoldClients = async (req, res) => {
-// 	try {
-// 		// Fetch ClientMeeting entries currently on hold
-// 		const onHoldMeetings = await ClientMeeting.find({ onHold: true })
-// 			.populate("clientId", "name address contactNumber")
-// 			.select("_id clientId priority visitingAddress availability assignedFE");
-
-// 		res.json(onHoldMeetings);
-// 	} catch (err) {
-// 		console.error("Error fetching on-hold client meetings:", err);
-// 		res.status(500).json({ message: "Server error", details: err.message });
-// 	}
-// };
-
+// Fetch On-Hold/Cancelled clients
 const fetchOnHoldClients = async (req, res) => {
 	try {
 		const { scope } = req.query;
@@ -919,8 +974,10 @@ const createFE = async (req, res) => {
 
 const assignClientsToFE = async (req, res) => {
 	try {
-		const { feId, visitId, slotStart, slotEnd } = req.body;
+		const { feId, visitId, slotStart, slotEnd, optimizeCurrentRoute } =
+			req.body;
 
+		// 1. Validate input
 		if (!feId || !visitId || !slotStart || !slotEnd) {
 			return res
 				.status(400)
@@ -930,9 +987,12 @@ const assignClientsToFE = async (req, res) => {
 		const startUTC = new Date(slotStart);
 		const endUTC = new Date(slotEnd);
 
+		// 2. Verify FE exists
 		const fe = await FE.findById(feId);
-		if (!fe) return res.status(404).json({ message: "Field Executive not found" });
+		if (!fe)
+			return res.status(404).json({ message: "Field Executive not found" });
 
+		// 3. Fetch or create FERoute
 		let feRoute = await FERoute.findOne({ feId });
 		if (!feRoute) {
 			feRoute = new FERoute({
@@ -947,6 +1007,7 @@ const assignClientsToFE = async (req, res) => {
 			});
 		}
 
+		// 4. Check FE slot conflicts
 		const conflict = feRoute.bookedSlots.some(
 			(slot) => startUTC < slot.end && endUTC > slot.start
 		);
@@ -954,7 +1015,7 @@ const assignClientsToFE = async (req, res) => {
 			return res
 				.status(400)
 				.json({ message: "FE is not available in this slot" });
-
+		// 5. Fetch the specific ClientMeeting
 		const visit = await ClientMeeting.findOne({
 			_id: visitId,
 			assignedFE: { $exists: false },
@@ -967,11 +1028,12 @@ const assignClientsToFE = async (req, res) => {
 				.status(400)
 				.json({ message: "No unassigned client meeting found" });
 
+		// 6. Assign FE to the meeting
 		visit.assignedFE = feId;
-		visit.availability = { start: startUTC, end: endUTC };
-		visit.order = visit.priority;	// Temporary line -> change with actual process function that fetches actual order based on location & availability
+		visit.availability = { start: startUTC, end: endUTC };	// Update Client's suggested time with actual time
 		await visit.save();
 
+		// 7. Update FERoute bookedSlots
 		feRoute.bookedSlots.push({
 			client: visit.clientId,
 			visit: visitId,
@@ -979,12 +1041,23 @@ const assignClientsToFE = async (req, res) => {
 			end: endUTC,
 		});
 
+		// 8. Update currentClient (earliest upcoming slot based on order)
 		const upcomingSlots = feRoute.bookedSlots
 			.filter((s) => s.start > new Date())
 			.sort((a, b) => a.start - b.start);
-		feRoute.currentClient = upcomingSlots[0]?.client || null;	// To-do: Should be based on Order
+		feRoute.currentClient = upcomingSlots[0]?.client || null;
 
 		await feRoute.save();
+
+		// 9. Route Optimizer worker function
+		if (optimizeCurrentRoute) {
+			// Wrap in object if coordinates exist
+			const currentLocationObj = feRoute.currentLocation?.coordinates
+				? { coordinates: feRoute.currentLocation.coordinates }
+				: null;
+
+			await optimizeFERoute(feId, currentLocationObj);
+		}
 
 		res.status(200).json({ message: "Client assigned to FE successfully" });
 	} catch (err) {
@@ -992,7 +1065,6 @@ const assignClientsToFE = async (req, res) => {
 		res.status(500).json({ message: "Server error", details: err.message });
 	}
 };
-
 
 
 module.exports = {
@@ -1004,6 +1076,7 @@ module.exports = {
 	getCombinedList,
 	fetchFEDetails,
 	fetchFEList,
+	trackFEAndClient,
 	fetchClientList,
 	fetchUnassignedClientsToday,
 	fetchUnassignedClientsAllTime,
@@ -1012,5 +1085,4 @@ module.exports = {
 	addVisitForExistingClient,
 	createFE,
 	assignClientsToFE,
-	// getCompletedTasks
 };

@@ -6,6 +6,7 @@ import { ViewPlanner } from "../components/routePlanning/ViewPlanner";
 import { ViewUnassignedClients } from "../components/routePlanning/ViewUnassignedClients";
 import { ViewOnHoldClients } from "../components/routePlanning/ViewOnHoldClients";
 import { AssignClients } from "../components/routePlanning/AssignClients";
+import { TrackFERoute } from "../components/routePlanning/TrackFERoute";
 
 export const RoutePlanningRoutes = [
 	{ to: "", element: <PlannerIndex /> },
@@ -16,6 +17,5 @@ export const RoutePlanningRoutes = [
 	{ to: "client/view/onhold", element: <ViewOnHoldClients /> },
 	{ to: "assign-clients", element: <AssignClients /> },
 	{ to: "view/plan-details", element: <ViewPlanner /> },
-	// { to: 'edit/:id', element: <AddEditAsset /> },
-	// { to: 'assigned', element: <AssignedAssetsList /> },
+	{ to: "track/fe", element: <TrackFERoute /> },
 ];
