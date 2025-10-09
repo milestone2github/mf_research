@@ -25,7 +25,7 @@ const AddEditAsset = () => {
   const [remarks, setRemarks] = useState('');
   const [selectedType, setSelectedType] = useState(null);
 
-  const [types, setTypes] = useState(typesFromState);
+  const [types, setTypes] = useState([]);
   const [categories, setCategories] = useState(categoriesFromState);
 
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
@@ -81,9 +81,17 @@ const AddEditAsset = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!types.length) fetchTypes();
+    // if (!types.length) fetchTypes();
     if (!categories.length) fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (selectedCategoryId) {
+      setTypes([]);
+      setSelectedType(null);
+    }
+  }, [selectedCategoryId]);
+
 
   useEffect(() => {
   const fetchMerchants = async () => {
@@ -209,7 +217,6 @@ const AddEditAsset = () => {
 
 
   const handleAddMerchant = async () => {
-  if (!newMerchantName.trim()) return;
   try {
     setLoadingMerchant(true); // start spinner
     const res = await axios.post(
@@ -460,6 +467,8 @@ const AddEditAsset = () => {
 
       </div>
 
+      
+</form>
       {showAddTypeModal && (
         <Modal onClose={() => setShowAddTypeModal(false)} title="Add New Type">
           <div className="space-y-4">
@@ -468,6 +477,12 @@ const AddEditAsset = () => {
               <input
                 value={newTypeName}
                 onChange={(e) => setNewTypeName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddType();
+                  }
+                }}
                 className="w-full border px-3 py-2 rounded"
               />
             </div>
@@ -500,6 +515,12 @@ const AddEditAsset = () => {
         <input
           value={newCategoryName}
           onChange={(e) => setNewCategoryName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddCategory();
+            }
+          }}
           className="w-full border px-3 py-2 rounded"
           placeholder="Enter category name"
         />
@@ -530,10 +551,30 @@ const AddEditAsset = () => {
 
       {showAddMerchantModal && (
   <Modal onClose={() => setShowAddMerchantModal(false)} title="Add New Merchant">
-  <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+
+        // Optional manual check (for extra safety)
+        if (
+          !newMerchantName.trim() ||
+          !newMerchantPhone.trim() ||
+          !newMerchantEmail.trim() ||
+          !newMerchantContactPerson.trim() ||
+          !newMerchantAddress.trim()
+        ) {
+          alert("Please fill in all fields before adding the merchant.");
+          return;
+        }
+
+        handleAddMerchant();
+      }}
+      className="space-y-4 max-h-[70vh] overflow-y-auto pr-2"
+    >
     <div>
       <label className="block mb-1 font-medium">Name<span className="text-red-500"></span></label>
       <input
+        required
         value={newMerchantName}
         onChange={(e) => setNewMerchantName(e.target.value)}
         className="w-full border px-3 py-2 rounded"
@@ -543,6 +584,10 @@ const AddEditAsset = () => {
     <div>
       <label className="block mb-1 font-medium">Phone</label>
       <input
+        required
+        type="tel"
+        pattern="[0-9]{10}"
+        title="Phone number must be exactly 10 digits"
         value={newMerchantPhone}
         onChange={(e) => setNewMerchantPhone(e.target.value)}
         className="w-full border px-3 py-2 rounded"
@@ -552,6 +597,7 @@ const AddEditAsset = () => {
     <div>
       <label className="block mb-1 font-medium">Email</label>
       <input
+          required
         type="email"
         value={newMerchantEmail}
         onChange={(e) => setNewMerchantEmail(e.target.value)}
@@ -562,6 +608,7 @@ const AddEditAsset = () => {
     <div>
       <label className="block mb-1 font-medium">Contact Person</label>
       <input
+        required
         value={newMerchantContactPerson}
         onChange={(e) => setNewMerchantContactPerson(e.target.value)}
         className="w-full border px-3 py-2 rounded"
@@ -571,6 +618,7 @@ const AddEditAsset = () => {
     <div>
       <label className="block mb-1 font-medium">Address</label>
       <textarea
+        required
         value={newMerchantAddress}
         onChange={(e) => setNewMerchantAddress(e.target.value)}
         className="w-full border px-3 py-2 rounded"
@@ -587,7 +635,7 @@ const AddEditAsset = () => {
         Close
       </button>
       <button
-        onClick={handleAddMerchant}
+        type="submit"
         disabled={loadingMerchant}
         className="px-4 py-2 bg-blue-600 text-white rounded flex items-center justify-center"
       >
@@ -598,11 +646,10 @@ const AddEditAsset = () => {
         )}
       </button>
     </div>
-  </div>
+  </form>
 </Modal>
 
 )}
-</form>
     </div>
   );
 };
