@@ -319,7 +319,7 @@ export const appRoutes = [
 		showInSidebar: true,
 	},
 
-	// Insurance Performance
+	// Leader Performance
 	{
 		requiredPermission: "leader_performance",
 		to: "/leader-performance",
