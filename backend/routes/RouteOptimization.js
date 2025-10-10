@@ -29,7 +29,7 @@ router.post("/update-current-location", verifyJWT, updateUserLocation);
 router.get("/get-tasks", verifyJWT, getTasks);
 
 // Mark the client as completed
-router.put("/mark-completed", verifyJWT, markCompleted);
+router.post("/mark-completed", verifyJWT, markCompleted);
 
 // Add remarks to the client
 router.post("/add-remarks", verifyJWT, addComments);

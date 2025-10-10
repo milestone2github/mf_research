@@ -2,15 +2,25 @@ const express = require('express');
 const router = express.Router();
 
 const { getLeaderboard } = require('../controllers/leaderboardController');
+const { lumpsumAudit, leaderboardAudit, referralLeaderboard, mfSIPAudit, mfLeadersAudit } = require('../controllers/leaderboardPerformance');
 const verifyUser = require('../middlewares/VerifyUser');
 
-router.get('/leaderboard', verifyUser, getLeaderboard);
+// GET leaderboard data
+router.get('/', getLeaderboard);
 
-// const User = require('../models/User');
+// GET Leaderboard performance and individual status view routes
+router.get("/performance/lumpsum-audit", verifyUser, lumpsumAudit);
 
-// router.get("/getUsers", async (_req, res) => {
-//   	const usersLog = await User.find().populate('role');
-// 		res.json({ users: usersLog });
-// })
+// GET MF-SIP data
+router.get("/performance/sip-audit", verifyUser, mfSIPAudit);
+
+// GET individual performance data of insurance leaderboard
+router.get("/performance/leaderboard-audit", verifyUser, leaderboardAudit);
+
+// GET individual performance data of referral leaderboard
+router.get("/performance/referral", verifyUser, referralLeaderboard);
+
+// GET MF_Leaders data
+router.get("/performance/mf-leader-audit", verifyUser, mfLeadersAudit);
 
 module.exports = router;

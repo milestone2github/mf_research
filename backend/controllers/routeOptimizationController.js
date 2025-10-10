@@ -131,6 +131,7 @@ const markCompleted = async (req, res) => {
 			assignedFE: feId,
 			isCompleted: false,
 			onHold: false,
+			status: "pending",
 		});
 
 		if (!visit)
@@ -183,6 +184,7 @@ const markCompleted = async (req, res) => {
 			assignedFE: feId,
 			isCompleted: false,
 			onHold: false,
+			status: "pending",
 			"availability.start": { $lte: endOfDay },
 			"availability.end": { $gte: startOfDay },
 		})
@@ -206,6 +208,7 @@ const markCompleted = async (req, res) => {
 			message: "Client visit marked as completed",
 			completedVisitId: visitId,
 			nextClient: nextMeeting ? nextMeeting.clientId : null,
+			nextClientVisit: nextMeeting ? nextMeeting._id : null,
 		});
 	} catch (err) {
 		console.error("Error marking client visit complete:", err);
@@ -230,23 +233,17 @@ const addComments = async (req, res) => {
 		}
 
 		// 1. Fetch the specific ClientMeeting
-		let visit;
-		if (visitId) {
-			visit = await ClientMeeting.findOne({ _id: visitId, clientId });
-			if (!visit) return res.status(404).json({ error: "Visit not found" });
-		} else {
-			// fallback: latest pending visit assigned to this FE
-			visit = await ClientMeeting.findOne({
-				clientId,
-				assignedFE: feId,
-				isCompleted: false,
-			}).sort({ "availability.start": 1 });
-			if (!visit)
-				return res
-					.status(404)
-					.json({ error: "No pending visit found for this FE" });
-		}
-
+		const visit = await ClientMeeting.findOne({
+			_id: visitId,
+			clientId,
+			assignedFE: feId,
+			isCompleted: false,
+			onHold: false,
+			status: "pending"
+		});
+		if (!visit) return res.status(404).json({ error: "Visit not found" });
+		
+		console.log("Visit details ==> ", visit) // debug
 		// 2. Get FE name (denormalization)
 		const fe = await FE.findById(feId).select("name");
 		const feName = fe ? fe.name : "Unknown FE";
@@ -268,19 +265,20 @@ const addComments = async (req, res) => {
 		// 4. Push comment to ClientMeeting and mark on hold
 		visit.feComments.push(newComment);
 		visit.onHold = true;
+		visit.priority = 0;
 		visit.status = "cancelled";
-
+		// console.log("New Visit Details before saving :--> ", visit); // debug
 		await visit.save();
 
 		// 5. Recalculate route for remaining assigned clients
 		const currentLocation = markCommentLocation?.coordinates || null;
 		await optimizeFERoute(feId, currentLocation);
-
+		// console.log("Current Location Updated: ", currentLocation); // debug
 		return res.json({
 			message: "Comment posted successfully, visit put on hold",
 			clientId,
 			visitId: visit._id,
-			comment: newComment,
+			comment: newComment?.text,
 		});
 	} catch (err) {
 		return res.status(500).json({
@@ -346,186 +344,94 @@ const getAllCoordinates = async (req, res) => {
 // Fetch all the assigned Clients of FE
 const getCombinedList = async (req, res) => {
 	try {
-		const { feId, employeeId, feName, clientName, startDate, endDate, status } =
+		const { startDate, endDate, feName, employeeId, clientName, status } =
 			req.query;
 
-		// 1. Helper Functions to parse UTC dates
-		const parseStartDate = (dateStr) => {
-			const d = new Date(dateStr);
-			return new Date(
+		// Helper functions to parse start/end dates in UTC
+		const parseStart = (d) =>
+			new Date(
 				Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
 			);
-		};
-		const parseEndDate = (dateStr) => {
-			const d = new Date(dateStr);
-			return new Date(
+		const parseEnd = (d) =>
+			new Date(
 				Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
 			);
-		};
 
-		// 2. Determine Date Range
-		let startFilter = null,
-			endFilter = null;
 		const today = new Date();
+		let startFilter, endFilter;
 
 		if (startDate && endDate) {
-			startFilter = parseStartDate(startDate);
-			endFilter = parseEndDate(endDate);
+			startFilter = parseStart(new Date(startDate));
+			endFilter = parseEnd(new Date(endDate));
 		} else if (startDate) {
-			startFilter = parseStartDate(startDate);
-			endFilter = new Date(
-				Date.UTC(
-					today.getUTCFullYear(),
-					today.getUTCMonth(),
-					today.getUTCDate(),
-					23,
-					59,
-					59,
-					999
-				)
-			);
+			startFilter = parseStart(new Date(startDate));
+			endFilter = parseEnd(today);
 		} else if (endDate) {
-			endFilter = parseEndDate(endDate);
-			const tenDaysBefore = new Date(endFilter);
-			tenDaysBefore.setUTCDate(tenDaysBefore.getUTCDate() - 10);
-			startFilter = tenDaysBefore;
-		} else {
-			// default last 3 days
-			endFilter = new Date(
-				Date.UTC(
-					today.getUTCFullYear(),
-					today.getUTCMonth(),
-					today.getUTCDate(),
-					23,
-					59,
-					59,
-					999
-				)
-			);
+			endFilter = parseEnd(new Date(endDate));
 			startFilter = new Date(endFilter);
-			startFilter.setUTCDate(startFilter.getUTCDate() - 2);
-			startFilter.setUTCHours(0, 0, 0, 0);
+			startFilter.setUTCDate(startFilter.getUTCDate() - 10);
+		} else {
+			startFilter = parseStart(today);
+			endFilter = parseEnd(today);
 		}
 
-		// 3. Build FE query
-		const feQuery = {};
-		if (feId) feQuery._id = feId;
-		if (employeeId) feQuery.employeeId = employeeId;
-		if (feName) feQuery.name = { $regex: feName, $options: "i" };
+		console.log("Start and End date in UTC ==> ", startFilter, endFilter); // debug
 
-		const fes = await FE.find(feQuery).lean();
-
-		// 4. Fetch FERoute and Filter Booked Slots
-		const results = await Promise.all(
-			fes.map(async (fe) => {
-				const feRoute = await FERoute.findOne({ feId: fe._id })
-					.populate({
-						path: "bookedSlots.client",
-						select: "name address contactNumber",
-					})
-					.populate({
-						path: "currentClient",
-						select: "name address contactNumber",
-					})
-					.lean();
-
-				if (!feRoute?.bookedSlots?.length) return null;
-
-				const filteredSlots = await Promise.all(
-					feRoute.bookedSlots.map(async (slot) => {
-						if (!slot.client) return null;
-						if (slot.start > slot.end) return null;
-
-						// 4.1 Filter by client name
-						if (
-							clientName &&
-							!slot.client.name.match(new RegExp(clientName, "i"))
-						)
-							return null;
-
-						// 4.2 Filter by date range if defined
-						if (
-							startFilter &&
-							endFilter &&
-							(slot.start > endFilter || slot.end < startFilter)
-						)
-							return null;
-
-						// 4.3 Attach ClientMeeting details
-						const visitQuery = {
-							clientId: slot.client._id,
-							assignedFE: fe._id,
-						};
-						if (startFilter && endFilter) {
-							visitQuery["availability.start"] = { $lte: endFilter };
-							visitQuery["availability.end"] = { $gte: startFilter };
-						}
-						if (status === "completed") {
-							visitQuery.isCompleted = true;
-							visitQuery.status = "completed";
-						} else if (status === "pending") {
-							visitQuery.isCompleted = false;
-							visitQuery.status = "pending";
-						}
-
-						const visit = await ClientMeeting.findOne(visitQuery).lean();
-						slot.visitDetails = visit
-							? { ...visit, feComments: visit.feComments || [] }
-							: null;
-
-						// 4.4 Exclude slot if status filter applied but no visit
-						if (status && !visit) return null;
-
-						return slot;
-					})
-				);
-
-				feRoute.bookedSlots = filteredSlots.filter(Boolean);
-
-				// 5. Current client visit details
-				if (feRoute.currentClient) {
-					const visitQuery = {
-						clientId: feRoute.currentClient._id,
-						assignedFE: fe._id,
-					};
-					if (startFilter && endFilter) {
-						visitQuery["availability.start"] = { $lte: endFilter };
-						visitQuery["availability.end"] = { $gte: startFilter };
-					}
-					if (status === "completed") {
-						visitQuery.isCompleted = true;
-						visitQuery.status = "completed";
-					} else if (status === "pending") {
-						visitQuery.isCompleted = false;
-						visitQuery.status = "pending";
-					}
-					const visit = await ClientMeeting.findOne(visitQuery).lean();
-					feRoute.currentClient.visitDetails = visit
-						? { ...visit, feComments: visit.feComments || [] }
-						: null;
+		// /*
+		// Fetch FERoute documents within date range and populate client, visit, and FE info
+		const combinedRes = await FERoute.find({
+			bookedSlots: {
+				$elemMatch: { start: { $gte: startFilter }, end: { $lte: endFilter } },
+			},
+		})
+			.select("feId bookedSlots")
+			.populate([
+				{ path: "feId", select: "name employeeId contactNumber" },
+				{ path: "bookedSlots.client", select: "_id name contactNumber" },
+				{
+					path: "bookedSlots.visit",
+					select:
+						"_id visitingAddress assignedFE purposeOfVisit priority isCompleted onHold status feComments",
 				}
+			])
+			.lean();
 
-				return { ...fe, routeDetails: feRoute || {} };
+		console.log("Combined Data :--> ", combinedRes); // debug
+
+		// Group by FE
+		const groupByFE = Object.values(
+			combinedRes.reduce((acc, route) => {
+				const feId = route.feId._id.toString();
+				if (!acc[feId]) acc[feId] = { feId: route.feId, bookedSlots: [] };
+				acc[feId].bookedSlots.push(...route.bookedSlots);
+				return acc;
+			}, {})
+		);
+
+		// Apply optional filters
+		const filteredList = groupByFE
+			.filter((fe) => {
+				if (feName && !new RegExp(feName, "i").test(fe.feId.name)) return false;
+				if (employeeId && fe.feId.employeeId !== employeeId) return false;
+				return true;
 			})
-		);
-
-		// 6. Filter out FEs with no slots after filtering
-		const filteredResults = results.filter(
-			(r) => r && r.routeDetails?.bookedSlots?.length
-		);
-
-		// 7. If no entries found, return message
-		if (!filteredResults.length) {
-			return res.json({ success: true, message: "No entries found", data: [] });
-		}
-
-		// 8. Return results
-		res.json({ success: true, data: filteredResults });
+			.map((fe) => {
+				const slots = fe.bookedSlots.filter((slot) => {
+					if (clientName && !new RegExp(clientName, "i").test(slot.client.name))
+						return false;
+					if (status && slot.visit.status !== status) return false;
+					if (startFilter && slot.start < startFilter) return false;
+					if (endFilter && slot.end > endFilter) return false;
+					return true;
+				});
+				return { feId: fe.feId, bookedSlots: slots };
+			})
+			.filter((fe) => fe.bookedSlots.length > 0);
+		// */
+		return res.json({ success: true, data: filteredList });
 	} catch (err) {
-		console.error("Error fetching combined list:", err);
-		res
-			.status(500)
-			.json({ success: false, message: "Server error", details: err.message });
+		console.error(err);
+		return res.status(500).json({ success: false, error: "Server Error" });
 	}
 };
 
@@ -997,10 +903,10 @@ const assignClientsToFE = async (req, res) => {
 		if (!feRoute) {
 			feRoute = new FERoute({
 				feId,
-				baseLocation: { type: "Point", coordinates: [77.1092925, 28.7195327] },
+				baseLocation: { type: "Point", coordinates: baseLocation },
 				currentLocation: {
 					type: "Point",
-					coordinates: [77.1092925, 28.7195327],
+					coordinates: baseLocation,
 				},
 				availability: [],
 				bookedSlots: [],
