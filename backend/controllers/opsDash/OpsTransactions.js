@@ -363,11 +363,33 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
         if: { $eq: ["$hasFractions", false] },
         then: {
           $or: [
+            // Pending transactions
             { $eq: ["$status", "PENDING"] },
+            // Rejected within last 3 days (check validations)
             {
               $and: [
                 { $eq: ["$status", "REJECTED"] },
-                { $gte: ['$updatedAt', past3days] }
+                {
+                  $let: {
+                    vars: {
+                      lastValidation: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$validations",
+                              as: "v",
+                              cond: { $eq: ["$$v.status", "REJECTED"] }
+                            }
+                          },
+                          -1 // get last rejected validation
+                        ]
+                      }
+                    },
+                    in: {
+                      $gte: ["$$lastValidation.validatedAt", past3days]
+                    }
+                  }
+                }
               ]
             }
           ]
@@ -378,11 +400,34 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
               input: "$transactionFractions",
               in: {
                 $or: [
+                  // Pending fraction
                   { $eq: ["$$this.status", "PENDING"] },
+                  
+                  // Rejected fraction recently (using validations if available)
                   {
                     $and: [
                       { $eq: ["$$this.status", "REJECTED"] },
-                      { $gte: ['$updatedAt', past3days] }
+                      {
+                        $let: {
+                          vars: {
+                            lastValidation: {
+                              $arrayElemAt: [
+                                {
+                                  $filter: {
+                                    input: "$$this.validations",
+                                    as: "v",
+                                    cond: { $eq: ["$$v.status", "REJECTED"] }
+                                  }
+                                },
+                                -1
+                              ]
+                            }
+                          },
+                          in: {
+                            $gte: ["$$lastValidation.validatedAt", past3days]
+                          }
+                        }
+                      }
                     ]
                   }
                 ]
@@ -397,6 +442,7 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
   matchStage.pendingOrRejectedRecently = true
 
   try {
+    // Aggregate transactions
     const transactions = await Transactions.aggregate([
       { $addFields: addStage },
       { $match: matchStage },
@@ -413,8 +459,36 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
       throw new Error('Transactions not found!')
     }
 
+    // Populate notes for transactions and fractions
+    const allTxnIds = transactions.flatMap(cat => cat.transactions.map(txn => txn._id));
+    const populatedTxns = await Transactions.find({ _id: { $in: allTxnIds } })
+      .populate("note.editedBy", "name")
+      .populate("transactionFractions.note.editedBy", "name")
+      .lean();
 
-    res.status(200).json({ message: 'Found transactions', data: transactions })
+    // Normalize notes to include only name
+    const normalizedTxns = populatedTxns.map(txn => {
+      txn.note = txn.note.map(n => ({ ...n, editedBy: n.editedBy ? { name: n.editedBy.name } : null }));
+      txn.transactionFractions = txn.transactionFractions.map(fr => {
+        fr.note = fr.note.map(n => ({ ...n, editedBy: n.editedBy ? { name: n.editedBy.name } : null }));
+        return fr;
+      });
+      return txn;
+    });
+
+    // Re-group by category to match original aggregation
+    const groupedByCategory = {};
+    normalizedTxns.forEach(txn => {
+      if (!groupedByCategory[txn.category]) groupedByCategory[txn.category] = [];
+      groupedByCategory[txn.category].push(txn);
+    });
+
+    const finalData = Object.keys(groupedByCategory).map(cat => ({
+      _id: cat,
+      transactions: groupedByCategory[cat]
+    }));
+
+    res.status(200).json({ message: 'Found transactions', data: finalData })
   } catch (error) {
     // console.log('Error getting transactions: ', error.message)
     res.status(500).json({ error: `Error getting transactions: ${error.message}` })
@@ -871,6 +945,99 @@ const filteredTransactions = async (req, res) => {
       { $sort: sortBy },
       { $skip: skipItems },
       { $limit: items }
+      ,
+       // --- populate note.editedBy ---
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'note.editedBy',
+          foreignField: '_id',
+          as: 'noteEditedBy'
+        }
+      },
+      {
+        $addFields: {
+          note: {
+            $map: {
+              input: '$note',
+              as: 'n',
+              in: {
+                _id: '$$n._id',
+                note: '$$n.note',
+                createdAt: '$$n.createdAt',
+                editedAt: '$$n.editedAt',
+                editedBy: {
+                  name: {
+                    $arrayElemAt: [
+                      {
+                        $map: {
+                          input: {
+                            $filter: {
+                              input: '$noteEditedBy',
+                              as: 'u',
+                              cond: { $eq: ['$$u._id', '$$n.editedBy'] }
+                            }
+                          },
+                          as: 'user',
+                          in: '$$user.name'
+                        }
+                      },
+                      0
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+
+      // --- populate transactionFractions.note.editedBy ---
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'transactionFractions.note.editedBy',
+          foreignField: '_id',
+          as: 'fractionNoteEditedBy'
+        }
+      },
+      {
+        $addFields: {
+          'transactionFractions.note': {
+            $map: {
+              input: '$transactionFractions.note',
+              as: 'n',
+              in: {
+                _id: '$$n._id',
+                note: '$$n.note',
+                createdAt: '$$n.createdAt',
+                editedAt: '$$n.editedAt',
+                editedBy: {
+                  name: {
+                    $arrayElemAt: [
+                      {
+                        $map: {
+                          input: {
+                            $filter: {
+                              input: '$fractionNoteEditedBy',
+                              as: 'u',
+                              cond: { $eq: ['$$u._id', '$$n.editedBy'] }
+                            }
+                          },
+                          as: 'user',
+                          in: '$$user.name'
+                        }
+                      },
+                      0
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      { $project: { noteEditedBy: 0, fractionNoteEditedBy: 0 } }
     ]);
 
     const totalCountAndAmount = await Transactions.aggregate([
@@ -915,7 +1082,6 @@ const filteredTransactions = async (req, res) => {
       message: 'Transactions found'
     });
   } catch (error) {
-    // console.log('error getting filtered transactions: ', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -1329,8 +1495,9 @@ const setServiceManager = async (req, res) => {
 // update note
 const updateNote = async (req, res) => {
   const transactionId = req.params.id
-  const note = req.body.note
-  const fractionId = req.body.fractionId
+  let note = req.body.note
+  let fractionId = req.body.fractionId
+  const userId = req.user?._id;
 
   if (!transactionId) {
     return res.status(400).json({ error: 'Transaction Id is required' })
@@ -1340,15 +1507,16 @@ const updateNote = async (req, res) => {
   }
 
   try {
+    note = { note, editedBy: userId, editedAt: new Date() };
     let transaction;
     if (!fractionId) {
-      transaction = await Transactions.findByIdAndUpdate(transactionId, { note }, { new: true }).lean()
+      transaction = await Transactions.findByIdAndUpdate(transactionId, { $push: { note } }, { new: true }).populate("note.editedBy", "name").lean()
     }
 
     else {
       transaction = await Transactions.findOneAndUpdate({
         _id: transactionId, 'transactionFractions._id': fractionId
-      }, { 'transactionFractions.$.note': note, }, { new: true }).lean()
+      }, { $push: { "transactionFractions.$.note": note } }, { new: true }).populate("transactionFractions.note.editedBy", "name").lean()
     }
     if (!transaction) {
       throw new Error("Transaction not found")

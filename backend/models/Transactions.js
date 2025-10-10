@@ -33,9 +33,15 @@ const transactionSchema = new mongoose.Schema({
   sessionId: String,
   orderId: { type: String, trim: true },
   orderPlatform: { type: String, trim: true },
-  note: { type: String, trim: true, maxLength: 1200 },
   // Combined root notes from `transaction.note` and `transaction.reconciliation.note`
-  // notes: [{ type: String, trim: true, maxLength: 1200 }],
+  note: [{
+    note: { type: String, trim: true, maxLength: 1200 },
+    editedBy: {
+      ref: 'USERS',
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    editedAt: { type: Date, default: Date.now }
+  }],
   status: { type: String, enum: statusEnum },
   approvalStatus: { type: String, enum: approvalStatusEnum, default: '' },
   linkStatus: { type: String, enum: ['generated', 'locked', 'unlocked'], default: 'unlocked' },
@@ -47,9 +53,15 @@ const transactionSchema = new mongoose.Schema({
     orderId: { type: String, trim: true },
     orderPlatform: { type: String, trim: true },
     folioNumber: String,
-    note: { type: String, trim: true, maxLength: 1200 },
     // Combined notes for transaction fractions from `transactionFractions[n].note` and `transactionFractions[n].reconciliation.note`
-    // notes: [{ type: String, trim: true, maxLength: 1200 }],
+    note: [{
+      note: { type: String, trim: true, maxLength: 1200 },
+      editedBy: {
+        ref: 'USERS',
+        type: mongoose.Schema.Types.ObjectId,
+      },
+      editedAt: { type: Date, default: Date.now }
+    }],
     linkStatus: { type: String, enum: ['initialized', 'generated', 'deleted'] },
     status: { type: String, enum: statusEnum },
     approvalStatus: { type: String, enum: approvalStatusEnum, default: '' },
