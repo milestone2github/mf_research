@@ -242,8 +242,6 @@ async function saveJoineeDetails(req, res) {
     if (roleIsId) {
       const roleData = await Role.findById(role).lean();
       roleName = roleData?.name || roleName;
-    } else if (typeof role === 'string' && role.trim()) {
-      roleName = role.trim(); // free text from "Other"
     }
     const salutation = gender === 'female' ? 'Ms.' : 'Mr.';
 

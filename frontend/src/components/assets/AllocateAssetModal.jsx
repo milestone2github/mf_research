@@ -21,13 +21,13 @@ const AllocateAssetModal = ({ show, onClose, asset, onAllocate }) => {
         <h2 className="text-lg font-semibold mb-3">Allocate Asset</h2>
 
         <div className="mb-2">
-          <strong>Name:</strong> {asset.name}
+          <strong>Name:</strong> {asset.assetName}
         </div>
         <div className="mb-2">
           <strong>Type:</strong> {asset.type?.name}
         </div>
         <div className="mb-2">
-          <strong>Category:</strong> {asset.category?.name}
+          <strong>Category:</strong> {asset.type?.category?.name}
         </div>
 
         <label className="block mb-2">
