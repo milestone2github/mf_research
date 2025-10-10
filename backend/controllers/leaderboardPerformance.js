@@ -153,7 +153,7 @@ const leaderboardAudit = async (req, res) => {
 }
 
 // Fetch MF_SIP_Leaderboard data
-const mfSIP = async (req, res) => {
+const mfSIPAudit = async (req, res) => {
   try {
     const { month, year } = req.query;
 		const email = req.user.email;
@@ -234,19 +234,69 @@ const referralLeaderboard = async (req, res) => {
   }
 }
 
+// MF_Leaders performance collection of individuals aggregated based on rm_name
+const mfLeadersAudit = async (req, res) => {
+	try {
+		const { month, year } = req.query;
+    const email = req.user.email;
+		if (!email) return res.status(400).json({ message: "Email is required" });
 
-const mfLeaders = async (req, res) => {
-  try {
+		const mfLeadersColl = db.collection(mfLeadersCollection);
 
-  } catch (err) {
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-}
+		const empInfo = await fetchEmployeeId(email);
+		if (!empInfo)
+			return res.status(404).json({ message: "Employee not found" });
+
+		const { full_name } = empInfo;
+
+		const query = { rm_name: full_name };
+
+		if (month && year) {
+			// Specific month filter
+			const monthStr = `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}`;
+			query.period_month = monthStr;
+			console.log("month string ==> ", monthStr); // debug
+		} else if (year && !month) {
+			// Year-only filter
+			query.period_month = { $regex: `^${year.toString().padStart(4, "0")}-` };
+		}
+
+		const mfLeadersCursor = mfLeadersColl
+			.find(query, {
+				projection: {
+					period_month: 1,
+					leader_bonus_points: 1,
+					_id: 0,
+				},
+			})
+			.sort({ period_month: -1 });
+
+		if (!month && !year) {
+			mfLeadersCursor.limit(24); // limit last 24 if no filter
+		}
+
+		const mfLeadersData = await mfLeadersCursor.toArray();
+
+		// Format resultant data
+		const formattedData = mfLeadersData.map((d) => ({
+			month: d.period_month,
+			leaderBonusPoints: d.leader_bonus_points || 0,
+		}));
+
+		res.json({
+			empName: full_name,
+			data: formattedData,
+		});
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ message: "Internal Server Error" });
+	}
+};
 
 module.exports = {
 	lumpsumAudit,
 	leaderboardAudit,
-	mfSIP,
+	mfSIPAudit,
 	referralLeaderboard,
-	mfLeaders,
+	mfLeadersAudit,
 };
