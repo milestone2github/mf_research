@@ -111,8 +111,43 @@ const lumpsumAudit = async (req, res) => {
 
 const leaderboardAudit = async (req, res) => {
   try {
-    
+		const { leadId } = req.query;
+    const email = req.user.email;
+		if (!email) return res.status(400).json({ message: "Email is required" });
+
+		const leaderboardAuditColl= db.collection(leaderboardAuditCollection);
+
+		const empInfo = await fetchEmployeeId(email);
+
+		if (!empInfo)
+			return res.status(404).json({ message: "Employee not found" });
+
+		const { id: employee_id } = empInfo;
+
+		const query = { employee_id };
+
+		if (leadId) {
+			query.lead_id = leadId;
+		}
+
+		const leaderboardDataFetch = leaderboardAuditColl
+			.find(query, {
+				projection: {
+					lead_id: 1,
+					justification: 1,
+					points: 1,
+					weight_factor: 1
+				},
+			});
+
+			const leaderboarAuditData = await leaderboardDataFetch.toArray();
+		res.json({
+			empId: employee_id,
+			empName: empInfo.full_name,
+			data: leaderboarAuditData,
+		});
   } catch (err) {
+		console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
