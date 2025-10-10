@@ -38,7 +38,8 @@ async function fetchEmployeeId(email) {
 // Lumpsum Audit data fetch
 const lumpsumAudit = async (req, res) => {
 	try {
-		const { email, month, year } = req.query;
+		const { month, year } = req.query;
+    const email = req.user.email;
 		if (!email) return res.status(400).json({ message: "Email is required" });
 
 		const lumpsumColl = db.collection(lumpsumAuditCollection);
