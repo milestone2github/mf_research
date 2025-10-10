@@ -237,8 +237,50 @@ const mfSIP = async (req, res) => {
 
 const referralLeaderboard = async (req, res) => {
 	try {
+		const { leadId } = req.query;
+		const email = req.user.email;
+		if (!email) return res.status(400).json({ message: "Email is required" });
 
+		const referralCollectionInstance = db.collection(referralCollection);
+
+		const empInfo = await fetchEmployeeId(email);
+
+		if (!empInfo)
+			return res.status(404).json({ message: "Employee not found" });
+
+		const { id: employee_id } = empInfo;
+
+		const query = { employee_id };
+
+		if (leadId) {
+			query.lead_id = leadId;
+		}
+
+		const referralDataFetch = referralCollectionInstance
+			.find(query, {
+				projection: {
+					lead_id: 1,
+					justification: 1,
+					points: 1
+				},
+			});
+
+		const referralData = await referralDataFetch.toArray();
+
+		// Format resultant data in custom object
+		const formattedData = referralData.map((d) => ({
+			leadId: d.lead_id,
+			points: d.points || 0,
+			justification: d.justification || ''
+		}));
+
+		res.json({
+			empId: employee_id,
+			empName: empInfo.full_name,
+			data: formattedData,
+		});
 	} catch (err) {
+		console.error(err);
 		res.status(500).json({ message: "Internal Server Error" });
 	}
 }
