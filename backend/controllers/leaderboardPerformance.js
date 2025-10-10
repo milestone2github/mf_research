@@ -14,32 +14,32 @@ let db;
 
 // Initiate db connection with PLI_Leaderboard_Data collection
 async function dbInstanceConnect() {
-  try {
-    const client = new MongoClient(uri);
-    await client.connect();
-    console.log("Connected to PLI_Leaderboard_Data DB");
-    db = client.db(dbName);
-  } catch (err) {
-    console.log("PLI_Leaderboard DB connection failed: ", err.message);
-  }
+	try {
+		const client = new MongoClient(uri);
+		await client.connect();
+		console.log("Connected to PLI_Leaderboard_Data DB");
+		db = client.db(dbName);
+	} catch (err) {
+		console.log("PLI_Leaderboard DB connection failed: ", err.message);
+	}
 }
 dbInstanceConnect();  // run once
 
 // Fetch Zoho's employee_id for referencing in db
 async function fetchEmployeeId(email) {
-  const zohoUsers = db.collection(zohoUsersCollection);
-  const empInfo = await zohoUsers.findOne(
+	const zohoUsers = db.collection(zohoUsersCollection);
+	const empInfo = await zohoUsers.findOne(
 		{ email },
 		{ projection: { id: 1, full_name: 1 } }
 	);
-  return empInfo || null;
+	return empInfo || null;
 }
 
 // Lumpsum Audit data fetch
 const lumpsumAudit = async (req, res) => {
 	try {
 		const { month, year } = req.query;
-    const email = req.user.email;
+		const email = req.user.email;
 		if (!email) return res.status(400).json({ message: "Email is required" });
 
 		const lumpsumColl = db.collection(lumpsumAuditCollection);
@@ -110,12 +110,12 @@ const lumpsumAudit = async (req, res) => {
 
 
 const leaderboardAudit = async (req, res) => {
-  try {
+	try {
 		const { leadId } = req.query;
-    const email = req.user.email;
+		const email = req.user.email;
 		if (!email) return res.status(400).json({ message: "Email is required" });
 
-		const leaderboardAuditColl= db.collection(leaderboardAuditCollection);
+		const leaderboardAuditColl = db.collection(leaderboardAuditCollection);
 
 		const empInfo = await fetchEmployeeId(email);
 
@@ -140,43 +140,52 @@ const leaderboardAudit = async (req, res) => {
 				},
 			});
 
-			const leaderboarAuditData = await leaderboardDataFetch.toArray();
+		const leaderboarAuditData = await leaderboardDataFetch.toArray();
+
+		// Format resultant data in custom object
+		const formattedData = leaderboarAuditData.map((d) => ({
+			leadId: d.lead_id,
+			points: d.points || 0,
+			weightFactor: d.weight_factor || 0,
+			justification: d.justification || ''
+		}));
+
 		res.json({
 			empId: employee_id,
 			empName: empInfo.full_name,
-			data: leaderboarAuditData,
+			data: formattedData,
 		});
-  } catch (err) {
+	} catch (err) {
 		console.error(err);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
+		res.status(500).json({ message: "Internal Server Error" });
+	}
 }
 
 
 const mfSIP = async (req, res) => {
-  try {
+	try {
 
-  } catch (err) {
-    res.status(500).json({ message: "Internal Server Error" });
-  }
+	} catch (err) {
+		res.status(500).json({ message: "Internal Server Error" });
+	}
 }
 
 
 const referralLeaderboard = async (req, res) => {
-  try {
+	try {
 
-  } catch (err) {
-    res.status(500).json({ message: "Internal Server Error" });
-  }
+	} catch (err) {
+		res.status(500).json({ message: "Internal Server Error" });
+	}
 }
 
 
 const mfLeaders = async (req, res) => {
-  try {
+	try {
 
-  } catch (err) {
-    res.status(500).json({ message: "Internal Server Error" });
-  }
+	} catch (err) {
+		res.status(500).json({ message: "Internal Server Error" });
+	}
 }
 
 module.exports = {
