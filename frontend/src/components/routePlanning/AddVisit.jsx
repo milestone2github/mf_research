@@ -151,14 +151,14 @@ export const AddVisit = () => {
 
 				<div>
 					<label className="block font-medium mb-1">
-						Location Coordinates (optional: lng, lat)
+						Location Coordinates (optional: longitude, latitude)
 					</label>
 					<input
 						type="text"
 						name="locationCoordinates"
 						value={formData.locationCoordinates}
 						onChange={handleChange}
-						placeholder="77.1025, 28.7041"
+						placeholder="e.g. 77.22, 28.11"
 						className="w-full px-3 py-2 border rounded-lg focus:ring focus:ring-blue-300"
 					/>
 				</div>

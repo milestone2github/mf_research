@@ -136,8 +136,9 @@ export const ViewPlanner = () => {
 					onChange={handleFilterChange}
 				>
 					<option value="">All</option>
-					<option value="pending">Pending</option>
 					<option value="completed">Completed</option>
+					<option value="pending">Pending</option>
+					<option value="cancelled">Cancelled</option>
 				</select>
 				<button
 					className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
@@ -184,7 +185,7 @@ export const ViewPlanner = () => {
 										<thead className="bg-gray-50 text-gray-700">
 											<tr>
 												<th className="px-4 py-2 border">Client</th>
-												<th className="px-4 py-2 border">Address</th>
+												<th className="px-4 py-2 border">Visiting Address</th>
 												<th className="px-4 py-2 border">Contact</th>
 												<th className="px-4 py-2 border">Slot Start</th>
 												<th className="px-4 py-2 border">Slot End</th>
@@ -199,7 +200,8 @@ export const ViewPlanner = () => {
 														{slot.client?.name}
 													</td>
 													<td className="px-4 py-2 border">
-														{slot.client?.address}
+														{/* {slot.client?.address} */}
+														{slot.visitDetails?.visitingAddress}
 													</td>
 													<td className="px-4 py-2 border">
 														{slot.client?.contactNumber}
@@ -215,9 +217,13 @@ export const ViewPlanner = () => {
 															: utcToLocal(slot.end)}
 													</td>
 													<td className="px-4 py-2 border">
-														{slot.visitDetails?.isCompleted
-															? "Completed"
-															: "Pending"}
+														{
+															slot.visitDetails?.status === "cancelled"
+																? "Cancelled"
+																: slot.visitDetails?.isCompleted
+																	? "Completed"
+																	: "Pending"
+														}
 													</td>
 													<td className="px-4 py-2 border">
 														{slot.visitDetails?.feComments?.length ? (
