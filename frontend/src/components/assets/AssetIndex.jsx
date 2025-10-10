@@ -114,10 +114,14 @@ function AssetIndex() {
   const handleSearch = (searchQuery) => {
     if (!searchQuery) return applyFilters();
     const lower = searchQuery.toLowerCase();
-    const filteredBySearch = filtered.filter(a =>
-      a.name.toLowerCase().includes(lower) ||
-      a.serialNumber.toLowerCase().includes(lower)
+    const filteredBySearch = filtered.filter(a => {
+      const name = a.name || a.assetName || ''; 
+      const serial = a.serialNumber || '';
+      return (
+      name.toLowerCase().includes(lower) ||
+      serial.toLowerCase().includes(lower)
     );
+    });
     setFiltered(filteredBySearch);
   };
 
