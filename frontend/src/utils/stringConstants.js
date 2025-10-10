@@ -32,3 +32,5 @@ export const ERROR_WHILE_SAVING = "An error occurred while saving changes.";
 // Assets
 export const ASSET_DELETE_MESSAGE = "Asset Deleted Successful.";
 
+// Base Location (mNivesh Rithala Office coordinates)
+export const BASE_LOCATION_COORDINATES = { lat: 28.7195327, lng: 77.1092925 };

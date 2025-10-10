@@ -3,6 +3,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useRef } from "react";
+import { BASE_LOCATION_COORDINATES } from "../../utils/stringConstants";
 
 export const TrackFERoute = () => {
 	const baseUrl = process.env.REACT_APP_API_BASE_URL;
@@ -14,7 +15,9 @@ export const TrackFERoute = () => {
 	const [selectedFE, setSelectedFE] = useState("");
 	const [feData, setFEData] = useState(null);
 	const [map, setMap] = useState(null);
-	const [markers, setMarkers] = useState([]);
+	// const [markers, setMarkers] = useState([]);
+
+	const markersRef = useRef([]);
 
 	// Load FEs who have assigned clients today
 	useEffect(() => {
@@ -33,38 +36,35 @@ export const TrackFERoute = () => {
 	const fetchFEData = async (feId) => {
 		if (!feId) return;
 
+		// Clear previous markers before loading new data
+		markersRef.current.forEach((m) => m.setMap(null));
+		markersRef.current = [];
+		setFEData(null);
+
 		try {
 			const res = await axios.get(`${baseUrl}/api/route-plan/fe/${feId}/track`);
 			setFEData(res.data);
 		} catch (err) {
 			console.error(err);
+			markersRef.current.forEach((m) => m.setMap(null));
+			markersRef.current = [];
 
-			// Clear map markers
-			markers.forEach((m) => m.setMap(null));
-			setMarkers([]);
-
-			// Find selected FE name
 			const fe = fes.find((f) => f._id === feId);
 			const feName = fe ? fe.name : feId;
-
-			// Show toast warning
-			const msg =
-				`No clients assigned to FE: ${feName}` || err.response?.data?.message;
-			toast.warning(msg);
-
-			// Reset FE data
+			toast.warning(
+				`No clients assigned to FE: ${feName}` || err.response?.data?.message
+			);
 			setFEData(null);
 		}
 	};
-  
-	// Load Google Maps script dynamically
+
+	// Load Google Maps script dynamically (with geometry library)
 	useEffect(() => {
-		// Initialize map
 		const initMap = () => {
 			const mapObj = new window.google.maps.Map(
 				document.getElementById("map"),
 				{
-					center: { lat: 28.7195327, lng: 77.1092925 }, // fallback to office
+					center: BASE_LOCATION_COORDINATES,
 					zoom: 12,
 					mapId: googleMapId,
 				}
@@ -74,7 +74,7 @@ export const TrackFERoute = () => {
 
 		if (!window.google) {
 			const script = document.createElement("script");
-			script.src = `https://maps.googleapis.com/maps/api/js?key=${googleApiKey}`;
+			script.src = `https://maps.googleapis.com/maps/api/js?key=${googleApiKey}&libraries=geometry`;
 			script.async = true;
 			script.onload = initMap;
 			document.body.appendChild(script);
@@ -83,7 +83,21 @@ export const TrackFERoute = () => {
 		}
 	}, [googleApiKey, googleMapId]);
 
-	const markersRef = useRef([]);
+	// const markersRef = useRef([]);
+
+	// Function to get distance using Google Maps geometry library
+	const getDistanceInMeters = (lat1, lng1, lat2, lng2) => {
+		if (!window.google || !window.google.maps || !window.google.maps.geometry) {
+			console.warn("Google Maps geometry library not loaded.");
+			return 999999;
+		}
+		const point1 = new window.google.maps.LatLng(lat1, lng1);
+		const point2 = new window.google.maps.LatLng(lat2, lng2);
+		return window.google.maps.geometry.spherical.computeDistanceBetween(
+			point1,
+			point2
+		);
+	};
 
 	// Render markers when FE data changes
 	useEffect(() => {
@@ -100,10 +114,21 @@ export const TrackFERoute = () => {
 			const [lng, lat] = feData.feLocation.coordinates;
 			const position = { lat, lng };
 
+			let feColor = "bg-blue-600";	// default color
+
+			// Check distance to client (change to yellow if within 200m)
+			if (feData.clientLocation) {
+				const [clientLng, clientLat] = feData.clientLocation.coordinates;
+				const distance = getDistanceInMeters(lat, lng, clientLat, clientLng);
+				if (distance <= 200) {
+					feColor = "bg-yellow-500";
+				}
+			}
+
 			const feContent = document.createElement("div");
-			feContent.className =
-				"bg-blue-600 text-white font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center shadow-lg ring-2 ring-blue-300 ring-opacity-50";
+			feContent.className = `${feColor} text-white font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center shadow-lg ring-2 ring-opacity-50`;
 			feContent.textContent = "FE";
+
 			const feMarker = new window.google.maps.marker.AdvancedMarkerElement({
 				map,
 				position: position,
@@ -130,7 +155,8 @@ export const TrackFERoute = () => {
 			});
 			newMarkers.push(clientMarker);
 		}
-		setMarkers(newMarkers);
+		// setMarkers(newMarkers);
+		markersRef.current = newMarkers;
 	}, [feData, map]);
 
 	return (
