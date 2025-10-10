@@ -168,6 +168,7 @@ export const appRoutes = [
 		requiredPermission: "operations_dashboard",
 		to: "https://ops.mnivesh.com",
 		label: "OPS Dashboard",
+		protected: true,
 		external: true,
 		showInSidebar: true,
 	},
