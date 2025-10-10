@@ -73,6 +73,7 @@ const lumpsumAudit = async (req, res) => {
 					"Incentive.final_incentive": 1,
 					"Meetings.count": 1,
 					"Streak.bonus_total": 1,
+					"Net Purchase": 1,
 					month: 1,
 				},
 			})
@@ -95,6 +96,7 @@ const lumpsumAudit = async (req, res) => {
 			finalIncentive: d.Incentive?.final_incentive || 0,
 			meetingCount: d.Meetings?.count || 0,
 			streakBonus: d.Streak?.bonus_total || 0,
+			netPurchase: d["Net Purchase"] || 0,
 		}));
 
 		res.json({
