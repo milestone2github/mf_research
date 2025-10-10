@@ -2,14 +2,12 @@ const express = require('express');
 const router = express.Router();
 
 const { getLeaderboard } = require('../controllers/leaderboardController');
+const { lumpsumAudit } = require('../controllers/leaderboardPerformance');
 
-router.get('/leaderboard', getLeaderboard);
+// Get leaderboard data
+router.get('/', getLeaderboard);
 
-// const User = require('../models/User');
-
-// router.get("/getUsers", async (_req, res) => {
-//   	const usersLog = await User.find().populate('role');
-// 		res.json({ users: usersLog });
-// })
+// Leaderboard performance and individual status view routes
+router.get("/performance/lumpsum-audit", lumpsumAudit);
 
 module.exports = router;
