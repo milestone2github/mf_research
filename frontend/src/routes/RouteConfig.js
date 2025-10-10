@@ -31,6 +31,9 @@ import { centralRbacRoutes } from './centralRbacRoutes'
 import NotFound from '../components/pages/NotFound'
 import { RoutePlanningRoutes } from './RoutePlanningRoutes'
 import RouteOptimization from '../components/pages/RouteOptimization'
+import ReferralPerformance from '../components/pages/ReferralPerformance'
+import InsurancePerformance from '../components/pages/InsurancePerformance'
+import LeaderPerformance from '../components/pages/LeaderPerformance '
 
 export const appRoutes = [
 	// Home
@@ -294,6 +297,36 @@ export const appRoutes = [
 		protected: true,
 		showInSidebar: true,
 		nestedRoutes: RoutePlanningRoutes,
+	},
+
+	// Referral Performance
+	{
+		requiredPermission: "referral_performance",
+		to: "/referral-performance",
+		label: "Referral Performance",
+		element: <ReferralPerformance />,
+		protected: true,
+		showInSidebar: true,
+	},
+
+	// Insurance Performance
+	{
+		requiredPermission: "insurance_performance",
+		to: "/insurance-performance",
+		label: "Insurance Performance",
+		element: <InsurancePerformance />,
+		protected: true,
+		showInSidebar: true,
+	},
+
+	// Insurance Performance
+	{
+		requiredPermission: "leader_performance",
+		to: "/leader-performance",
+		label: "Leader Performance",
+		element: <LeaderPerformance />,
+		protected: true,
+		showInSidebar: true,
 	},
 
 	// Wild Card to catch all other routes
