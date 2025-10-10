@@ -108,7 +108,7 @@ const lumpsumAudit = async (req, res) => {
 	}
 };
 
-
+// Fetch Leaderboard_audit data
 const leaderboardAudit = async (req, res) => {
 	try {
 		const { leadId } = req.query;
@@ -161,13 +161,77 @@ const leaderboardAudit = async (req, res) => {
 	}
 }
 
-
+// Fetch MF_SIP_Leaderboard data
 const mfSIP = async (req, res) => {
-	try {
+  try {
+    const { month, year } = req.query;
+		const email = req.user.email;
+		if (!email) return res.status(400).json({ message: "Email is required" });
+    
+    const sipColl = db.collection(sipCollection);
 
-	} catch (err) {
-		res.status(500).json({ message: "Internal Server Error" });
-	}
+		const empInfo = await fetchEmployeeId(email);
+		if (!empInfo)
+			return res.status(404).json({ message: "Employee not found" });
+
+		const { id: employee_id } = empInfo;
+		const query = { employee_id };
+
+		if (month && year) {
+			// Specific month filter
+			const monthStr = `${year.toString().padStart(4, "0")}-${month
+				.toString()
+				.padStart(2, "0")}`;
+			query.period_month = monthStr;
+			console.log("month string ==> ", monthStr); // debug
+		} else if (year && !month) {
+			// Year-only filter
+			query.period_month = { $regex: `^${year.toString().padStart(4, "0")}-` };
+		}
+
+		const sipDataFetch = sipColl
+			.find(query, {
+				projection: {
+					"audit.sip_registrations": 1,
+					"audit.sip_cancellations": 1,
+					"audit.swp_registrations": 1,
+					"audit.swp_cancellations": 1,
+					aum_first: 1,
+					points: 1,
+					"sip_incentive.streak_fy_months": 1,
+					"sip_incentive.points": 1,
+					period_month: 1,
+				},
+			})
+			.sort({ period_month: -1 });
+
+		if (!month && !year) {
+			sipDataFetch.limit(24); // limit last 24 months if no filter
+		}
+
+		const sipData = await sipDataFetch.toArray();
+
+		// Format resultant data in custom object
+    const formattedData = sipData.map((d) => ({
+      aum: d.aum_first || 0,
+      month: d.period_month,
+      points: d.points || 0,
+      streak: d.sip_incentive?.streak_fy_months || 0,
+      sipIncentivePoints: d.sip_incentive?.points || 0,
+      sipRegistrations: d.audit?.sip_registrations || 0,
+      sipCancellations: d.audit?.sip_cancellations || 0,
+      swpRegistrations: d.audit?.swp_registrations || 0,
+      swpCancellations: d.audit?.swp_cancellations || 0,
+    }));
+
+		res.json({
+			empId: employee_id,
+			empName: empInfo.full_name,
+			data: formattedData,
+		});
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 }
 
 
