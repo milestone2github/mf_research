@@ -34,6 +34,9 @@ import RouteOptimization from '../components/pages/RouteOptimization'
 import ReferralPerformance from '../components/pages/ReferralPerformance'
 import InsurancePerformance from '../components/pages/InsurancePerformance'
 import LeaderPerformance from '../components/pages/LeaderPerformance '
+import LumpsumauditLb from '../components/pages/LumpsumAuditLb'
+import MFSIPLeaderboard from '../components/pages/MFSIPLeaderboard'
+
 
 export const appRoutes = [
 	// Home
@@ -328,6 +331,26 @@ export const appRoutes = [
 		protected: true,
 		showInSidebar: true,
 	},
+
+	// Lumpsum Audit Leaderboard
+	{
+		requiredPermission: "lumpsum_performance",
+		to: "/lumpsumauditlb",
+		label: "Lumpsum Performance",
+		element: <LumpsumauditLb />,
+		protected: true,
+		showInSidebar: true,
+	},
+
+   	// MF SIP Leaderboard
+	{
+		requiredPermission: "sip_performance",
+		to: "/mfsipleaderboard",
+		label: "SIP Performance",
+		element: <MFSIPLeaderboard />,
+		protected: true,
+		showInSidebar: true,
+	},  
 
 	// Wild Card to catch all other routes
 	{
