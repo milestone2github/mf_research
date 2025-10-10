@@ -65,17 +65,16 @@ export default function Leaderboard() {
   }
 
   const renderTable = (rows) => (
-        <div className="mt-4 overflow-hidden rounded-xl">
-          <div className="max-h-[420px] overflow-y-auto scroll-smooth">
-            <table className="w-full text-white text-center border-collapse table-fixed">
-              <thead className="sticky top-0 bg-blue-900 text-white text-base md:text-lg z-10">
-                <tr>
-                  <th className="py-3 w-16">#</th>
-                  <th className="py-3 w-1/3">Employee Name</th>
-                  <th className="py-3 w-1/4">Employee ID</th>
-                  <th className="py-3 w-1/4">Points</th>
-                </tr>
-              </thead>
+    <div className="overflow-hidden rounded-xl">
+     <div className="max-h-[420px] overflow-y-auto scroll-smooth">
+        <table className="w-full text-white text-center border-collapse table-fixed">
+          <thead className="sticky top-0 bg-blue-900 text-white text-base md:text-lg z-10">
+            <tr>
+              <th className="py-3 w-16">#</th>
+              <th className="py-3">Employee Name</th>
+              <th className="py-3 w-1/4">Points</th>
+            </tr>
+          </thead>
 
               <tbody>
                 {rows.map((row, index) => (
@@ -88,7 +87,6 @@ export default function Leaderboard() {
                       {getMedal(index)}
                     </td>
                     <td className="py-4 px-2">{row.employee_name}</td>
-                    <td className="py-4 px-2">{row.employee_id}</td>
                     <td className="py-4 px-2 font-bold flex items-center justify-center gap-2">
                       <span>{row.score}</span>
                       {index === 0 && (
@@ -104,7 +102,7 @@ export default function Leaderboard() {
 
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-10 text-cyan-200">
+                    <td colSpan={3} className="py-10 text-cyan-200">
                       No data yet.
                     </td>
                   </tr>
@@ -132,7 +130,8 @@ export default function Leaderboard() {
         </div>
 
         {/* Financial Year Section */}
-        <div className="mt-8">
+        <div className="mt-8 flex flex-col md:flex-row gap-10 justify-between items-start">
+         <div className="flex-1 w-full">
           <p className="text-center text-cyan-300 mb-2 text-base md:text-lg font-semibold">
             Scores based on Financial Year {financialYear && `(${financialYear})`}
           </p>
@@ -140,11 +139,12 @@ export default function Leaderboard() {
         </div>
 
         {/* Current Month Section */}
-        <div className="mt-10">
+        <div className="flex-1 w-full">
           <p className="text-center text-cyan-300 mb-2 text-base md:text-lg font-semibold">
             Scores of Current Month
           </p>
           {renderTable(monthRows)}
+        </div>
         </div>
       </div>
     </div>
