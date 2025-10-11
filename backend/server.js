@@ -19,7 +19,6 @@ const router = require("./routes");
 const { TRANSACTION_DB_NAME } = require("./utils/stringConstants");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
-// const leaderboardRoutes = require('./routes/leaderboard'); 
 
 // wrap express in http server
 const server = http.createServer(app);
@@ -90,7 +89,6 @@ function dbAccess(req, res, next) {
 }
 
 app.use(dbAccess); // Use the middleware
-// app.use('/api', leaderboardRoutes);  // integrated with routes' index.js
 app.use('/auth', authRoutes);
 app.use("/api/insurance-leads", insuranceLeadsRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);

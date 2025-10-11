@@ -10,7 +10,7 @@ const OnboardingRoutes = require('./OnboardingRoutes');
 const rbacRoutes = require('./centralRbacRoutes');
 const payoutRoutes = require('./PayoutRoutes');
 const RouteOptimization = require('./RouteOptimization');
-const LeaderboardRoutes = require('./Leaderboard');
+const LeaderboardRoutes = require('./LeaderboardRoutes');
 
 router.use("/assets", assetRoutes);
 router.use('/users', userRoutes);
