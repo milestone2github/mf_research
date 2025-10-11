@@ -135,6 +135,7 @@ const LumpsumauditLb = () => {
             <tr>
               {[
                 "Month",
+                "Net Purchase",
                 "Growth %",
                 "Incentive Band",
                 "Final Incentive",
@@ -164,6 +165,9 @@ const LumpsumauditLb = () => {
                   }`}
                 >
                   <td className="py-3 px-4 text-center">{row.month}</td>
+                  <td className="py-3 px-4 text-center">
+                  {row.netPurchase?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || 0}
+                </td>
                   <td
                     className={`py-3 px-4 text-center ${
                       row.growthPct >= 0 ? "text-green-600" : "text-red-600"
