@@ -22,7 +22,7 @@ const LumpsumauditLb = () => {
       if (year) params.append("year", parseInt(year));
 
       const response = await axios.get(
-        `http://localhost:5000/api/leaderboard/performance/lumpsum-audit?${params.toString()}`,
+        `${process.env.REACT_APP_API_BASE_URL}/api/leaderboard/performance/lumpsum-audit?${params.toString()}`,
         { withCredentials: true } // ensures session cookies (if needed)
       );
 
@@ -67,9 +67,6 @@ const LumpsumauditLb = () => {
   
   const years = Array.from({ length: 6 }, (_, i) => (currentYear - i).toString());
 
-  //  Render
-  if (loading)
-    return <div className="text-center py-10 text-gray-700">Loading Lumpsum Leaderboard...</div>;
 
   if (error)
     return (
@@ -112,6 +109,7 @@ const LumpsumauditLb = () => {
 
         {(selectedMonth || selectedYear !== currentYear.toString()) && (
             <button
+              type="button"
                 onClick={() => {
                 setSelectedMonth("");
                 setSelectedYear(currentYear.toString());
@@ -126,12 +124,18 @@ const LumpsumauditLb = () => {
       </div>
 
       {/* Table */}
-      <div className="shadow-xl rounded-2xl bg-white w-full max-w-6xl overflow-x-auto">
+      <div className="relative shadow-xl rounded-2xl bg-white w-full max-w-6xl overflow-x-auto">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-10">
+            <span className="text-gray-600 font-medium">Loading...</span>
+          </div>
+        )}
         <table className="min-w-full text-sm text-gray-700 border-collapse">
           <thead className="bg-gray-100 border-b">
             <tr>
               {[
                 "Month",
+                "Net Purchase",
                 "Growth %",
                 "Incentive Band",
                 "Final Incentive",
@@ -161,6 +165,9 @@ const LumpsumauditLb = () => {
                   }`}
                 >
                   <td className="py-3 px-4 text-center">{row.month}</td>
+                  <td className="py-3 px-4 text-center">
+                  {row.netPurchase?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || 0}
+                </td>
                   <td
                     className={`py-3 px-4 text-center ${
                       row.growthPct >= 0 ? "text-green-600" : "text-red-600"
