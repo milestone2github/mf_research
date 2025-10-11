@@ -21,7 +21,7 @@ const MFSIPLeaderboard = () => {
       if (year) params.append("year", parseInt(year));
 
       const res = await axios.get(
-        `http://localhost:5000/api/leaderboard/performance/sip-audit?${params.toString()}`,
+        `${process.env.REACT_APP_API_BASE_URL}/api/leaderboard/performance/sip-audit?${params.toString()}`,
         { withCredentials: true }
       );
 
@@ -67,9 +67,6 @@ const MFSIPLeaderboard = () => {
   
   const years = Array.from({ length: 6 }, (_, i) => (currentYear - i).toString());
 
-  // Loading / error states
-  if (loading)
-    return <div className="text-center py-10 text-gray-700">Loading SIP Leaderboard...</div>;
 
   if (error)
     return (
@@ -112,6 +109,7 @@ const MFSIPLeaderboard = () => {
 
         {(selectedMonth || selectedYear !== currentYear.toString()) && (
             <button
+              type="button"
                 onClick={() => {
                 setSelectedMonth("");
                 setSelectedYear(currentYear.toString());
@@ -125,7 +123,12 @@ const MFSIPLeaderboard = () => {
       </div>
 
       {/* Table */}
-      <div className="shadow-xl rounded-2xl bg-white w-full max-w-6xl overflow-x-auto">
+      <div className="relative shadow-xl rounded-2xl bg-white w-full max-w-6xl overflow-x-auto">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-10">
+            <span className="text-gray-600 font-medium">Loading...</span>
+          </div>
+        )}
         <table className="min-w-full text-sm text-gray-700 border-collapse">
           <thead className="bg-gray-100 border-b">
             <tr>
