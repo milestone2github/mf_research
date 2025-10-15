@@ -35,6 +35,8 @@ jobs:
           REACT_APP_MINT_API_KEY: ${{ vars.REACT_APP_MINT_API_KEY }}
           REACT_APP_CALCULATOR_API_BASE_URL: ${{ vars.REACT_APP_CALCULATOR_API_BASE_URL }}
           REACT_APP_MNIVESH_URL: ${{ vars.REACT_APP_MNIVESH_URL }}
+          REACT_APP_GOOGLE_MAPS_API_KEY: ${{ vars.REACT_APP_GOOGLE_MAPS_API_KEY }}
+          REACT_APP_GOOGLE_MAPS_MAP_ID: ${{ vars.REACT_APP_GOOGLE_MAPS_MAP_ID }}
         run: |
           npm install
           npm run build --if-present
