@@ -9,8 +9,9 @@ const marketingUserSchema = new mongoose.Schema({
   },
   email: {type: String, trim: true},
   phone: {type: String, trim: true},
-  company: {type: String, trim: true},
+  name: {type: String, trim: true},
 })
 
 const MarketingUser = mongoose.model('MarketingUser', marketingUserSchema)
+
 module.exports = MarketingUser

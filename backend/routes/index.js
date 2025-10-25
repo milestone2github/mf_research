@@ -11,6 +11,7 @@ const rbacRoutes = require('./centralRbacRoutes');
 const payoutRoutes = require('./PayoutRoutes');
 const RouteOptimization = require('./RouteOptimization');
 const LeaderboardRoutes = require('./LeaderboardRoutes');
+const marketingTemplateRoutes = require('./MarketingTemplateRoutes');
 
 router.use("/assets", assetRoutes);
 router.use('/users', userRoutes);
@@ -23,5 +24,6 @@ router.use('/rbac', rbacRoutes);
 router.use('/payout', payoutRoutes);
 router.use('/route-plan', RouteOptimization);
 router.use("/leaderboard", LeaderboardRoutes);
+router.use("/marketing-template", marketingTemplateRoutes);
 
 module.exports = router;
