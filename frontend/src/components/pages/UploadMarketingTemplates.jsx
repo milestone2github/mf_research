@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { format } from "date-fns";
 import { CiCalendarDate } from "react-icons/ci";
-import { BiCalendar, BiTrash, BiUpload } from "react-icons/bi";
+import { BiTrash, BiUpload } from "react-icons/bi";
 import { IoMdClose } from "react-icons/io";
 import DeleteConfirmationModal from "../../centralRbac/src/components/common/DeleteConfirmationModal";
 const { formatDateDDShortMonthNameYY } = require("../../utils/formatDate");
@@ -51,17 +50,6 @@ const UploadMarketingTemplates = () => {
   useEffect(() => {
     fetchTemplates();
   }, [filterMinDate, filterMaxDate]);
-
-  // // Delete template
-  // const handleDelete = async (id) => {
-  //   if (!window.confirm("Are you sure you want to delete this template?")) return;
-  //   try {
-  //     await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${id}`);
-  //     fetchTemplates();
-  //   } catch (err) {
-  //     console.error(" Error deleting template:", err);
-  //   }
-  // };
 
   const handleDelete = async (id) => {
     try {
@@ -238,26 +226,27 @@ const UploadMarketingTemplates = () => {
                     {tpl.publishDate && !isNaN(new Date(tpl.publishDate)) && (
                       <span>
                         <span className="text-gray-800 font-medium">📅 Publish:</span>{" "}
-                        {format(new Date(tpl.publishDate), "dd MMM yyyy")}
+                        {new Date(tpl.publishDate).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </span>
                     )}
                     {tpl.createdAt && !isNaN(new Date(tpl.createdAt)) && (
                       <span>
                         <span className="text-gray-800 font-medium">🕒 Created:</span>{" "}
-                        {format(new Date(tpl.createdAt), "dd MMM yyyy")}
+                        {new Date(tpl.createdAt).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </span>
                     )}
                   </div>
 
 
                   <div className="flex justify-center mt-2">
-                    {/* <button
-                      onClick={() => handleDelete(tpl._id)}
-                      className="text-red-600  flex items-center gap-1 text-xs font-semibold hover:text-red-700 hover:border border-red-400 rounded full p-1"
-                    >
-                      <BiTrash />
-                      Delete
-                    </button> */}
 
                     <button
                       onClick={() => {

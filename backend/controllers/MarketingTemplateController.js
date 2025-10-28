@@ -35,10 +35,12 @@ const getUserTemplates = async (req, res) => {
       publishDate: { $gte: today, $lte: weekAhead }
     }).sort({ publishDate: 1 });
 
+    const requestUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+
     // add proxy URL directly here
     const processedTemplates = templates.map((tpl) => ({
       ...tpl,
-      proxyImageUrl: `${process.env.PROD_URL}/api/marketing-template/proxy?url=${encodeURIComponent(tpl.imageUrl)}`,
+      proxyImageUrl: `${requestUrl}proxy?url=${encodeURIComponent(tpl.imageUrl)}`,
     }));
 
     res.status(200).json({ success: true, data: processedTemplates });
