@@ -119,7 +119,15 @@ function MarketingTemplates() {
         </div>
       </div>
       <section className='flex flex-wrap gap-6 sm:gap-8 justify-center mt-4'>{
-        templates.map((tpl) => (
+        templates.length <= 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 mt-8 text-center w-full">
+            <h2 className="text-gray-700 font-medium text-lg">Nothing here yet.</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Templates will appear once they’re published.
+            </p>
+          </div>
+        ) :
+        (templates.map((tpl) => (
           <div key={tpl._doc._id } className='relative group w-[316px] sm:w-[395px] overflow-hidden shadow'>
             <figure id={`image-${tpl._doc._id }`}>
               <img
@@ -171,7 +179,7 @@ function MarketingTemplates() {
               </div>
 
             </figure>
-          </div>))}
+          </div>)))}
       </section>
 
       <UserForm isModalOpen={isModalOpen} handleClose={handleCancelEdit} />
