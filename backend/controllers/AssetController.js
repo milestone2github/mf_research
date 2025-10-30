@@ -216,6 +216,7 @@ const getAssetByQuery = async (req, res) => {
           select: 'name'
         })
         .select('-__v -createdAt -updatedAt')
+        .sort({ createdAt: -1 })
         .lean({ virtuals: true })
         .skip(skip)
         .limit(Number(limit)),
@@ -468,10 +469,36 @@ const updateMerchant = async (req, res) => {
   }
 };
 
-// Get all merchants (for dropdown)
-const getAllMerchants = async (req, res) => {
+// Delete a merchant
+const deleteMerchant = async (req, res) => {
   try {
-    const merchants = await Merchant.find().select("_id name");
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "Merchant ID is required" });
+    }
+
+    const deletedMerchant = await Merchant.findByIdAndDelete(id);
+
+    if (!deletedMerchant) {
+      return res.status(404).json({ message: "Merchant not found" });
+    }
+
+    res.status(200).json({
+      message: "Merchant deleted successfully",
+      data: deletedMerchant,
+    });
+  } catch (err) {
+    console.error("Error deleting merchant:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+// Get all merchants (for dropdown)
+const getAllMerchants = async (req, res) => { 
+  try {
+    const merchants = await Merchant.find() .sort({ createdAt: -1 }) .select("_id name phone email contactPerson address createdAt");
     res.status(200).json({ success: true, data: merchants });
   } catch (err) {
     console.error(INTERNAL_ERROR_CONSOLE("fetching merchants"), err);
@@ -515,6 +542,55 @@ const createNewAssetCategory = async (req, res) => {
     }    
 }
 
+const updateAssetCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name?.trim()) {
+      return res.status(400).json({ message: "Category name is required." });
+    }
+
+    const updatedCat = await AssetCategories.findByIdAndUpdate(
+      id,
+      { name: name.toLowerCase() },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCat) {
+      return res.status(404).json({ message: "Category not found." });
+    }
+
+    res.status(200).json({ message: "Category updated successfully.", data: updatedCat });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: DUPLICATE_CATEGORY_FOUND_ERROR });
+    }
+
+    console.error(INTERNAL_ERROR_CONSOLE("updating category for"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
+};
+
+
+const deleteAssetCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedCat = await AssetCategories.findByIdAndDelete(id);
+
+    if (!deletedCat) {
+      return res.status(404).json({ message: "Category not found." });
+    }
+
+    res.status(200).json({ message: "Category deleted successfully.", data: deletedCat });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("deleting category for"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
+};
+
+
 // Asset types & associated categories
 const getAllAssetTypes = async (req, res) => {
     try {
@@ -525,19 +601,20 @@ const getAllAssetTypes = async (req, res) => {
           const category = await AssetCategories.findById(cat);
           if (!category) return res.status(404).json({ message: CATEGORY_NOT_FOUND });
     
-          const types = await AssetType.find({ category: cat }).select('_id name');
+          const types = await AssetType.find({ category: cat }).select('_id name') .sort({ createdAt: -1 });
           return res.status(200).json({ message: ASSET_FETCH_SUCCESS, data: types });
         }
     
         // Case 2: fetch all categories
         if (allCat === "true") {
-          const allCategories = await AssetCategories.find().select('-__v -createdAt -updatedAt');
+          const allCategories = await AssetCategories.find() .sort({ createdAt: -1 }) .select('-__v -createdAt -updatedAt');
           return res.status(200).json({ message: CATEGORY_FETCH_SUCCESS, data: allCategories });
         }
     
         // Default: fetch all asset types with categories
         const fetchAllTypes = await AssetType.find()
           .populate('category', '_id name')
+          .sort({ createdAt: -1 })
           .select('-__v -createdAt -updatedAt');
           
         return res.status(200).json({ message: ASSET_TYPE_FETCH_SUCCESS, data: fetchAllTypes });
@@ -596,6 +673,65 @@ const createAssetType = async (req, res) => {
         });
     }
 }
+
+const updateAssetType = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category } = req.body;
+
+    if (!name || !category) {
+      return res.status(400).json({ message: ASSET_TYPE_FIELDS_REQUIRED });
+    }
+
+    const updatedType = await AssetType.findByIdAndUpdate(
+      id,
+      { name, category },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedType) {
+      return res.status(404).json({ message: "Asset type not found." });
+    }
+
+    res.status(200).json({
+      message: "Asset type updated successfully.",
+      data: updatedType,
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: DUPLICATE_CATEGORY_FOUND_ERROR });
+    }
+
+    console.error(INTERNAL_ERROR_CONSOLE("updating asset type for"), err);
+    res.status(500).json({
+      message: INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+
+const deleteAssetType = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedType = await AssetType.findByIdAndDelete(id);
+
+    if (!deletedType) {
+      return res.status(404).json({ message: "Asset type not found." });
+    }
+
+    res.status(200).json({
+      message: "Asset type deleted successfully.",
+      data: deletedType,
+    });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("deleting asset type for"), err);
+    res.status(500).json({
+      message: INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
 
 const getAssignedAssets = async (req, res) => {
 	try {
@@ -660,11 +796,16 @@ module.exports = {
     changeMultipleAssetStatus,
     // getAllAssetCategories,
     createNewAssetCategory,
+    updateAssetCategory,
+    deleteAssetCategory,
     getAllAssetTypes,
     createAssetType,
+    updateAssetType,
+    deleteAssetType,
     getAssetsByTypeId,
     getAssignedAssets,
     createMerchant,
     updateMerchant,
+    deleteMerchant,
     getAllMerchants
 }

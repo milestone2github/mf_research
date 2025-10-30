@@ -63,11 +63,10 @@ const AddEditAsset = () => {
   useEffect(() => {
     if (id) {
       axios.get(FETCH_SINGLE_ASSET_URL(id))
-        .then(res => {
+        .then(async (res) => {
           const asset = res.data;
           setSerialNumber(asset.data.serialNumber || '');
           setRemarks(asset.data.remarks || '');
-          setSelectedType(asset.data.type || null);
           setAssetCode(asset.data.assetCode || '');
           setDateOfPurchase(asset.data.dateOfPurchase ? asset.data.dateOfPurchase.slice(0,10) : '');
           setAssetName(asset.data.assetName || '');
@@ -75,6 +74,18 @@ const AddEditAsset = () => {
           setModelNumber(asset.data.modelNumber || '');
           setWarrantyExpiryDate(asset.data.warrantyExpiryDate ? asset.data.warrantyExpiryDate.slice(0,10) : '');
           setSelectedMerchantId(asset.data.merchantId?._id || asset.data.merchantId || '');
+
+          const categoryId = asset.data.type?.category?._id;
+          const typeId = asset.data.type?._id;
+          if (categoryId) {
+            setSelectedCategoryId(categoryId);
+            const typeRes = await axios.get(FETCH_TYPES_BASED_ON_CAT_URL(categoryId));
+            setTypes(typeRes.data?.data || []);
+            const matchedType = typeRes.data?.data?.find(t => t._id === typeId);
+            setSelectedType(matchedType || asset.data.type || null);
+          } else {
+            setSelectedType(asset.data.type || null);
+          }
         })
         .catch(err => console.error('Failed to fetch asset:', err));
     }
@@ -158,7 +169,7 @@ const AddEditAsset = () => {
       await axios.post(CREATE_ASSET_URL, payload, { withCredentials: true });
     }
 
-    navigate("/assets");
+    navigate("/assets/manage");
   } catch (err) {
     console.error("Error saving asset:", err);
   } finally {
@@ -175,15 +186,15 @@ const AddEditAsset = () => {
 
     const newCat = res.data.data;
 
-    // ✅ Update dropdown list
+    //  Update dropdown list
     setCategories((prev) => [...prev, newCat]);
 
-    // ✅ Auto-select the new category
+    //  Auto-select the new category
     setSelectedCategoryId(newCat._id);
 
-    // ✅ Reset modal state
+    //  Reset modal state
     setNewCategoryName('');
-    setShowAddCategoryModal(false);  // 🔥 closes modal
+    setShowAddCategoryModal(false);  //  closes modal
   } catch (err) {
     console.error("Error creating category:", err);
   }
@@ -199,15 +210,15 @@ const AddEditAsset = () => {
       category: selectedCategoryId,
     });
 
-    // ✅ Fetch updated types but keep current category
+    //  Fetch updated types but keep current category
     const res = await axios.get(FETCH_TYPES_BASED_ON_CAT_URL(selectedCategoryId));
     setTypes(res.data.data);
 
-    // ✅ Auto-select the type we just added
+    //  Auto-select the type we just added
     const added = res.data.data.find((t) => t.name === newTypeName);
     if (added) setSelectedType(added);
 
-    // ✅ Close modal and reset
+    //  Close modal and reset
     setShowAddTypeModal(false);
     setNewTypeName('');
   } catch (err) {
@@ -446,13 +457,35 @@ const AddEditAsset = () => {
         />
       </div>
 
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4 mt-6">
         <button
-          onClick={() => navigate('/assets')}
+          type="button"
+          onClick={() => navigate("/assets/manage")}
           className="px-4 py-2 border rounded"
         >
           Close
         </button>
+
+        {id && (
+          <button
+            type="button"
+            onClick={async () => {
+              if (window.confirm("Are you sure you want to delete this asset?")) {
+                try {
+                  await axios.delete(UPDATE_ASSET_URL(id), { withCredentials: true });
+                  navigate("/assets/manage");
+                } catch (err) {
+                  console.error("Error deleting asset:", err);
+                  alert("Failed to delete asset.");
+                }
+              }
+            }}
+            className="px-4 py-2 bg-red-600 text-white rounded"
+          >
+            Delete
+          </button>
+        )}
+
        <button
         type="submit"
         className="px-4 py-2 bg-blue-600 text-white rounded flex items-center justify-center"
@@ -460,11 +493,12 @@ const AddEditAsset = () => {
       >
         {loadingAsset ? (
           <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-        ) : (
-          id ? 'Update' : 'Add'
-        )}
-      </button>
-
+          ) : id ? (
+          "Update"
+          ) : (
+            "Add"
+          )}
+        </button>
       </div>
 
       

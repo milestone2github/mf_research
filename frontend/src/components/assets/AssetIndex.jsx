@@ -12,6 +12,7 @@ import {
   FETCH_TYPES_BASED_ON_CAT_URL,
   FETCH_TYPES_URL
 } from '../../utils/urlConstants';
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 function AssetIndex() {
   const [assets, setAssets] = useState([]);
@@ -137,10 +138,19 @@ function AssetIndex() {
 
   return (
 		<div className="p-4">
-			<div className="text-4xl font-bold text-white pb-5 text-center">
-				<h2>ASSETS MANAGEMENT</h2>
-				<div className="mt-2 mx-auto w-72 border-b-2 border-orange-400" />
-			</div>
+			<div className="flex items-center justify-center relative pb-5">
+              <button
+                onClick={() => navigate("/assets")}
+                className="absolute left-0 flex items-center gap-1 text-gray-700 hover:text-blue-600 transition"
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+      {/* Title */}
+      <div className="text-4xl font-bold text-white text-center">
+        <h2>ASSETS MANAGEMENT</h2>
+        <div className="mt-2 mx-auto w-72 border-b-2 border-orange-400" />
+      </div>
+    </div>
 
 			{/* Filters */}
 			<div className="flex flex-wrap gap-4 justify-between items-center mb-6">
