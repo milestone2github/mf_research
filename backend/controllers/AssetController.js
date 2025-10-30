@@ -157,6 +157,22 @@ const updateAsset = async (req, res) => {
   }
 };
 
+//Delete asset
+const deleteAsset = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Assets.findByIdAndDelete(id);
+    if (!deleted)
+      return res.status(404).json({ message: "Asset not found." });
+
+    res.status(200).json({ message: "Asset deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting asset:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+
 // Fetch individual asset by id
 const getAssetById = async (req, res) => {
   try {
@@ -792,6 +808,7 @@ module.exports = {
     getAssetById,
     getAssetByQuery,
     updateAsset,
+    deleteAsset,
     changeAssetStatus,
     changeMultipleAssetStatus,
     // getAllAssetCategories,

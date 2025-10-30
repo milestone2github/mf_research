@@ -4,6 +4,7 @@ const {
     getAssetByQuery,
     createAsset,
     updateAsset,
+    deleteAsset,
     changeAssetStatus,
     changeMultipleAssetStatus,
     // getAllAssetCategories,
@@ -44,6 +45,7 @@ assetRouter.get("/assigned", getAssignedAssets);    // Fetch User's Assets
 assetRouter.get("/:id", getAssetById);
 assetRouter.get("/", getAssetByQuery);
 assetRouter.put("/:id", verifyUser, updateAsset);
+assetRouter.delete("/:id", verifyUser, deleteAsset); 
 assetRouter.patch("/bulk/status", verifyUser, changeMultipleAssetStatus); 
 assetRouter.patch("/:id/:status", verifyUser, changeAssetStatus);
 
