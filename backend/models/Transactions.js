@@ -139,4 +139,32 @@ const transactionSchema = new mongoose.Schema({
   }
 }, { timestamps: true })
 
+// Auto-populate for normal find queries
+transactionSchema.pre(/^find/, function (next) {
+  this.populate([
+    { path: "note.editedBy", select: "name" },
+    { path: "transactionFractions.note.editedBy", select: "name" },
+    { path: "validations.validatedBy", select: "name" },
+    { path: "transactionFractions.validations.validatedBy", select: "name" },
+    { path: "reconciliation.reconciledBy", select: "name" },
+    { path: "managementApproval.approvedBy", select: "name" },
+    { path: "transactionFractions.managementApproval.approvedBy", select: "name" }
+  ]);
+  next();
+});
+
+// Auto-populate for findOneAndUpdate / findByIdAndUpdate / findOneAndReplace
+transactionSchema.pre(/^findOneAnd/, function (next) {
+  this.populate([
+    { path: "note.editedBy", select: "name" },
+    { path: "transactionFractions.note.editedBy", select: "name" },
+    { path: "validations.validatedBy", select: "name" },
+    { path: "transactionFractions.validations.validatedBy", select: "name" },
+    { path: "reconciliation.reconciledBy", select: "name" },
+    { path: "managementApproval.approvedBy", select: "name" },
+    { path: "transactionFractions.managementApproval.approvedBy", select: "name" }
+  ]);
+  next();
+});
+
 module.exports = mongoose.model('Transactions', transactionSchema)
