@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import ConfirmModal from "./ConfirmModal";
 
 const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) => {
   const isEdit = !!selectedMerchant;
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -67,8 +70,8 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this merchant?")) return;
+    const handleDeleteConfirmed = async () => {
+    setDeleting(true);
     try {
       await axios.delete(
         `${process.env.REACT_APP_API_BASE_URL}/api/assets/merchants/${selectedMerchant._id}`,
@@ -78,12 +81,15 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
       onClose();
     } catch (err) {
       console.error("Failed to delete merchant:", err);
+    } finally {
+      setDeleting(false);
+      setShowConfirm(false);
     }
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 relative">
+   <div className={`bg-white w-full max-w-lg rounded-lg shadow-lg p-6 relative ${isEdit ? 'mt-8 md:mt-12' : ''}`}>
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -146,7 +152,8 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
           />
         </div>
 
-        <div className="mb-6">
+        {isEdit && (
+      <div className="mb-6">
         <label className="text-sm text-gray-600">Added On</label>
         <input
           name="addedOn"
@@ -156,12 +163,13 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
           className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed"
         />
       </div>
+    )}
 
         {/* Buttons */}
         <div className="flex justify-end gap-3">
           {isEdit && (
             <button
-              onClick={handleDelete}
+              onClick={() => setShowConfirm(true)}
               className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-md"
             >
               Delete
@@ -175,6 +183,16 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
           </button>
         </div>
       </div>
+      <ConfirmModal
+      isOpen={showConfirm}
+      title="Delete Merchant"
+      message="Are you sure you want to permanently delete this merchant? This action cannot be undone."
+      confirmText="Delete"
+      cancelText="Cancel"
+      loading={deleting}
+      onCancel={() => setShowConfirm(false)}
+      onConfirm={handleDeleteConfirmed}
+    />
     </div>
   );
 };

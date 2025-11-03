@@ -12,6 +12,8 @@ import {
   FETCH_SINGLE_ASSET_URL,
   UPDATE_ASSET_URL
 } from '../../utils/urlConstants';
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import ConfirmModal from './ConfirmModal';
 
 const AddEditAsset = () => {
   const { id } = useParams();
@@ -57,6 +59,9 @@ const AddEditAsset = () => {
   const [loadingAsset, setLoadingAsset] = useState(false);
   const [loadingMerchant, setLoadingMerchant] = useState(false);
 
+  
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
 
   // For Editing the Asset Data
@@ -263,7 +268,55 @@ const AddEditAsset = () => {
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Add / Update Asset</h2>
+
+      <div className="flex items-center justify-between mb-6">
+      {/*  Back Button + Title */}
+      <div className="flex items-center">
+        <button
+          onClick={() => navigate("/assets/manage")}
+          className="flex items-center text-gray-600 hover:text-gray-800 transition"
+        >
+          <ArrowLeftIcon className="h-5 w-5 mr-2" />
+        </button>
+        <h2 className="text-xl font-bold text-gray-800">
+          {id ? "Update Asset" : "Add Asset"}
+        </h2>
+      </div>
+
+      {/*  Delete Button (only when editing) */}
+      {id && (
+        <button
+          type="button"
+           onClick={() => setShowConfirm(true)}
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+        >
+          Delete
+        </button>
+      )}
+    </div>
+
+{/* Confirmation Modal */}
+<ConfirmModal
+  isOpen={showConfirm}
+  title="Delete Asset"
+  message="Are you sure you want to permanently delete this asset?"
+  confirmText="Delete"
+  cancelText="Cancel"
+  loading={deleting}
+  onCancel={() => setShowConfirm(false)}
+  onConfirm={async () => {
+    setDeleting(true);
+    try {
+      await axios.delete(UPDATE_ASSET_URL(id), { withCredentials: true });
+      navigate("/assets/manage");
+    } catch (err) {
+      console.error("Error deleting asset:", err);
+    } finally {
+      setDeleting(false);
+      setShowConfirm(false);
+    }
+  }}
+/>
 
 <form
   onSubmit={(e) => {
@@ -466,25 +519,6 @@ const AddEditAsset = () => {
           Close
         </button>
 
-        {id && (
-          <button
-            type="button"
-            onClick={async () => {
-              if (window.confirm("Are you sure you want to delete this asset?")) {
-                try {
-                  await axios.delete(UPDATE_ASSET_URL(id), { withCredentials: true });
-                  navigate("/assets/manage");
-                } catch (err) {
-                  console.error("Error deleting asset:", err);
-                  alert("Failed to delete asset.");
-                }
-              }
-            }}
-            className="px-4 py-2 bg-red-600 text-white rounded"
-          >
-            Delete
-          </button>
-        )}
 
        <button
         type="submit"

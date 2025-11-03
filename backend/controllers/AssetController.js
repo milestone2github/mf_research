@@ -210,13 +210,20 @@ const getAssetById = async (req, res) => {
 // Search asset by query
 const getAssetByQuery = async (req, res) => {
   try {
-    const { q, type, serialNumber, status, page = 1, limit = 12 } = req.query;
+    const { q, category, type, serialNumber, status, page = 1, limit = 12 } = req.query;
     const filter = {};
 
     if (q) filter.name = { $regex: q, $options: 'i' };
-    if (type) filter.type = type;
     if (serialNumber) filter.serialNumber = serialNumber;
     if (status) filter.status = status;
+
+    //  Category filtering support
+    if (category) {
+      const typesInCategory = await AssetType.find({ category }).select("_id");
+      filter.type = { $in: typesInCategory.map((t) => t._id) };
+    } else if (type) {
+      filter.type = type;
+    }
 
     const skip = (page - 1) * limit;
 
@@ -298,8 +305,10 @@ const changeAssetStatus = async (req, res) => {
       // 🔹 Add new allocation record
       asset.allocations.push({
         userId: assignedTo,
+        assignedBy: updatedBy,
         allocatedAt: new Date(),
-        status: "allocated"
+        status: "allocated",
+        remarks: remarks || ""
       });
 
       // 🔹 Update user doc
@@ -375,8 +384,10 @@ const changeMultipleAssetStatus = async (req, res) => {
       if (op === "allocate") {
         asset.allocations.push({
           userId,
+          assignedBy: req.user._id,
           allocatedAt: new Date(),
-          status: "allocated"
+          status: "allocated",
+          remarks: remarks || ""
         });
 
         await User.findByIdAndUpdate(userId, {
@@ -654,7 +665,7 @@ const getAssetsByTypeId = async (req, res) => {
                     model: 'AssetCategory'
                 }
             })
-            .populate('allocatedTo addedBy updatedBy')
+            .populate('addedBy updatedBy', 'name email')
             .select('-__v -createdAt -updatedAt');
           if (!assets || assets.length === 0) {
             return res.status(404).json({ message: ASSET_WITH_TYPE_NOT_FOUND });
@@ -750,56 +761,49 @@ const deleteAssetType = async (req, res) => {
 
 
 const getAssignedAssets = async (req, res) => {
-	try {
-		const { q, sortBy } = req.query; // q = search term ; sortBy = sort the allocated time
+  try {
+    const { q, sortBy } = req.query;
 
-		// Base filter: only allocated assets
-		const filter = { allocatedTo: { $ne: null } };
+    const assets = await Assets.find({ "allocations.0": { $exists: true } })
+  .populate("allocations.userId", "name email")
+  .populate("allocations.assignedBy", "name email")
+  .populate("updatedBy", "name email")
+  .select("assetName allocations remarks updatedAt");
+    console.log(JSON.stringify(assets[0].allocations, null, 2));
 
-		// Fetch assets with population
-		let assets = await Assets.find(filter)
-			.populate("allocatedTo", "name email")
-			.populate("updatedBy", "name email")
-			.select("name remarks allocatedTo updatedBy updatedAt")
-			.lean();
+    const formattedAssets = assets.map((asset) => {
+      const lastAlloc = asset.allocations[asset.allocations.length - 1];
+      return {
+        assetName: asset.assetName || "N.A.",
+        userName: lastAlloc?.userId?.name || "N.A.",
+        updatedBy: lastAlloc?.assignedBy?.name || lastAlloc?.assignedBy?.email || asset.updatedBy?.name || asset.updatedBy?.email || "N.A.",
+        remarks: lastAlloc?.remarks || asset.remarks || "",
+        allotmentDate: lastAlloc?.allocatedAt || asset.updatedAt,
+      };
+    });
 
-		// Apply regex filtering on populated fields
-		let queryResponse = assets;
-		if (q) {
-			const regex = new RegExp(q, "i");
-			queryResponse = assets.filter((asset) =>
-                regex.test(asset.name) ||
-                regex.test(asset.allocatedTo?.name || "") ||
-                regex.test(asset.updatedBy?.name || "") ||
-                regex.test(asset.remarks || "")
-			);
-		}
+    // Apply search + sorting
+    const regex = q ? new RegExp(q, "i") : null;
+    const filtered = regex
+      ? formattedAssets.filter((asset) =>
+          [asset.assetName, asset.userName, asset.updatedBy, asset.remarks].some((v) => regex.test(v))
+        )
+      : formattedAssets;
 
-		// Sorting by allotment date (updatedAt) if available
-		if (sortBy === "asc") {
-			queryResponse = queryResponse.sort(
-				(a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)
-			);
-		} else {
-			queryResponse = queryResponse.sort(
-				(a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-			);
-		}
+    filtered.sort((a, b) => {
+      const aDate = new Date(a.allotmentDate);
+      const bDate = new Date(b.allotmentDate);
+      return sortBy === "asc" ? aDate - bDate : bDate - aDate;
+    });
 
-		// Format response
-		const result = queryResponse.map((asset) => ({
-			assetName: asset.name,
-			userName: asset.allocatedTo?.name || "N.A.",
-			updatedBy: asset.updatedBy?.name || "N.A.",
-			remarks: asset.remarks || "",
-			allotmentDate: asset.updatedAt,
-		}));
-
-		res.status(200).json({ message: "Assigned assets fetched successfully", data: result });
-	} catch (err) {
-		console.error(INTERNAL_ERROR_CONSOLE("fetching assigned assets"), err);
-		res.status(500).json({ message: INTERNAL_SERVER_ERROR });
-	}
+    res.status(200).json({
+      message: "Assigned assets fetched successfully",
+      data: filtered,
+    });
+  } catch (err) {
+    console.error("Error fetching assigned assets:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 

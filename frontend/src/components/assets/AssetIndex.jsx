@@ -6,7 +6,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import AssetList from './AssetList';
 import { ASSET_DELETE_MESSAGE } from '../../utils/stringConstants';
 import {
-  FETCH_ASSET_BASED_ON_TYPE,
   FETCH_ASSETS_URL,
   FETCH_CATEGORIES_URL,
   FETCH_TYPES_BASED_ON_CAT_URL,
@@ -21,7 +20,7 @@ function AssetIndex() {
   const [modalData, setModalData] = useState({ show: false, deleteTitle: '', deleteUrl: '' });
   const [categories, setCategories] = useState([]);
   const [types, setTypes] = useState([]);
-  const [status, setStatus] = useState(['available', 'allocated', 'repair', 'removed']);
+  const status = ['available', 'allocated', 'repair', 'removed'];
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -37,23 +36,26 @@ function AssetIndex() {
   const fetchAssets = async (filters = {}, page = 1) => {
   try {
     setLoading(true);
-    const { type } = filters;
-    const url = type ? FETCH_ASSET_BASED_ON_TYPE(type) : FETCH_ASSETS_URL;
-    const res = await axios.get(url, {
-      params: { ...filters, page, limit: ITEMS_PER_PAGE }
+    const res = await axios.get(FETCH_ASSETS_URL, {
+      params: { ...filters, page, limit: ITEMS_PER_PAGE },
     });
 
     const { data, pagination } = res.data;
-    setAssets(data);
-    setFiltered(data);
+    setAssets(data || []);
+    setFiltered(data || []);
     if (pagination) {
       setCurrentPage(pagination.currentPage);
       setTotalPages(pagination.totalPages);
+    } else {
+      setCurrentPage(1);
+      setTotalPages(1);
     }
   } catch (error) {
     console.error('Error fetching assets:', error);
     setAssets([]);
     setFiltered([]);
+    setCurrentPage(1);
+    setTotalPages(1);
   } finally {
     setLoading(false);  
   }
@@ -90,40 +92,19 @@ function AssetIndex() {
     }
   }, [selectedFilters.category]);
 
-  const applyFilters = () => {
-    let temp = [...assets];
-    const { category, type, status } = selectedFilters;
-
-    if (category) temp = temp.filter(a => a.type?.category._id === category);
-    if (type) temp = temp.filter(a => a.type?._id === type);
-    if (status) temp = temp.filter(a => a.status === status);
-
-    setFiltered(temp);
-  };
 
   const handleFilterChange = async (key, value) => {
     const updated = { ...selectedFilters, [key]: value };
     if (key === 'category') updated.type = '';
   
     setSelectedFilters(updated);
+    fetchAssets(updated, 1);
   };
 
-  useEffect(() => {
-    applyFilters();
-  }, [selectedFilters]);
 
-  const handleSearch = (searchQuery) => {
-    if (!searchQuery) return applyFilters();
-    const lower = searchQuery.toLowerCase();
-    const filteredBySearch = filtered.filter(a => {
-      const name = a.name || a.assetName || ''; 
-      const serial = a.serialNumber || '';
-      return (
-      name.toLowerCase().includes(lower) ||
-      serial.toLowerCase().includes(lower)
-    );
-    });
-    setFiltered(filteredBySearch);
+  const handleSearch = async (searchQuery) => {
+  // optional: for backend search
+  fetchAssets({ ...selectedFilters, q: searchQuery }, 1);
   };
 
   const handleDeleteConfirm = async () => {
@@ -225,6 +206,8 @@ function AssetIndex() {
 				fetchAssets={fetchAssets}
 				selectedFilters={selectedFilters}
 				loading={loading}
+        currentPage={currentPage}
+        ITEMS_PER_PAGE={ITEMS_PER_PAGE}
 			/>
 
 			{modalData.show && (
@@ -240,14 +223,10 @@ function AssetIndex() {
           {/* Pagination */}
     <div className="flex items-center justify-center mt-6 gap-4">
       <button
-        onClick={() => {
-          if (currentPage > 1) {
-            fetchAssets(selectedFilters, currentPage - 1);
-          }
-        }}
-        disabled={currentPage === 1}
+        onClick={() => currentPage > 1 && fetchAssets(selectedFilters, currentPage - 1)}
+        disabled={currentPage === 1 || assets.length === 0}
         className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
-          currentPage === 1
+          currentPage === 1 || assets.length === 0
             ? 'opacity-50 cursor-not-allowed'
             : 'hover:bg-gray-100'
         }`}
@@ -260,14 +239,10 @@ function AssetIndex() {
       </span>
 
       <button
-        onClick={() => {
-          if (currentPage < totalPages) {
-            fetchAssets(selectedFilters, currentPage + 1);
-          }
-        }}
-        disabled={currentPage === totalPages}
+        onClick={() => currentPage < totalPages && fetchAssets(selectedFilters, currentPage + 1)}
+        disabled={currentPage === totalPages || assets.length === 0}
         className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
-          currentPage === totalPages
+          currentPage === totalPages || assets.length === 0
             ? 'opacity-50 cursor-not-allowed'
             : 'hover:bg-gray-100'
         }`}

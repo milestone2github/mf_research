@@ -5,9 +5,13 @@ import {
   CREATE_CATEGORY_URL,
   BASE_ASSET, // for category delete & update
 } from "../../utils/urlConstants";
+import ConfirmModal from "./ConfirmModal";
 
 const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories }) => {
   const isEdit = !!selectedCategory;
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
 
   const [formData, setFormData] = useState({
     name: "",
@@ -45,8 +49,8 @@ const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories })
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this category?")) return;
+  const handleDeleteConfirmed = async () => {
+    setDeleting(true);
     try {
       await axios.delete(
         `${process.env.REACT_APP_API_BASE_URL}${BASE_ASSET(`categories/${selectedCategory._id}`)}`,
@@ -56,6 +60,9 @@ const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories })
       onClose();
     } catch (err) {
       console.error("Failed to delete category:", err);
+    } finally {
+      setDeleting(false);
+      setShowConfirm(false);
     }
   };
 
@@ -97,7 +104,7 @@ const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories })
         <div className="flex justify-end gap-3">
           {isEdit && (
             <button
-              onClick={handleDelete}
+              onClick={() => setShowConfirm(true)}
               className="border border-orange-500 text-orange-500 hover:bg-orange-50 px-5 py-2 rounded-md"
             >
               Delete
@@ -111,6 +118,16 @@ const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories })
           </button>
         </div>
       </div>
+      <ConfirmModal
+      isOpen={showConfirm}
+      title="Delete Category"
+      message="Are you sure you want to permanently delete this category? This action cannot be undone."
+      confirmText="Delete"
+      cancelText="Cancel"
+      loading={deleting}
+      onCancel={() => setShowConfirm(false)}
+      onConfirm={handleDeleteConfirmed}
+    />
     </div>
   );
 };
