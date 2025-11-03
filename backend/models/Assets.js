@@ -4,8 +4,10 @@ const mniveshDbConnection = connectToMniveshDB();
 
 const AllocationSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
+  assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
   allocatedAt: { type: Date, default: Date.now },
   returnedAt: { type: Date },
+  remarks: { type: String, default: "" },
   status: {
     type: String,
     enum: ['allocated', 'returned', 'lost', 'replaced'],
