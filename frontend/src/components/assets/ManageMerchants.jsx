@@ -21,7 +21,6 @@ function ManageMerchants() {
         `${process.env.REACT_APP_API_BASE_URL}/api/assets/merchants`,
         { withCredentials: true }
       );
-      console.log("response:",res.data);
       if (res.data?.data) {
         setMerchants(res.data.data);
         setFiltered(res.data.data);

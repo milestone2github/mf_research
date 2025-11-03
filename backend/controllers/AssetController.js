@@ -769,7 +769,6 @@ const getAssignedAssets = async (req, res) => {
   .populate("allocations.assignedBy", "name email")
   .populate("updatedBy", "name email")
   .select("assetName allocations remarks updatedAt");
-    console.log(JSON.stringify(assets[0].allocations, null, 2));
 
     const formattedAssets = assets.map((asset) => {
       const lastAlloc = asset.allocations[asset.allocations.length - 1];

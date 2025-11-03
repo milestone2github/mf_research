@@ -39,7 +39,7 @@ const ConfirmModal = ({
         <p className="text-gray-600 text-center mb-6">{message}</p>
 
         {/* Buttons */}
-        <div className="flex justify-center gap-4">
+        <div className="mt-6 flex justify-end gap-3 w-full px-1">
           <button
             onClick={onCancel}
             className="px-5 py-2 border border-gray-400 text-gray-700 rounded-md hover:bg-gray-100"
