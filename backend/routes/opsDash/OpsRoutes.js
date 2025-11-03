@@ -48,7 +48,7 @@ router.get('/sm-names', getSMNames);
 router.patch('/service-manager', setServiceManager);
 router.patch('/update-status/:id', updateApprovalStatus);
 router.patch('/update-transction/:id', updateTransaction);
-router.patch('/note/:id', updateNote);
+router.patch('/note/:id', verifyUser, updateNote);
 router.patch('/relationship-manager', setRelationshipManager); //TEMPORARY
 
 // Export all the filtered transactions in XLSX file
