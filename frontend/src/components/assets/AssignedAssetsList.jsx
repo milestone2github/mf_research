@@ -32,7 +32,7 @@ const AssignedAssetsList = () => {
 			{/* Top action bar */}
 			<div className="flex justify-between items-center mb-6">
 				<button
-					onClick={() => navigate("/assets")}
+					onClick={() => navigate("/assets/manage")}
 					className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium"
 				>
 					Back to Asset View

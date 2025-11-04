@@ -335,7 +335,7 @@ export const appRoutes = [
 	// Lumpsum Audit Leaderboard
 	{
 		requiredPermission: "lumpsum_performance",
-		to: "/lumpsumauditlb",
+		to: "/lumpsum-performance",
 		label: "Lumpsum Performance",
 		element: <LumpsumauditLb />,
 		protected: true,
@@ -345,7 +345,7 @@ export const appRoutes = [
    	// MF SIP Leaderboard
 	{
 		requiredPermission: "sip_performance",
-		to: "/mfsipleaderboard",
+		to: "/sip-performance",
 		label: "SIP Performance",
 		element: <MFSIPLeaderboard />,
 		protected: true,

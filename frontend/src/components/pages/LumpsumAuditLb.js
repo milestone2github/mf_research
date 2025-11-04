@@ -164,7 +164,7 @@ const LumpsumauditLb = () => {
                     idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                   }`}
                 >
-                  <td className="py-3 px-4 text-center">{row.month}</td>
+                  <td className="py-3 px-4 text-center text-nowrap">{row.month}</td>
                   <td className="py-3 px-4 text-center">
                   {row.netPurchase?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || 0}
                 </td>
