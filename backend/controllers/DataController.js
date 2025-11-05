@@ -393,7 +393,7 @@ const postTransForm = async (req, res) => {
         ccAddress: "pramod@niveshonline.com"
       });
 
-      // ✅ Broadcast new transaction to all clients
+      // Broadcast new transaction to all clients
       io.emit("newTransaction", allFormsData);
 
       res.status(201).json({ message: "Saved", data: allFormsData });
@@ -883,7 +883,7 @@ const getIsin = async (req, res) => { // accepts amc in query
 
 // create marketing user doc 
 const createMarketingUser = async (req, res) => {
-  const {email, company, phone} = req.body
+  const {email, name, phone} = req.body
   const user = req.user._id;
   const validationErrors = []
 
@@ -893,13 +893,14 @@ const createMarketingUser = async (req, res) => {
   // Phone validation regex
   const phoneRegex = /^\d{10,12}$/;
 
-  if(!email || !company || !phone) {
-    validationErrors.push('Email, phone, and company name all are required')
+  if(!email || !name ) {
+    validationErrors.push('Email and name name all are required')
   }
   if(!emailRegex.test(email)) {
     validationErrors.push('Invalid email address')
   }
-  if(!phoneRegex.test(phone)) {
+  // Phone is optional, but if provided — must be valid
+  if (phone && !phoneRegex.test(phone)) {
     validationErrors.push('Invalid phone number')
   }
   
@@ -910,7 +911,7 @@ const createMarketingUser = async (req, res) => {
   try {
     const newUser = await MarketingUser.findOneAndUpdate(
       {user}, 
-      {email, phone, company}, 
+      {email, name, ...(phone && { phone }) },
       {upsert: true, new: true}
     )
 
@@ -927,7 +928,7 @@ const createMarketingUser = async (req, res) => {
 
 // update marketing user 
 const updateMarketingUser = async (req, res) => {
-  const {email, company, phone} = req.body
+  const {email, name, phone} = req.body
   const id = req.params.id
   const validationErrors = []
   let updateFields = {}
@@ -938,8 +939,8 @@ const updateMarketingUser = async (req, res) => {
   // Phone validation regex
   const phoneRegex = /^\d{10,12}$/;
 
-  if(!email || !company || !phone) {
-    validationErrors.push('Email, phone, or company one of them is required')
+  if(!email || !name || !phone) {
+    validationErrors.push('Email, phone, or name one of them is required')
   }
   if(email) {
     updateFields.email = email
@@ -954,7 +955,7 @@ const updateMarketingUser = async (req, res) => {
     }
   }
 
-  if(company) {updateFields.company = company}
+  if(name) {updateFields.name = name}
   
   if(validationErrors.length) {
     return res.status(400).json({error: validationErrors})
@@ -976,7 +977,7 @@ const updateMarketingUser = async (req, res) => {
 // route to get marketing user 
 const getMarketingUser = async (req, res) => {
   try {
-    const user = await MarketingUser.findOne({user: req.user._id}).lean()
+    const user = await MarketingUser.findOne({user: req.user._id}).populate( 'user').lean()
     if(!user) {
       return res.status(404).json({error: 'Marketing user not found'})
     }

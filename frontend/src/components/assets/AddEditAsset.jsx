@@ -12,6 +12,8 @@ import {
   FETCH_SINGLE_ASSET_URL,
   UPDATE_ASSET_URL
 } from '../../utils/urlConstants';
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import ConfirmModal from './ConfirmModal';
 
 const AddEditAsset = () => {
   const { id } = useParams();
@@ -57,17 +59,19 @@ const AddEditAsset = () => {
   const [loadingAsset, setLoadingAsset] = useState(false);
   const [loadingMerchant, setLoadingMerchant] = useState(false);
 
+  
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
 
   // For Editing the Asset Data
   useEffect(() => {
     if (id) {
       axios.get(FETCH_SINGLE_ASSET_URL(id))
-        .then(res => {
+        .then(async (res) => {
           const asset = res.data;
           setSerialNumber(asset.data.serialNumber || '');
           setRemarks(asset.data.remarks || '');
-          setSelectedType(asset.data.type || null);
           setAssetCode(asset.data.assetCode || '');
           setDateOfPurchase(asset.data.dateOfPurchase ? asset.data.dateOfPurchase.slice(0,10) : '');
           setAssetName(asset.data.assetName || '');
@@ -75,6 +79,18 @@ const AddEditAsset = () => {
           setModelNumber(asset.data.modelNumber || '');
           setWarrantyExpiryDate(asset.data.warrantyExpiryDate ? asset.data.warrantyExpiryDate.slice(0,10) : '');
           setSelectedMerchantId(asset.data.merchantId?._id || asset.data.merchantId || '');
+
+          const categoryId = asset.data.type?.category?._id;
+          const typeId = asset.data.type?._id;
+          if (categoryId) {
+            setSelectedCategoryId(categoryId);
+            const typeRes = await axios.get(FETCH_TYPES_BASED_ON_CAT_URL(categoryId));
+            setTypes(typeRes.data?.data || []);
+            const matchedType = typeRes.data?.data?.find(t => t._id === typeId);
+            setSelectedType(matchedType || asset.data.type || null);
+          } else {
+            setSelectedType(asset.data.type || null);
+          }
         })
         .catch(err => console.error('Failed to fetch asset:', err));
     }
@@ -158,7 +174,7 @@ const AddEditAsset = () => {
       await axios.post(CREATE_ASSET_URL, payload, { withCredentials: true });
     }
 
-    navigate("/assets");
+    navigate("/assets/manage");
   } catch (err) {
     console.error("Error saving asset:", err);
   } finally {
@@ -175,15 +191,15 @@ const AddEditAsset = () => {
 
     const newCat = res.data.data;
 
-    // ✅ Update dropdown list
+    //  Update dropdown list
     setCategories((prev) => [...prev, newCat]);
 
-    // ✅ Auto-select the new category
+    //  Auto-select the new category
     setSelectedCategoryId(newCat._id);
 
-    // ✅ Reset modal state
+    //  Reset modal state
     setNewCategoryName('');
-    setShowAddCategoryModal(false);  // 🔥 closes modal
+    setShowAddCategoryModal(false);  //  closes modal
   } catch (err) {
     console.error("Error creating category:", err);
   }
@@ -199,15 +215,15 @@ const AddEditAsset = () => {
       category: selectedCategoryId,
     });
 
-    // ✅ Fetch updated types but keep current category
+    //  Fetch updated types but keep current category
     const res = await axios.get(FETCH_TYPES_BASED_ON_CAT_URL(selectedCategoryId));
     setTypes(res.data.data);
 
-    // ✅ Auto-select the type we just added
+    //  Auto-select the type we just added
     const added = res.data.data.find((t) => t.name === newTypeName);
     if (added) setSelectedType(added);
 
-    // ✅ Close modal and reset
+    //  Close modal and reset
     setShowAddTypeModal(false);
     setNewTypeName('');
   } catch (err) {
@@ -252,7 +268,55 @@ const AddEditAsset = () => {
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Add / Update Asset</h2>
+
+      <div className="flex items-center justify-between mb-6">
+      {/*  Back Button + Title */}
+      <div className="flex items-center">
+        <button
+          onClick={() => navigate("/assets/manage")}
+          className="flex items-center text-gray-600 hover:text-gray-800 transition"
+        >
+          <ArrowLeftIcon className="h-5 w-5 mr-2" />
+        </button>
+        <h2 className="text-xl font-bold text-gray-800">
+          {id ? "Update Asset" : "Add Asset"}
+        </h2>
+      </div>
+
+      {/*  Delete Button (only when editing) */}
+      {id && (
+        <button
+          type="button"
+           onClick={() => setShowConfirm(true)}
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+        >
+          Delete
+        </button>
+      )}
+    </div>
+
+{/* Confirmation Modal */}
+<ConfirmModal
+  isOpen={showConfirm}
+  title="Delete Asset"
+  message="Are you sure you want to permanently delete this asset?"
+  confirmText="Delete"
+  cancelText="Cancel"
+  loading={deleting}
+  onCancel={() => setShowConfirm(false)}
+  onConfirm={async () => {
+    setDeleting(true);
+    try {
+      await axios.delete(UPDATE_ASSET_URL(id), { withCredentials: true });
+      navigate("/assets/manage");
+    } catch (err) {
+      console.error("Error deleting asset:", err);
+    } finally {
+      setDeleting(false);
+      setShowConfirm(false);
+    }
+  }}
+/>
 
 <form
   onSubmit={(e) => {
@@ -446,13 +510,16 @@ const AddEditAsset = () => {
         />
       </div>
 
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4 mt-6">
         <button
-          onClick={() => navigate('/assets')}
+          type="button"
+          onClick={() => navigate("/assets/manage")}
           className="px-4 py-2 border rounded"
         >
           Close
         </button>
+
+
        <button
         type="submit"
         className="px-4 py-2 bg-blue-600 text-white rounded flex items-center justify-center"
@@ -460,11 +527,12 @@ const AddEditAsset = () => {
       >
         {loadingAsset ? (
           <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-        ) : (
-          id ? 'Update' : 'Add'
-        )}
-      </button>
-
+          ) : id ? (
+          "Update"
+          ) : (
+            "Add"
+          )}
+        </button>
       </div>
 
       

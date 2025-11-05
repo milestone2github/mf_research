@@ -36,6 +36,7 @@ import InsurancePerformance from '../components/pages/InsurancePerformance'
 import LeaderPerformance from '../components/pages/LeaderPerformance '
 import LumpsumauditLb from '../components/pages/LumpsumAuditLb'
 import MFSIPLeaderboard from '../components/pages/MFSIPLeaderboard'
+import UploadMarketingTemplates from '../components/pages/UploadMarketingTemplates'
 
 
 export const appRoutes = [
@@ -196,6 +197,16 @@ export const appRoutes = [
 		to: "/marketing-templates",
 		label: "Marketing Templates",
 		element: <MarketingTemplates />,
+		protected: true,
+		showInSidebar: true,
+	},
+
+	// Upload Marketing Templates for Admin
+	{
+		requiredPermission: "upload_marketing_templates",
+		to: "/upload-marketing-templates",
+		label: "Upload Marketing Templates",
+		element: <UploadMarketingTemplates />,
 		protected: true,
 		showInSidebar: true,
 	},

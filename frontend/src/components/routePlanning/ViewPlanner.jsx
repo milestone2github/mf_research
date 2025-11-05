@@ -26,12 +26,12 @@ export const ViewPlanner = () => {
 					params: filters,
 				}
 			);
-			if (res.data.message) {
-				setMessage(res.data.message);
+			if (!res.data.success || !res.data.data?.length) {
+				setMessage("No FE assignments found.");
 				setFes([]);
 			} else {
 				setMessage("");
-				setFes(res.data.data || []);
+				setFes(res.data.data);
 			}
 		} catch (err) {
 			console.error(err);
@@ -52,29 +52,27 @@ export const ViewPlanner = () => {
 
 	const handleSearch = () => fetchPlanner();
 
-	const handleClear = () => {
-		setFilters({
+	const handleClear = async () => {
+		const cleared = {
 			feName: "",
 			employeeId: "",
 			clientName: "",
 			status: "",
 			startDate: "",
 			endDate: "",
-		});
-		fetchPlanner();
+		};
+		setFilters(cleared);
+		await fetchPlanner();
 	};
 
 	const handleKeyPress = (e) => {
-		if (e.key === "Enter") {
-			fetchPlanner();
-		}
+		if (e.key === "Enter") fetchPlanner();
 	};
 
 	const utcToLocal = (utc) => new Date(utc).toLocaleString();
 
 	return (
 		<div className="p-6 bg-gray-100 min-h-screen relative">
-			{/* Back button */}
 			<button
 				type="button"
 				onClick={() => navigate(-1)}
@@ -95,7 +93,7 @@ export const ViewPlanner = () => {
 					name="feName"
 					value={filters.feName}
 					onChange={handleFilterChange}
-					onKeyPress={handleKeyPress}
+					onKeyDown={handleKeyPress}
 				/>
 				<input
 					className="border p-2 rounded w-48"
@@ -103,7 +101,7 @@ export const ViewPlanner = () => {
 					name="employeeId"
 					value={filters.employeeId}
 					onChange={handleFilterChange}
-					onKeyPress={handleKeyPress}
+					onKeyDown={handleKeyPress}
 				/>
 				<input
 					className="border p-2 rounded w-48"
@@ -111,7 +109,7 @@ export const ViewPlanner = () => {
 					name="clientName"
 					value={filters.clientName}
 					onChange={handleFilterChange}
-					onKeyPress={handleKeyPress}
+					onKeyDown={handleKeyPress}
 				/>
 				<input
 					className="border p-2 rounded"
@@ -119,7 +117,7 @@ export const ViewPlanner = () => {
 					name="startDate"
 					value={filters.startDate}
 					onChange={handleFilterChange}
-					onKeyPress={handleKeyPress}
+					onKeyDown={handleKeyPress}
 				/>
 				<input
 					className="border p-2 rounded"
@@ -127,7 +125,7 @@ export const ViewPlanner = () => {
 					name="endDate"
 					value={filters.endDate}
 					onChange={handleFilterChange}
-					onKeyPress={handleKeyPress}
+					onKeyDown={handleKeyPress}
 				/>
 				<select
 					className="border p-2 rounded"
@@ -159,27 +157,26 @@ export const ViewPlanner = () => {
 				<p>Loading...</p>
 			) : message ? (
 				<p className="text-center text-gray-600">{message}</p>
-			) : fes.length === 0 ? (
-				<p className="text-center text-gray-600">No FE assignments found.</p>
 			) : (
 				<div className="grid gap-6">
 					{fes.map((fe) => (
-						<div key={fe._id} className="bg-white rounded shadow p-4">
+						<div key={fe.feId._id} className="bg-white rounded shadow p-4">
 							<div className="flex justify-between items-center mb-2">
 								<div>
 									<h3 className="text-xl font-semibold">
-										{fe.name} ({fe.employeeId})
+										{fe.feId.name} ({fe.feId.employeeId})
 									</h3>
-									<p className="text-sm text-gray-500">Status: {fe.status}</p>
+									<p className="text-sm text-gray-500">
+										Contact: {fe.feId.contactNumber || "-"}
+									</p>
 								</div>
-								<div className="text-sm text-gray-600">
-									Current Client:{" "}
-									{fe.routeDetails?.currentClient?.name || "None"}
-								</div>
+								<p className="text-sm text-gray-600">
+									Total Slots: {fe.bookedSlots.length}
+								</p>
 							</div>
 
 							{/* Booked Slots Table */}
-							{fe.routeDetails?.bookedSlots?.length ? (
+							{fe.bookedSlots.length ? (
 								<div className="overflow-x-auto">
 									<table className="min-w-full border border-gray-200 rounded">
 										<thead className="bg-gray-50 text-gray-700">
@@ -194,40 +191,32 @@ export const ViewPlanner = () => {
 											</tr>
 										</thead>
 										<tbody>
-											{fe.routeDetails.bookedSlots.map((slot) => (
+											{fe.bookedSlots.map((slot) => (
 												<tr key={slot._id} className="hover:bg-gray-50">
 													<td className="px-4 py-2 border">
-														{slot.client?.name}
+														{slot.client?.name || "-"}
 													</td>
 													<td className="px-4 py-2 border">
-														{/* {slot.client?.address} */}
-														{slot.visitDetails?.visitingAddress}
+														{slot.visit?.visitingAddress || "-"}
 													</td>
 													<td className="px-4 py-2 border">
-														{slot.client?.contactNumber}
+														{slot.client?.contactNumber || "-"}
 													</td>
 													<td className="px-4 py-2 border">
-														{slot.visitDetails
-															? utcToLocal(slot.visitDetails.availability.start)
-															: utcToLocal(slot.start)}
+														{utcToLocal(slot.start)}
 													</td>
 													<td className="px-4 py-2 border">
-														{slot.visitDetails
-															? utcToLocal(slot.visitDetails.availability.end)
-															: utcToLocal(slot.end)}
+														{utcToLocal(slot.end)}
 													</td>
 													<td className="px-4 py-2 border">
-														{
-															slot.visitDetails?.status === "cancelled"
-																? "Cancelled"
-																: slot.visitDetails?.isCompleted
-																	? "Completed"
-																	: "Pending"
-														}
+														{slot.visit?.status ||
+															(slot.visit?.isCompleted
+																? "Completed"
+																: "Pending")}
 													</td>
 													<td className="px-4 py-2 border">
-														{slot.visitDetails?.feComments?.length ? (
-															slot.visitDetails.feComments.map((c, idx) => (
+														{slot.visit?.feComments?.length ? (
+															slot.visit.feComments.map((c, idx) => (
 																<div
 																	key={idx}
 																	className="text-sm text-gray-700 mb-1"
