@@ -16,18 +16,18 @@ const AllocateAssetModal = ({ show, onClose, asset, onAllocate }) => {
   }, [show]);
   if (!show) return null;
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-      <div className="bg-white p-5 rounded w-[400px]">
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[9999]">
+      <div className="bg-white p-5 rounded w-[400px]" onClick={(e) => e.stopPropagation()} >
         <h2 className="text-lg font-semibold mb-3">Allocate Asset</h2>
 
         <div className="mb-2">
-          <strong>Name:</strong> {asset.name}
+          <strong>Name:</strong> {asset.assetName}
         </div>
         <div className="mb-2">
           <strong>Type:</strong> {asset.type?.name}
         </div>
         <div className="mb-2">
-          <strong>Category:</strong> {asset.category?.name}
+          <strong>Category:</strong> {asset.type?.category?.name}
         </div>
 
         <label className="block mb-2">

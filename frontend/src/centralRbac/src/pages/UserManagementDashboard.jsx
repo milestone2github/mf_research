@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash, FaArrowLeft, FaPlus } from "react-icons/fa";
 import axios from "axios";
@@ -25,6 +25,7 @@ const getAvatorColor = (key) => {
 
 function UserManagementDashboard() {
     const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(false); // ⬅️ Loader state
     const [searchQuery, setSearchQuery] = useState("");
     const [filterByEmail, setFilterByEmail] = useState("");
     const [filterByDepartment, setFilterByDepartment] = useState("");
@@ -35,119 +36,49 @@ function UserManagementDashboard() {
 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchAllUsers = async () => {
-            try {
-                const response = await axios.get(`${RBAC_BASE_URL}/users`);
-                if (response.data.success) {
-                    console.log(response.data.data)
-                    setUsers(response.data.data);
-                } else {
-                    console.error("Backend returned error:", response.data.message);
-                    toast.error(`Failed to fetch users: ${response.data.message}`,
-                        { position: 'top-right', autoClose: 3000, transition: Slide });
-                }
-            } catch (error) {
-                console.error("Error fetching all users:", error);
-                toast.error("Error fetching users.",
-                    { position: 'top-right', autoClose: 3000, transition: Slide });
-            }
-        };
+    
+  // ✅ Single unified fetch function
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
 
-        fetchAllUsers();
-    }, []);
+      if (searchQuery.trim()) params.append("search", searchQuery.trim());
+      if (filterByEmail) params.append("email", filterByEmail);
+      if (filterByDepartment) params.append("department", filterByDepartment);
 
+      const response = await axios.get(`${RBAC_BASE_URL}/users?${params.toString()}`);
 
+      if (response.data.success) {
+          setUsers(response.data.data);
+      } else {
+        toast.error(response.data.message || "Failed to fetch users.", {
+          position: "top-right",
+          autoClose: 3000,
+          transition: Slide,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("No user Found.", {
+        position: "top-right",
+        autoClose: 3000,
+        transition: Slide,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, filterByEmail, filterByDepartment]);
 
-    // Fetch users from API based on search query
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                let response;
-                if (searchQuery.trim() === "") {
-                    // Fetch all users again when search query is empty
-                    response = await axios.get(`${RBAC_BASE_URL}/users`);
-                    if (response.data.success) {
-                        setUsers(response.data.data);
-                    }
-                } else {
-                    // Fetch searched users
-                    response = await axios.get(`${RBAC_BASE_URL}/users/search?search=${searchQuery}&isAdminOnly=false`);
-                    if (response.data.success) {
-                        setUsers(response.data.data);
-                        setMessage(response.data.message);
+  // Debounced effect (only 1 fetch, not 4)
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchUsers();
+    }, 500);
 
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching users:", error);
-                setMessage("Error fetching users");
-                setUsers([]);
-                toast.error("Error fetching users based on search.",
-                    { position: 'top-right', autoClose: 3000, transition: Slide });
-            }
-        };
+    return () => clearTimeout(delayDebounceFn);
+  }, [fetchUsers]);
 
-        const delayDebounceFn = setTimeout(() => {
-            fetchUsers();
-        }, 500);
-
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchQuery]);
-
-    // Fetch users when email filter is applied
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                let response;
-                if (filterByEmail) {
-                    response = await axios.get(`${RBAC_BASE_URL}/users?email=${filterByEmail}`);
-                } else {
-                    // Fetch all users when filterByEmail is empty
-                    response = await axios.get(`${RBAC_BASE_URL}/users`);
-                }
-                setUsers(response.data.data);
-            } catch (error) {
-                console.error("Error fetching users:", error);
-                toast.error("Error fetching users based on email filter.",
-                    { position: 'top-right', autoClose: 3000, transition: Slide });
-            }
-        };
-
-        fetchUsers();
-    }, [filterByEmail]);
-
-    // Fetch users based on department filter
-    useEffect(() => {
-        const fetchUsersByDepartment = async () => {
-            try {
-                let response;
-                if (filterByDepartment) {
-                    const encodedDepartment = encodeURIComponent(filterByDepartment);
-                    const url = `${ RBAC_BASE_URL }/users?department=${encodedDepartment}`;
-                    response = await axios.get(url);
-                }               
-                 else {
-                    response = await axios.get(`${RBAC_BASE_URL}/users`);
-                }
-                if (response.data.success) {
-                    setUsers(response.data.data);
-                } else {
-                    console.error("Error fetching users:", response.data.message);
-                    setUsers([]);
-                    toast.error(`Error fetching users by department: ${response.data.message}`,
-                        { position: 'top-right', autoClose: 3000, transition: Slide });
-                }
-            } catch (error) {
-                console.error("Error fetching users by department:", error);
-                setUsers([]);
-                toast.error("Error fetching users by department.",
-                    { position: 'top-right', autoClose: 3000, transition: Slide });
-            }
-        };
-
-        fetchUsersByDepartment();
-    }, [filterByDepartment]);
 
     // Fetch departments on initial load
     useEffect(() => {
@@ -159,7 +90,7 @@ function UserManagementDashboard() {
                 } else {
                     console.error("Error fetching departments:", response.data.message);
                     toast.error(`Error fetching departments: ${response.data.message}`,
-                        { position: 'top-right', autoClose: 3000, transition: Slide });
+                        { position: 'top-right', autoClose: 2000, transition: Slide });
                 }
             } catch (error) {
                 console.error("Error fetching departments:", error);
@@ -185,14 +116,14 @@ function UserManagementDashboard() {
             const response = await axios.delete(`${RBAC_BASE_URL}/users/${deleteModal.userId}`);
             if (response.data.success && response.data.message) {
                 toast.success(response.data.message,
-                    { position: 'top-right', autoClose: 3000, transition: Slide });
+                    { position: 'top-right', autoClose: 2000, transition: Slide });
                 setUsers(users.filter(user => user._id !== deleteModal.userId));
             } else if (response.data.message) {
                 toast.error(response.data.message,
-                    { position: 'top-right', autoClose: 3000, transition: Slide });
+                    { position: 'top-right', autoClose: 2000, transition: Slide });
             } else {
                 toast.success("User deleted successfully.",
-                    { position: 'top-right', autoClose: 3000, transition: Slide });
+                    { position: 'top-right', autoClose: 2000, transition: Slide });
                 setUsers(users.filter(user => user._id !== deleteModal.userId));
             }
         } catch (error) {
@@ -271,19 +202,67 @@ function UserManagementDashboard() {
             {/* {message && <p className="text-yellow-400 mb-2 text-center text-xl"> 🤷‍♂️ {message} 🤷‍♂️</p>} */}
             {/* User Table */}
             <div className="bg-gray-900 p-3 rounded-lg shadow-lg overflow-x-auto border-white">
-                <table className="w-full text-left text-gray-300">
-                    <thead>
-                        <tr className="bg-teal-600 text-gray-200 text-base ">
-                            <th className="p-2">Sr. No</th>
-                            <th className="p-2">Avatar</th>
-                            <th className="p-2">Full Name</th>
-                            <th className="p-2">Email</th>
-                            <th className="p-2">Role</th>
-                            <th className="p-2">Department</th>
-                            <th className="p-2">Active Status</th>
-                            <th className="p-2 text-center">Actions</th>
-                        </tr>
-                    </thead>
+                {loading ? (
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-teal-600 text-gray-200 text-base">
+                            <tr>
+                                <th className="p-2">Sr. No</th>
+                                <th className="p-2">Avatar</th>
+                                <th className="p-2">Full Name</th>
+                                <th className="p-2">Email</th>
+                                <th className="p-2">Role</th>
+                                <th className="p-2">Department</th>
+                                <th className="p-2">Active Status</th>
+                                <th className="p-2 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[...Array(20)].map((_, i) => (
+                                <tr key={i} className="animate-pulse border-b border-gray-700">
+                                    <td className="p-2 text-center">
+                                        <div className="h-4 bg-gray-600 rounded w-8 mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <div className="rounded-full bg-gray-600 h-8 w-8 mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <div className="h-4 bg-gray-600 rounded w-28 mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <div className="h-4 bg-gray-600 rounded w-40 mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <div className="h-4 bg-gray-600 rounded w-20 mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <div className="h-4 bg-gray-600 rounded w-24 mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                        <div className="h-5 bg-gray-600 rounded w-16 mx-auto"></div>
+                                    </td>
+                                    <td className="p-2 flex justify-center space-x-2">
+                                        <div className="h-5 w-5 bg-gray-600 rounded"></div>
+                                        <div className="h-5 w-5 bg-gray-600 rounded"></div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    //start
+                    <table className="w-full text-left text-gray-300">
+                        <thead>
+                            <tr className="bg-teal-600 text-gray-200 text-base ">
+                                <th className="p-2 whitespace-nowrap">Sr. No</th>
+                                <th className="p-2 whitespace-nowrap">Avatar</th>
+                                <th className="p-2 whitespace-nowrap">Full Name</th>
+                                <th className="p-2 whitespace-nowrap">Email</th>
+                                <th className="p-2 whitespace-nowrap">Role</th>
+                                <th className="p-2 whitespace-nowrap">Department</th>
+                                <th className="p-2 whitespace-nowrap">Active Status</th>
+                                <th className="p-2 text-center whitespace-nowrap">Actions</th>
+                            </tr>
+                        </thead>
                     <tbody>
                         {Array.isArray(users) && users.map((user, index) => (
                             <tr key={user._id} className="border-b border-gray-700 hover:bg-gray-800 transition-all text-sm">
@@ -301,9 +280,15 @@ function UserManagementDashboard() {
                                 <td className="p-2">{user.role?.name}</td>
                                 <td className="p-2">{user.department?.name}</td>
                                 <td className="p-2">
-                                    <span className={`px-2 py-1 rounded-full text-white text-xs font-semibold ${user.emp_status === "Active" ? "bg-green-600" : "bg-red-600"
+                                    <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold
+                                    ${ user.status === "active"? "bg-green-600"
+                                            : user.status === "inactive" ? "bg-red-600"
+                                            : user.status === "pending" ? "bg-orange-500"
+                                            : user.status === "onboarding" ? "bg-yellow-600"
+                                            : user.status === "terminated" ? "bg-gray-500"
+                                            : "bg-gray-400"
                                         }`}>
-                                        {user.emp_status}
+                                        {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                                     </span>
                                 </td>
                                 <td className="p-2 flex justify-center gap-2">
@@ -316,8 +301,9 @@ function UserManagementDashboard() {
                                 </td>
                             </tr>
                         ))}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                )}
             </div>
             {/* Delete Confirmation Modal */}
             {deleteModal.show && (

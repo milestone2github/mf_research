@@ -52,15 +52,15 @@ const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => 
 
   return (
     <div className="relative">
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-nowrap">
         {/* Allocate and Deallocate */}
         {
           status === 'available' ? (
-            <button onClick={handleAllocate} className="px-3 py-1 rounded bg-green-600 hover:bg-green-500 text-white">
+            <button  onClick={(e) => { e.stopPropagation(); handleAllocate(); }} className="px-3 py-1 rounded bg-green-600 hover:bg-green-500 text-white">
               Allocate
             </button>
           ) : status === 'allocated' ? (
-            <button onClick={handleDeallocate} className="px-3 py-1 rounded bg-orange-500 hover:bg-orange-400 text-white">
+            <button onClick={(e) => { e.stopPropagation(); handleDeallocate(); }} className="px-3 py-1 rounded bg-orange-500 hover:bg-orange-400 text-white">
               Deallocate
             </button>
           ) : null
@@ -69,7 +69,7 @@ const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => 
       {/* Repair / Restore */}
       {status === 'repair' ? (
         <button
-          onClick={handleRestore}
+          onClick={(e) => { e.stopPropagation(); handleRestore(); }}
           className="px-3 py-1 rounded bg-violet-600 hover:bg-violet-400 text-white"
         >
           Restore
@@ -78,7 +78,7 @@ const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => 
         <button
           disabled={status !== 'available'}
           className={`px-3 py-1 text-sm rounded ${status === 'available' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-gray-300 text-gray-600'}`}
-          onClick={handleRepair}
+           onClick={(e) => { e.stopPropagation(); handleRepair(); }}
         >
           Repair
         </button>
@@ -87,7 +87,7 @@ const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => 
         {/* Edit */}
         <button
           className="px-5 py-2 text-sm rounded bg-slate-500 hover:bg-slate-400 text-white"
-          onClick={() => handleEdit(_id)}
+          onClick={(e) => { e.stopPropagation(); handleEdit(_id); }}
         >
           Edit
         </button>
@@ -95,14 +95,14 @@ const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => 
         {/* Remove and Restore */}
         {status === 'removed' ? (
           <button
-          onClick={handleRestore}
+          onClick={(e) => { e.stopPropagation(); handleRestore(); }}
           className="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white"
           >
             Restore
           </button>
         ) : (
           <button
-          onClick={handleRemove}
+          onClick={(e) => { e.stopPropagation(); handleRemove(); }}
           disabled={status !== 'available'}
           className={`px-3 py-1 rounded ${
             status === 'available'

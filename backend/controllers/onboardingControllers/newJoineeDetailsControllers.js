@@ -1,10 +1,8 @@
 const User = require("../../models/User");
-const PDFDocument = require("pdfkit");
 const axios = require("axios");
 const Department = require("../../models/Department");
 const Role = require("../../models/Role");
 const { fetchPackageAndAddCandidate, getCandidateStatus } = require('./springVerifyControllers');
-const { dispatchNdaFlow } = require('../../utils/ndaWorkFlow');
 const { getZohoAccessToken } = require("../../utils/getZohoAccessToken");
 const { getwebHookAccessToken } = require("../../utils/webHookAccessToken");
 const { getNewJoineeMailBody } = require("../../utils/newJoineeMailTemplate");
@@ -14,14 +12,10 @@ const { getOfferLetterEmailTemplate } = require('../../utils/offerLetterTemplate
 const { BlobServiceClient } = require('@azure/storage-blob');
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const ONBOARDING_FORM_LINK = process.env.ONBOARDING_FORM_LINK;
-const puppeteer = require('puppeteer');
-const fs = require('fs');
-const path = require('path');
-
-
-
-
-
+const WRITER_DOCUMENT_ID = process.env.WRITER_DOCUMENT_ID; 
+const FormData = require("form-data");
+const mongoose = require('mongoose');
+require("dotenv").config();
 
 // Sending Gotra to new employees Via Mail
 async function sendGotraDocument(user) {
@@ -97,7 +91,7 @@ async function sentNewJoineeMailNotification(user) {
     });
 
     if (mailResult) {
-      console.log("✅ New joinee notification sent to all employees.");
+      // console.log("✅ New joinee notification sent to all employees.");
 
       user.onboarding.hasNotifiedToAll = true;
       await user.save();
@@ -124,7 +118,7 @@ async function getEmployeeRecords(access_token) {
     const emailList = resp.data
       .map((r) => r["Email ID"]) // pick the “Email ID” property
       .filter((e) => e && e.trim());
-    console.log("Data:", emailList);
+    // console.log("Data:", emailList);
 
     return emailList;
 
@@ -147,198 +141,47 @@ async function fetchImageAsBase64(url) {
   return `data:${contentType};base64,${base64}`;
 }
 
-async function generateOfferLetterPDF({ name, role, baseSalary, annualCtc, doj, location = 'Delhi' }) {
-  const logoUrl = 'https://mfdatafeed.blob.core.windows.net/employee-onboarding/offerletterlogo.png';
-  const signatureUrl = 'https://mfdatafeed.blob.core.windows.net/employee-onboarding/Signaturevk.png';
-
-  const logoBase64 = await fetchImageAsBase64(logoUrl);
-  const signatureBase64 = await fetchImageAsBase64(signatureUrl);
-
-  const today = new Date();
-  doj = new Date(doj);
-
-  // Format current date as: "13 June 2025"
-  const currentFormatted = today.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  });
-
-  // Format DOJ as: "Tue, 01 Jul 2025"
-  const dojFormatted = doj.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-
-  const firstName = name.split(' ')[0];
-  const ctc = annualCtc ? Number(annualCtc).toLocaleString('en-IN') : null;
-  const monthly = baseSalary ? Number(baseSalary).toLocaleString('en-IN') : null;
-  const annualCompensation = (Number(baseSalary) * 12).toLocaleString('en-IN');
-
-  console.log('ctc: ', ctc);//debug
-
-  const htmlTemplate = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <style>
-      body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  margin: 0;
-  padding: 8px 24px;
-  color: #000;
+// Helper: format dates the same way you did before
+function formatDate(date) {
+  if (!date) return "";
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = d.toLocaleString("en-US", { month: "short" }); // e.g. Sep
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
 }
 
-      .header-img {
-  width: 100%;
-  max-width: 690px;
-  display: block;
-  margin: 0 auto 10px;
+
+async function mergeOfferLetter(mergeData) {
+  const accessToken = await getwebHookAccessToken();
+
+  const form = new FormData();
+  form.append("output_format", "pdf");          // pdf, docx, html, zfdoc, pdfform, zip(html)
+  form.append("filename", "Offer_Letter");
+  // form.append("test_mode", "true");          // optional: watermark test without credits
+  form.append("merge_data", JSON.stringify({ data: [mergeData] }));
+  form.append("response_type", "link");         // Zoho returns short-lived download URL
+
+  const mergeUrl = `https://www.zohoapis.com/writer/api/v1/documents/${WRITER_DOCUMENT_ID}/merge`;
+
+  const { data } = await axios.post(mergeUrl, form, {
+    headers: { ...form.getHeaders(), Authorization: `Zoho-oauthtoken ${accessToken}` },
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+  });
+
+  const downloadUrl = data && data.URL;
+  if (!downloadUrl) throw new Error("No download URL returned from merge");
+
+  const pdf = await axios.get(downloadUrl, {
+    headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+    responseType: "arraybuffer",
+  });
+
+  
+  return Buffer.from(pdf.data);
 }
 
-      .signature-img {
-        width: 140px;
-        margin-top: 30px;
-      }
-      .section {
-        margin-bottom: 12px;
-      }
-      ul {
-        padding-left: 18px;
-      }
-      li {
-        margin-bottom: 6px;
-      }
-      .footer {
-        margin-top: 6px;
-      }
-      #sign-name {
-        font-weight: 400;
-        margin-top: 44px;
-      }
-    </style>
-  </head>
-  <body>
-    <img src="${logoBase64}" class="header-img" />
-    <p>${currentFormatted}</p>
-
-    <p>Mr. ${name}</p>
-    <p>${location || 'Delhi'}</p>
-
-    <p>Dear ${firstName},</p>
-
-    <p>
-      I would like to congratulate you on-behalf of Milestone Global Moneymart Private Limited alongside
-      welcoming you to our family. We are excited to offer you a position in our organisation for ${role}.
-    </p>
-
-    <p>
-      This offer letter will be valid for 2 working days for you to accept the job from the date of
-      receipt. The date of joining as set by the terms of the offer letter will be <strong>${dojFormatted}</strong>
-      with option for extension of 1 week available on request.
-    </p>
-
-    <p>As per our discussion done during the interview are stated as followed to prevent any miscommunication on either part -</p>
-
-    <ul>annualCompensation
-      <li>Your annual compensation will be ${annualCompensation} INR subject to tax and other statutory deductions. EPF deductions will be mandatory and set at 12% of basic pay or 1800 INR per month with equal contribution from employer, if opted. Making your net-in-hand compensation ${monthly} INR per month. Your CTC (Cost to Company) will be ${ctc} INR annually approximately.</li>
-      <li>For the first three months from the joining date, you'll be appointed as probationary officer, where the notice period in case of resignation or termination will be 15 days from either side or in-lieu 15 days of pay to waive notice period or any combination thereof. Your probation period can be extended on discretion of Milestone.</li>
-      <li>You’ll be required to sign the Non-Disclosure Agreement on date of appointment.</li>
-      <li>You’ll be reporting to our Rohini, Delhi office.</li>
-      <li>NISM VA qualification will be mandatory within probationary period, if you're appointed in Mutual Fund Sales.</li>
-      <li>At end of probation period, you'll be regarded as permanent employee on payroll of organisation where you'll be eligible for following -</li>
-      <ul>
-        <li>Corporate Health Insurance for the employee for which the premium will be borne by the organisation.</li>
-        <li>Corporate Personal Accidental Policy for the employee for which the premium will be borne by the organisation.</li>
-        <li>You’ll be eligible for the Gratuity Scheme as per the government issued guidelines, where the 15 days of your basic pay will be accumulated annually and paid to you in case of cessation of employment from either side.</li>
-      </ul>
-      <li>On date of joining, we expect you to be present physically at our Rohini, Delhi office for onboarding where you’ll also be provided with SIM card for official Number, Laptop (Owned by Milestone Global Moneymart (P) Ltd. and maintained by employee).</li>
-      <li>From date of joining, you’ll abide by HR policies as issued by the organisation. The policy will supersede any or all terms and conditions as stated under the offer letter.</li>
-      <li>Your notice period will be set as 1 month from either side or in-lieu same days of pay or a combination of both.</li>
-      <li>You'll be eligible for the incentive structure from the end of your probation period.</li>
-    </ul>
-
-    <p>
-      Before the date of joining, you'll be sent a mail from Spring verify to do pre-employment verification.
-      You'll be deemed not fit, till you've completed that verification form.
-    </p>
-
-    <p>
-      For any information, clarification you may contact the undersigned at +91 9910076952 or jobs@niveshonline.com.
-    </p>
-
-    <div class="section">
-      <p>Regards,</p>
-      <img src="${signatureBase64}" class="signature-img" />
-      <p>
-        Vilakshan Bhutani<br/>
-        <span style="font-size: 12px;">Executive Director</span><br/>
-        <span style="font-size: 12px;">Milestone Global Moneymart Private Limited</span>
-      </p>
-
-    </div>
-<div class="footer">
-      <p>I have read all terms and conditions and will abide by them in all scenarios.</p>
-      <p id='sign-name'>Mr. ${name}</p>
-    </div>
-  </body>
-</html>
-`;
-
-
-  const browser = await puppeteer.launch({ headless: "new" });
-  const page = await browser.newPage();
-  await page.setContent(htmlTemplate, { waitUntil: 'networkidle0' });
-  const buffer = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    margin: { top: '15mm', bottom: '15mm', left: '10mm', right: '10mm' },
-  });
-
-
-  await browser.close();
-  return buffer;
-}
-
-// NOT IN USE
-async function handleSendOfferLetter({ name, role, department, baseSalary, annualCtc, doj, personalEmail, phone, departmentId }) {
-  // Fetch role name
-  const roleData = await Role.findById(role); // Assuming Role is imported
-  const roleName = roleData?.name || 'Role';
-
-  // 1. Generate Onboarding Link
-  const onboardingLink = generateOnboardingLink({
-    name,
-    email: personalEmail,
-    phone,
-    doj,
-    departmentId: departmentId.toString()
-  });
-
-  // 2. Generate Offer Letter PDF
-  const pdfBuffer = await generateOfferLetterPDF({
-    name, role: roleName, department, baseSalary, annualCtc, doj,
-    location: 'Delhi'
-  });
-
-  // 3. Prepare email
-  const { subject, body } = getOfferLetterEmailTemplate({ name, doj, onboardingLink });
-
-  await sendEmail({
-    toAddress: personalEmail,
-    subject,
-    body,
-    attachments: [{
-      filename: 'OfferLetter.pdf',
-      content: pdfBuffer
-    }]
-  });
-}
 
 // ======= Save Joinee ======= Step 1
 async function saveJoineeDetails(req, res) {
@@ -354,12 +197,16 @@ async function saveJoineeDetails(req, res) {
       isPfApplicable,
       isExperienced,
       doj,
+      city,
+      reportingLocation,
+      gender
     } = req.body;
+
+    const deptIsId = mongoose.isValidObjectId(department);
+    const roleIsId = mongoose.isValidObjectId(role);
 
     const update = {
       email: personalEmail,
-      department,
-      role,
       onboarding: {
         hrFilledInfo: {
           name,
@@ -372,34 +219,46 @@ async function saveJoineeDetails(req, res) {
           isPfApplicable,
           isExperienced,
           doj,
+          city,
+          reportingLocation,
+          gender,
           initiatedBy: req.user ? req.user._id : null,
           initiatedAt: new Date(),
         },
       },
     };
+    if (deptIsId) update.department = department;
+    if (roleIsId) update.role = role;
 
     let savedUser = await User.findOne({ email: personalEmail });
-
     if (!savedUser) {
       savedUser = await User.create(update);
     } else {
       await User.updateOne({ email: personalEmail }, { $set: update });
     }
 
-    // 🟡 Fetch role name before generating PDF
-    const roleData = await Role.findById(role);
-    const roleName = roleData?.name || 'Role';
+    // 🟡 Role name: use ID lookup if valid ObjectId, else treat as free text
+    let roleName = 'Role';
+    if (roleIsId) {
+      const roleData = await Role.findById(role).lean();
+      roleName = roleData?.name || roleName;
+    }
+    const salutation = gender === 'female' ? 'Ms.' : 'Mr.';
 
-    const pdfBuffer = await generateOfferLetterPDF({
-      name,
-      role: roleName,
-      baseSalary,
-      annualCtc,
-      doj,
-      location: 'Delhi'
-    });
-
-
+    const mergeData = {
+      "Name_Salutation": salutation,
+      "Name_First": name.split(" ")[0],
+      "Name_Last": name.split(" ").slice(1).join(" "),
+      "SingleLine": city,
+      "Dropdown": roleName,                // ✅ designation: ID name or free text
+      "Date": formatDate(doj),
+      "Number": annualCtc,
+      "Number1": baseSalary,
+      "Dropdown1": reportingLocation
+    };
+  // 2. Generate Offer Letter PDF
+  const pdfBuffer = await mergeOfferLetter(mergeData);
+  // console.log("Offer Letter PDF generated");
     const { subject, body } = getOfferLetterEmailTemplate({
       name,
       doj,
@@ -410,9 +269,9 @@ async function saveJoineeDetails(req, res) {
       subject,
       body,
       toAddress: personalEmail,
-      ccAddress: "",
+      ccAddress: "hr@niveshonline.com",
       attachments: [
-        { filename: "offerLetter.pdf", content: pdfBuffer },
+        { filename: "Offer Letter-Mr Vipul Kumar.pdf", content: pdfBuffer },
       ],
     });
 
@@ -425,7 +284,6 @@ async function saveJoineeDetails(req, res) {
     };
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData);
-
     if (!updatedUser) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -539,11 +397,11 @@ async function updateAssetAllocationStatus(req, res) {
     }
 
     // Sending Gotra Document 
-    const hasGotraSent = await sendGotraDocument(user);
+    // const hasGotraSent = await sendGotraDocument(user);
 
-    if (!hasGotraSent) {
-      throw new Error('Unable to Send Gotra Document.')
-    }
+    // if (!hasGotraSent) {
+    //   throw new Error('Unable to Send Gotra Document.')
+    // }
     //sending New joinee Mail to all Employees
     await sentNewJoineeMailNotification(user);
 
@@ -564,8 +422,19 @@ const fetchUserOnboardingInfo = async (req, res) => {
     const user = await User.findById(req.user.userId).lean();
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const savedInfo = user.onboarding?.userFilledInfo || {};
-    res.status(200).json(savedInfo);
+    const hrInfo = user.onboarding?.hrFilledInfo || {};
+    const userInfo = user.onboarding?.userFilledInfo || {};
+    const ndaInfo = user.onboarding?.nda || {};
+
+    res.status(200).json({
+      hrFilledInfo: hrInfo,
+      personalDetails: userInfo.personalDetails || {},
+      referenceDetails: userInfo.referenceDetails || {},
+      bankDetails: userInfo.bankDetails || {},
+      educationalCertificatesAndDegree: userInfo.educationalCertificatesAndDegree || {},
+      submittedAt: userInfo.submittedAt || null,
+      nda: ndaInfo
+    });
   } catch (error) {
     console.error("Error fetching onboarding info:", error);
     res.status(500).json({ error: "Failed to fetch user onboarding data" });
@@ -716,6 +585,7 @@ const savePartialUserOnboardingInfo = async (req, res) => {
     // === Final Submit Timestamp ===
     if (isFinalSubmit) {
       update.$set['onboarding.userFilledInfo.submittedAt'] = new Date();
+      // console.log("Updated Final submit submitedAt date")
     }
 
     const user = await User.findByIdAndUpdate(userId, update, { new: true });
@@ -737,7 +607,8 @@ const savePartialUserOnboardingInfo = async (req, res) => {
 const extractUserDetails = (user) => {
   const onboardingData = user.onboarding;
   const personal = onboardingData.userFilledInfo.personalDetails;
-  const hrFilled = onboardingData.hrFilledInfo
+  const latestUpdateCv = onboardingData.userFilledInfo.educationalCertificatesAndDegree.latestUpdateCv;
+  const hrFilled = onboardingData.hrFilledInfo;
 
   return {
     name: hrFilled.name,
@@ -745,6 +616,7 @@ const extractUserDetails = (user) => {
     pan: personal.panNumber,
     phone: personal.phone,
     isExperienced: hrFilled.isExperienced,
+    resume: latestUpdateCv,
     address: {
       street_address: personal.streetAddress,
       city: personal.city,
@@ -757,11 +629,11 @@ const extractUserDetails = (user) => {
 
 const processSpringVerifyOrNda = async (req, res) => {
   try {
-    console.log("🔍 Incoming body:", req.body);
+    // console.log("🔍 Incoming body:", req.body);
     const userId = req.body.userId;
     const user = await User.findById(userId).lean();
 
-    console.log("Received userId:", userId);
+    // console.log("Received userId:", userId);
 
 
     if (!user) {
@@ -777,7 +649,7 @@ const processSpringVerifyOrNda = async (req, res) => {
 
     if (action === 'verify') {
 
-      console.log("Line 410", userDetails);
+      // console.log("Line 410", userDetails);
 
       // Step 1: Fetch SpringVerify package & add candidate
       const verifyRes = await fetchPackageAndAddCandidate(userId, userDetails);
@@ -793,17 +665,32 @@ const processSpringVerifyOrNda = async (req, res) => {
         return res.status(500).json(statusRes);
       }
 
-      // Step 3: If background check is completed, mark it as verified
-      if (statusRes.data?.springStatus === 'Completed') {
-        await User.findByIdAndUpdate(userId, {
-          $set: {
-            'onboarding.backgroundCheck.status': 'verified',
-            'onboarding.backgroundCheck.completedAt': new Date(),
-          },
-        });
-
-        // Step 4: Dispatch NDA
-        await dispatchNdaFlow(userId, userDetails);
+      // Step 3: If background check status as verified or faled as per mapped spring status received
+      const mappedSpringStatus = statusRes.data?.mappedStatus;
+      if (mappedSpringStatus === "verified" || mappedSpringStatus === "failed") {
+          await User.findByIdAndUpdate(userId, {
+            $set: {
+              "onboarding.backgroundCheck.status": mappedSpringStatus,
+              "onboarding.backgroundCheck.completedAt": new Date(),
+            },
+          })
+        if (mappedSpringStatus === "failed") {
+          await sendEmail({
+            toAddress: 'hr@niveshonline.com',
+            subject: `SpringVerify Check Failed - ${email}`,
+            body: `
+            <p>Dear HR Team,</p>
+      <p>The SpringVerify background check for the following user has <strong>failed</strong> due to insufficiency or other issues:</p>
+      <ul>
+        <li><strong>User Email:</strong> ${email}</li>
+        <li><strong>User ID:</strong> ${userId}</li>
+        <li><strong>Status:</strong> ${mappedSpringStatus}</li>
+      </ul>
+      <p>Please review the SpringVerify portal for detailed reasons and take the necessary next steps.</p>
+      <p>Regards,<br/>Onboarding System</p
+      `
+          });
+        }
       }
 
       return res.status(200).json({
@@ -823,12 +710,13 @@ const processSpringVerifyOrNda = async (req, res) => {
         },
       });
 
-      console.log("Line 454", userDetails);
+      // console.log("Line 454", userDetails);
 
       const authToken = await getZohoAccessToken();
-      console.log("AuthToken is ", authToken);
+      // console.log("AuthToken is ", authToken);
 
-      await dispatchNdaFlow(userId, authToken, userDetails);
+      
+      // await dispatchNdaFlow(userId, authToken, userDetails);
 
       return res.status(200).json({
         status: 'success', message: 'SpringVerify skipped, NDA workflow dispatched',
@@ -914,6 +802,21 @@ const getRoles = async (req, res) => {
 };
 
 
+// DELETE /api/onboarding/delete/:id
+const deleteJoinee = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const result = await User.findByIdAndDelete(id);  
+
+    if (!result) return res.status(404).json({ message: "User not found" });
+
+    return res.status(200).json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Delete error:", err);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 
 // ======= EXPORT ==========
@@ -930,5 +833,7 @@ module.exports = {
   getAllDepartments,
   getRoles,
   generateOnboardingLink,
+  deleteJoinee,
+  mergeOfferLetter,
 };
 

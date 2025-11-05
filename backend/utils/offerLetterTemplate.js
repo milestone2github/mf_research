@@ -1,7 +1,7 @@
 
 function getOfferLetterEmailTemplate({ name, doj, onboardingLink }) {
   return {
-    subject: "Offer Letter from 'Milestone Global Moneymart Private Limited'",
+    subject: "Offer Letter from Mnivesh",
     body: `
       <p>Dear ${name},</p>
 

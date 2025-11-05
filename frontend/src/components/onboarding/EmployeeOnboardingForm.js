@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CgSpinner } from "react-icons/cg";
+import { Link } from 'react-router-dom';
 
 
 const LOCAL_API_BASE = `${process.env.REACT_APP_API_BASE_URL}/api/onboarding`;
@@ -19,11 +20,20 @@ const EmployeeOnboardingForm = () => {
     isPfApplicable: false,
     isExperienced: false,
     doj: '',
+    city: '',
+    reportingLocation: '',
+    gender: ''
   });
 
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
+
+//For "Other" handling
+const [departmentIsOther, setDepartmentIsOther] = useState(false);
+const [roleIsOther, setRoleIsOther] = useState(false);
+const [departmentOtherText, setDepartmentOtherText] = useState("");
+const [roleOtherText, setRoleOtherText] = useState("");
 
   // Fetch departments on mount
   useEffect(() => {
@@ -31,7 +41,6 @@ const EmployeeOnboardingForm = () => {
       try {
         const res = await fetch(`${LOCAL_API_BASE}/department`);
         const json = await res.json();
-        console.log("Departments fetched:", json);
         if (json?.data) setDepartments(json.data);
       } catch (error) {
         console.error("Error fetching departments:", error);
@@ -45,7 +54,6 @@ const EmployeeOnboardingForm = () => {
     try {
       const res = await fetch(`${LOCAL_API_BASE}/roles?dept=${deptId}`);
       const json = await res.json();
-      console.log("Roles fetched:", json);
       if (json?.data) setRoles(json.data);
       else setRoles([]);
     } catch (error) {
@@ -61,19 +69,44 @@ const EmployeeOnboardingForm = () => {
       ...(name === 'department' ? { role: '' } : {}), // Reset role if department changes
     }));
 
-    if (name === 'department') {
+  // --- Department ---
+  if (name === 'department') {
+    if (value === 'others') {
+      setDepartmentIsOther(true);
+      setRoles([]);           // no roles to fetch
+      setRoleIsOther(false);  // reset roleOther state if switching dept
+    } else {
+      setDepartmentIsOther(false);
       await fetchRoles(value);
     }
-  };
+  }
+
+  // --- Role ---
+  if (name === 'role') {
+    if (value === 'others') {
+      setRoleIsOther(true);
+    } else {
+      setRoleIsOther(false);
+    }
+  }
+};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+    // Map final department/role values
+    const payload = {
+      ...formData,
+      department: departmentIsOther ? (departmentOtherText || '').trim() : formData.department,
+      role: (roleIsOther || departmentIsOther) ? (roleOtherText || '').trim() : formData.role,
+    };
+
       const response = await fetch(`${LOCAL_API_BASE}/onboarding-form`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -91,6 +124,12 @@ const EmployeeOnboardingForm = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-8 rounded-2xl bg-white text-gray-900 shadow-xl border border-gray-200 mt-8">
+      <Link 
+      to="/onboarding" 
+      className="text-blue-600 hover:underline text-sm mb-2 inline-block"
+    >
+      ← 
+    </Link>
       <h2 className="text-3xl font-bold mb-8 text-gray-800 tracking-wide">Onboard New Employee</h2>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
@@ -115,6 +154,36 @@ const EmployeeOnboardingForm = () => {
           <input name="phone" id="phone" placeholder="Phone" value={formData.phone} onChange={handleChange}
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500" required />
         </div>
+      
+        {/* Gender */}
+        <div className="flex flex-col">
+          <label className="mb-2 text-sm font-medium text-gray-700">Gender</label>
+          <div className="flex gap-4">
+            <label className={`px-4 py-2 rounded-md cursor-pointer border ${formData.gender==='male' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}>
+              <input
+                type="radio"
+                name="gender"
+                value="male"
+                checked={formData.gender === 'male'}
+                onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+                className="hidden"
+              />
+              Male
+            </label>
+
+            <label className={`px-4 py-2 rounded-md cursor-pointer border ${formData.gender==='female' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}>
+              <input
+                type="radio"
+                name="gender"
+                value="female"
+                checked={formData.gender === 'female'}
+                onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+                className="hidden"
+              />
+              Female
+            </label>
+          </div>
+        </div>
 
         {/* Department */}
         <div className="flex flex-col">
@@ -125,19 +194,42 @@ const EmployeeOnboardingForm = () => {
             {departments.map((dept) => (
               <option key={dept._id} value={dept._id}>{dept.name}</option>
             ))}
+            <option value="others">Others</option>
           </select>
+          {departmentIsOther && (
+            <input
+              type="text"
+              className="mt-2 border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500"
+              placeholder="Enter department"
+              value={departmentOtherText}
+              onChange={(e) => setDepartmentOtherText(e.target.value)}
+              required
+            />
+          )}
         </div>
 
         {/* Role */}
         <div className="flex flex-col">
           <label htmlFor="role" className="mb-1 text-sm font-medium text-gray-700">Role</label>
           <select name="role" id="role" value={formData.role} onChange={handleChange}
-            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900" required>
+            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900" required disabled={departmentIsOther}  // optional: disable select if dept is Other
+>
             <option value="">Select Role</option>
             {roles.map((role) => (
               <option key={role._id} value={role._id}>{role.name}</option>
             ))}
+              <option value="others">Others</option>
           </select>
+          {(roleIsOther || departmentIsOther) && (
+            <input
+              type="text"
+              className="mt-2 border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500"
+              placeholder="Enter role/designation"
+              value={roleOtherText}
+              onChange={(e) => setRoleOtherText(e.target.value)}
+              required
+            />
+          )}
         </div>
 
         {/* Annual CTC */}
@@ -147,12 +239,42 @@ const EmployeeOnboardingForm = () => {
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500" required />
         </div>
 
+        {/* City  */}
+        <div className="flex flex-col">
+          <label htmlFor="city" className="mb-1 text-sm font-medium text-gray-700">City</label>
+          <input
+            name="city"
+            id="city"
+            placeholder="Residential City"
+            value={formData.city}
+            onChange={handleChange}
+            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500"
+            required
+          />
+        </div>
+
         {/* Monthly Salary */}
         <div className="flex flex-col">
           <label htmlFor="baseSalary" className="mb-1 text-sm font-medium text-gray-700">Monthly In-hand Salary</label>
           <input type="number" name="baseSalary" id="baseSalary" placeholder="Monthly In-hand Salary" value={formData.baseSalary} onChange={handleChange}
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500" required />
         </div>
+
+
+        {/* Reporting Location (between Monthly In-hand Salary and PF Applicable) */}
+        <div className="flex flex-col">
+          <label htmlFor="reportingLocation" className="mb-1 text-sm font-medium text-gray-700">Reporting Location</label>
+          <input
+            name="reportingLocation"
+            id="reportingLocation"
+            placeholder="Reporting Location"
+            value={formData.reportingLocation}
+            onChange={handleChange}
+            className="border border-gray-300 rounded-md p-2 bg-white text-gray-900 placeholder-gray-500"
+            required
+          />
+        </div>
+
 
         {/* PF Checkbox */}
         <div className="flex items-center col-span-2 mt-2">

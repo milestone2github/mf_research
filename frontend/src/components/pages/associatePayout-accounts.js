@@ -2,9 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
-import { useSelector } from "react-redux";
-import AccessDenied from "./AccessDenied";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const AssociatePayoutAccounts = () => {
   const [originalData, setOriginalData] = useState([]);
@@ -22,9 +21,6 @@ const AssociatePayoutAccounts = () => {
   const [isConfirmPayoutModalOpen, setIsConfimPayoutModalOpen] = useState(false)
   const [selectedPayoutItem, setSelectedPayoutItem] = useState(null)
   const [payoutModalError, setPayoutModalError] = useState(null)
-
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
 
   useEffect(() => {
     if (originalData.length) {
@@ -59,14 +55,12 @@ const AssociatePayoutAccounts = () => {
     gettotalsum(data);
   }, [data]);
   useEffect(() => {
-    if (!permissions.find(perm => perm === 'Associate Payout Accounts')) { return; }
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=ass"
+        `${apiBaseUrl}/api/payout/insurance-data?mode=ass`
       )
       .then((response) => {
-        console.log(response.data);
         setOriginalData(response.data);
         setData(groupData(response.data));
         setLoading(false);
@@ -137,7 +131,7 @@ const AssociatePayoutAccounts = () => {
   const handleDownloadExcel = (associatesData, event) => {
     if (event) event.stopPropagation(); // Prevent row toggle
 
-    console.log("Received data for Excel processing:", associatesData);
+    // console.log("Received data for Excel processing:", associatesData);
 
     // Validate the overall structure of associatesData
     if (!Array.isArray(associatesData)) {
@@ -164,7 +158,6 @@ const AssociatePayoutAccounts = () => {
         };
       }
 
-      console.log("Processing record:", assoc);
 
       // Check if the record meets the priority condition
       if (
@@ -182,7 +175,7 @@ const AssociatePayoutAccounts = () => {
       return acc;
     }, {});
 
-    console.log("Grouped data by associate:", groupedByAssociate);
+    // console.log("Grouped data by associate:", groupedByAssociate);
 
     // Convert the grouped data into the format needed for the spreadsheet
     const priorityOneAggregates = Object.values(groupedByAssociate)
@@ -240,13 +233,13 @@ const AssociatePayoutAccounts = () => {
       }));
 
     if (priorityOneAggregates.length === 0) {
-      console.log(
-        "No records met the criteria for inclusion in the Excel file."
-      );
+      // console.log(
+      //   "No records met the criteria for inclusion in the Excel file."
+      // );
       return;
     }
 
-    console.log("Aggregated data for Excel:", priorityOneAggregates);
+    // console.log("Aggregated data for Excel:", priorityOneAggregates);
 
     // Create the worksheet and workbook
     const worksheet = XLSX.utils.json_to_sheet(priorityOneAggregates, {
@@ -308,7 +301,6 @@ const AssociatePayoutAccounts = () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Priority One Records");
     XLSX.writeFile(workbook, "PriorityOneRecords.xlsx");
 
-    console.log("Excel file has been created with records.");
   };
 
   const downloadAllData = (action) => {
@@ -361,9 +353,8 @@ const AssociatePayoutAccounts = () => {
 
       const recordIds = filteredRecords.map((record) => record.id);
 
-      // const response = await fetch('https://jsonplaceholder.typicode.com/posts')
       const response = await fetch(
-        "https://milestone-api.azurewebsites.net/api/UpdateInsuracePayout_Accounts?code=zaCGvV0xsN5tMHJfSos0km4FRT3RH784csNXGRpC6P1bAzFu2Aj-6w==",
+        `${apiBaseUrl}/api/payout/update-insurance-accounts`,
         {
           method: "POST",
           headers: {
@@ -383,7 +374,7 @@ const AssociatePayoutAccounts = () => {
         [associateName]: { text: "Payout Released", color: "#60a5fa", disabled: true }
       }));
 
-      console.log("Payout released successfully.");
+      // console.log("Payout released successfully.");
     } catch (error) {
       console.error("Error releasing payout:", error.message);
     }
@@ -400,9 +391,6 @@ const AssociatePayoutAccounts = () => {
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
   }
-
-  if (!permissions.find(perm => perm === 'Associate Payout Accounts'))
-    return (<AccessDenied />);
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div className="loader"></div>
   </div>;

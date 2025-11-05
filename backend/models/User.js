@@ -12,11 +12,11 @@ const userSchema = new mongoose.Schema({
     department: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "DEPARTMENTS",
-        required: true
+        required: false
     },
     role: {
         type: mongoose.Schema.Types.ObjectId,
-        require: true,
+        require: false,
         ref: "ROLES"
     },
     customRole: { type: String, trim: true },
@@ -26,12 +26,6 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "PERMISSIONS"
     }],
-    emp_status: {
-        type: String,
-        enum: ["Active", "Inactive"],
-        required: true,
-        default: "Active"
-    },
     internalDashboardRole: {
         type: String,
         enum: ["Admin", "Super Admin", ""],
@@ -53,6 +47,9 @@ const userSchema = new mongoose.Schema({
             isPfApplicable: { type: Boolean },
             isExperienced: { type: Boolean, default: false },
             doj: { type: Date },
+            city: { type: String },
+            reportingLocation: { type: String },
+            gender: { type: String, enum: ['male', 'female'] },
             initiatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
             initiatedAt: { type: Date }
         },
@@ -117,8 +114,13 @@ const userSchema = new mongoose.Schema({
             reportUrl: { type: String }
         },
         nda: {
-            sent: { type: Boolean, default: false },
-            sentAt: { type: Date },
+            urlGenerated: { type: Boolean, default: false }, //sent
+            urlGeneratedAt: { type: Date }, //sentAt
+            signedStatus: {
+                type: String,
+                enum: ['success', 'completed', 'declined', 'later', ''],
+                default: ''
+            },
             signed: { type: Boolean, default: false },
             signedAt: { type: Date },
             fileUrl: { type: String },

@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom"; // Import useNavigate
 import Header from "../common/PortfolioResearchHeader";
 import debounce from "lodash.debounce";
 import Select from "react-select";
-import AccessDenied from "./AccessDenied";
-import { useSelector } from "react-redux";
 
 const ExistingPortfolio = () => {
   const [selectedOptionType, setSelectedOptionType] = useState("client");
@@ -14,8 +12,6 @@ const ExistingPortfolio = () => {
   const [portfolioData, setPortfolioData] = useState([]);
   const [authToken, setAuthToken] = useState("");
   const history = useNavigate(); // Use the useNavigate hook
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
 
   const fetchSearchResults = async () => {
     const searchApiUrl = `https://mniveshcalc.azurewebsites.net/api/searchfilter?type=${selectedOptionType}&query=${searchInput}`;
@@ -63,7 +59,6 @@ const ExistingPortfolio = () => {
       const data = await response.json();
       if (data.result && data.result.token) {
         setAuthToken(data.result.token);
-        console.log(authToken);
       } else {
         console.error("Failed to fetch auth token:", data.message);
       }
@@ -105,7 +100,7 @@ const ExistingPortfolio = () => {
   // Use useEffect to log portfolioData when it updates
   useEffect(() => {
     if (portfolioData) {
-      console.log(portfolioData);
+      // console.log(portfolioData);
     }
   }, [portfolioData]);
 
@@ -128,9 +123,6 @@ const ExistingPortfolio = () => {
   };
 
   // Call navigateToReports() when you want to navigate, for example after fetchPortfolioReturns()
-
-  if(!permissions.find(perm => perm === 'Portfolio Analysis')) 
-    return (<AccessDenied />)
 
   return (
     <div>

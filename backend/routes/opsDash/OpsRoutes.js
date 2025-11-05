@@ -22,6 +22,7 @@ const {
   exportAllTransactions,
   getAllSMNames,
   getAllRMNames,
+  filteredHistoryTransactions,
 } = require('../../controllers/opsDash/OpsTransactions');
 const verifyUser = require('../../middlewares/VerifyUser')
 const router = require('express').Router();
@@ -36,6 +37,7 @@ router.patch('/fraction/add/:id', addNewFraction);
 router.patch('/fraction/add-all/:id', verifyUser, addAllFractions);
 router.patch('/fraction/remove/:id', removeFraction);
 router.get('/filtered-transactions', filteredTransactions);
+router.get('/filtered-history-trans', filteredHistoryTransactions);
 router.get('/get-sm-names', getAllSMNames)      // FETCH ALL SM NAMES FROM TRANSACTIONS
 router.get('/get-rm-names', getAllRMNames)      // FETCH ALL RM NAMES FROM TRANSACTIONS
 router.get('/nfo-transactions', nfoTransactions);
@@ -46,7 +48,7 @@ router.get('/sm-names', getSMNames);
 router.patch('/service-manager', setServiceManager);
 router.patch('/update-status/:id', updateApprovalStatus);
 router.patch('/update-transction/:id', updateTransaction);
-router.patch('/note/:id', updateNote);
+router.patch('/note/:id', verifyUser, updateNote);
 router.patch('/relationship-manager', setRelationshipManager); //TEMPORARY
 
 // Export all the filtered transactions in XLSX file

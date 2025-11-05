@@ -55,10 +55,32 @@ exports.getRecoTransactions = async (req, res) => {
   if (rmName) {
     filters.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName)
   }
-  if (type === 'Switch') { filters.category = 'switch' }
-  else if (type) {
-    filters.transactionType = type
+
+   // Type filter
+  if (Array.isArray(type)) {
+
+    const isSwitchSelected = type.includes('Switch');
+    const typeFilters = [];
+
+    if (isSwitchSelected) {
+      typeFilters.push({ category: "switch" });
+    }
+
+    const nonSwitchTypes = type.filter(t => t !== "Switch");
+    if (nonSwitchTypes.length > 0) {
+      typeFilters.push({ transactionType: { $in: nonSwitchTypes } });
+    }
+
+    if (typeFilters.length > 0) {
+      filters.$or = typeFilters;
+    }
+    
+  } else if (type === "Switch") {
+    filters.category = "switch";
+  } else if (type) {
+    filters.transactionType = type;
   }
+
 
   if (searchBy && searchKey) {
     filters[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') }
@@ -186,6 +208,38 @@ exports.getRecoTransactions = async (req, res) => {
       { $limit: items }
     ])
 
+    // populate notes (editedBy user)
+    const trxIds = transactions.map(t => t._id);
+    const populated = await Transactions.find({ _id: { $in: trxIds } })
+      .populate("note.editedBy", "name")
+      .populate("transactionFractions.note.editedBy", "name")
+      .lean();
+
+    // console.log("Populated transactions:", JSON.stringify(populated, null, 2));
+
+    // --- Preserve order from aggregation ---
+    // The aggregation defines sort order (sortBy).
+    // The second .find() fetches with $in, which does not respect order. // So we use the _id order from aggregation (trxIds) and manually re-sort the populated array to match that order.
+    const trxOrder = trxIds.map(id => id.toString());
+    populated.sort((a, b) => trxOrder.indexOf(a._id.toString()) - trxOrder.indexOf(b._id.toString()));
+
+    const normalized = populated.map(txn => {
+      txn.note = txn.note.map(n => ({
+        ...n,
+        editedBy: n.editedBy ? { name: n.editedBy.name } : null
+      }));
+      txn.transactionFractions = txn.transactionFractions.map(fr => {
+        fr.note = fr.note.map(n => ({
+          ...n,
+          editedBy: n.editedBy ? { name: n.editedBy.name } : null
+        }));
+        return fr;
+      });
+      return txn;
+    });
+
+    // console.log("Normalized notes for frontend:", JSON.stringify(normalized, null, 2));
+
     const totalCountAndTotalAmount = await Transactions.aggregate([
       { $addFields: addStage },
       { $match: filters },
@@ -203,11 +257,11 @@ exports.getRecoTransactions = async (req, res) => {
         page,
         totalCount: totalCountAndTotalAmount[0]?.totalCount || 0,
         totalAmount: totalCountAndTotalAmount[0]?.totalAmount || 0,
-        transactions,
+        transactions: normalized,
       }
     })
   } catch (error) {
-    console.log('Error getting transactions: ', error.message)
+    // console.log('Error getting transactions: ', error.message)
     res.status(500).json({ error: `Error getting transactions: ${error.message}` })
   }
 }
@@ -216,7 +270,7 @@ exports.updateRecoTransactions = async (req, res) => {
   const trxId = req.params.id;
   const userId = req.user?._id;
   const userEmail = req.user?.email;
-  const { status, fractionId, ...optionalFields } = req.body;
+  const { status, fractionId, note, ...optionalFields } = req.body;
   try {
     let transaction;
 
@@ -242,6 +296,7 @@ exports.updateRecoTransactions = async (req, res) => {
       ...optionalFields,
     }
 
+    // ===== FRACTION-LEVEL =====
     if (fractionId) {
       if (status === 'minor_issues') {
         transaction = await Transactions.findOne({ _id: trxId, 'transactionFractions._id': fractionId });
@@ -254,6 +309,14 @@ exports.updateRecoTransactions = async (req, res) => {
 
         fraction.reconciliation = reconciliation;
 
+        // add note if provided
+        if (note) {
+          if (!Array.isArray(fraction.note)) {
+            fraction.note = []; // handle legacy string -> reset as array
+          }
+          fraction.note.push({ note, editedAt: new Date(), editedBy: userId, });
+        }
+
         // swap old values with new 
         swapValues(fraction, 'folioNumber', fraction);
         swapValues(fraction, 'orderId', fraction);
@@ -265,18 +328,42 @@ exports.updateRecoTransactions = async (req, res) => {
       }
 
       else {
+        // Other statuses (major/rejected)
         // Update a specific fraction
         update['transactionFractions.$.reconciliation'] = reconciliation;
 
         transaction = await updateTransactionFraction(trxId, fractionId, update);
+
+        // Add note for non-minor statuses too
+        if (note && transaction) {
+          const fraction = transaction.transactionFractions.find(
+            (f) => f._id.toString() === fractionId
+          );
+          if (fraction) {
+            if (!Array.isArray(fraction.note)) {
+              fraction.note = [];
+            }
+            fraction.note.push({ note, editedBy: userId, editedAt: new Date(), });
+            await transaction.save();
+          }
+        }
       }
     } else {
+
+      // ===== MAIN TRANSACTION =====
       if (status === 'minor_issues') {
         transaction = await Transactions.findById( trxId );
         if (!transaction) throw new Error('Transaction not found');
 
         transaction.reconciliation = reconciliation;
 
+        // add note if provided
+        if (note) {
+          if (!Array.isArray(transaction.note)) {
+            transaction.note = [];
+          }
+          transaction.note.push({ note, editedBy: userId, editedAt: new Date(), });
+        }
         // swap old values with new 
         swapValues(transaction, 'folioNumber', transaction);
         swapValues(transaction, 'orderId', transaction);
@@ -288,12 +375,26 @@ exports.updateRecoTransactions = async (req, res) => {
       }
 
       else {
+        // Other statuses (major/rejected)
         // Update the main transaction
         update.reconciliation = reconciliation;
 
         transaction = await updateMainTransaction(trxId, update);
+
+        if (note && transaction) {
+          if (!Array.isArray(transaction.note)) {
+            transaction.note = [];
+          }
+          transaction.note.push({ note, editedBy: userId, editedAt: new Date(), });
+          await transaction.save();
+        }
       }
     }
+
+    // After saving, repopulate `editedBy` (both at transaction and fraction level)
+    transaction = await Transactions.findById(trxId)
+      .populate('note.editedBy', 'name') // main notes
+      .populate('transactionFractions.note.editedBy', 'name'); // fraction notes
 
     if (!transaction) {
       throw new Error('Transaction not found or reconcilliation failed');

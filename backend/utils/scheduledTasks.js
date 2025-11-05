@@ -5,7 +5,7 @@ const xlsx = require('xlsx');
 let milestoneDbConnection = connectToMilestoneDB();
 const User = require("../models/User"); 
 const getCandidateStatus = require("../controllers/onboardingControllers/springVerifyControllers"); 
-const dispatchNdaFlow = require("./ndaWorkFlow"); 
+// const dispatchNdaFlow = require("./ndaWorkFlow"); 
 
 
 const headers = [
@@ -36,7 +36,7 @@ const headers = [
 
 //send last month's pending transactions of each RM to them as mail
 async function pendingTransactionsNotification() {
-  console.log('sending pending transactions notification...');
+  // console.log('sending pending transactions notification...');
 
   let startOfLastMonth = new Date()
   startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1);
@@ -87,7 +87,7 @@ async function pendingTransactionsNotification() {
       const rmName = item._id;
       const rm = rmsData.find((rm) => rm['RM Name'].toLowerCase() === rmName.toLowerCase())
       if (rm && rm.Email) {
-        console.log(rm.Email)
+        // console.log(rm.Email)
         // Create an Excel sheet with transaction data
 
         // Prepare transaction data to match header keys exactly
@@ -151,24 +151,34 @@ async function  springVerifyStatusCheck() {
       const statusRes = await getCandidateStatus(userId, email);
 
       if (statusRes.status === "success") {
-        const springStatus = statusRes.data?.status;
+        const mappedSpringStatus = statusRes.data?.mappedStatus;
 
-        if (springStatus === "verified" || springStatus === "failed") {
+        if (mappedSpringStatus === "verified" || mappedSpringStatus === "failed") {
           await User.findByIdAndUpdate(userId, {
             $set: {
-              "onboarding.backgroundCheck.status": springStatus,
+              "onboarding.backgroundCheck.status": mappedSpringStatus,
               "onboarding.backgroundCheck.completedAt": new Date(),
             },
-          });
-
-          if (springStatus === "verified") {
-            await dispatchNdaFlow(userId, user?.onboarding?.userFilledInfo?.personalDetails || {});
-            console.log(`NDA dispatched for ${email}`);
+          })
+          if (mappedSpringStatus === "failed") {
+            await sendEmail({
+              toAddress: 'hr@niveshonline.com',
+              subject: `SpringVerify Check Failed - ${email}`,
+              body: `
+            <p>Dear HR Team,</p>
+      <p>The SpringVerify background check for the following user has <strong>failed</strong> due to insufficiency or other issues:</p>
+      <ul>
+        <li><strong>User Email:</strong> ${email}</li>
+        <li><strong>User ID:</strong> ${userId}</li>
+        <li><strong>Status:</strong> ${mappedSpringStatus}</li>
+      </ul>
+      <p>Please review the SpringVerify portal for detailed reasons and take the necessary next steps.</p>
+      <p>Regards,<br/>Onboarding System</p
+      `
+            });
           }
-
-          console.log(`User ${email} status updated to ${springStatus}`);
         } else {
-          console.log(`User ${email} still has background status: ${springStatus}`);
+          console.log(`User ${email} still has background status: ${mappedSpringStatus}`);
         }
       } else {
         console.error(`Error checking candidate status for ${email}:`, statusRes.message);

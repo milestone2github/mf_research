@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   FETCH_ASSETS_URL,
-  CHANGE_STATUS_URL
 } from '../../utils/urlConstants';
 
 const AssetAllocationPage = () => {
@@ -13,6 +12,10 @@ const AssetAllocationPage = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [availableAssets, setAvailableAssets] = useState([]);
   const [allocatedAssets, setAllocatedAssets] = useState([]);
+  const [allAssets, setAllAssets] = useState([]); // NEW: keep a copy of full list from server
+  const [pendingOps, setPendingOps] = useState({}); 
+ // pendingOps shape: { [assetId]: { op: 'allocate'|'deallocate', to: 'userId', remarks?: string } }
+  const targetUserId = String(userInfo?.user?._id || userInfo?._id || userId);
   const [hasAssetsAllocated, setHasAssetsAllocated] = useState();
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
@@ -42,9 +45,10 @@ const AssetAllocationPage = () => {
       const res = await fetch(FETCH_ASSETS_URL, { credentials: 'include' });
       const data = await res.json();
       if (data?.data) {
-        const allAssets = data.data;
-        const available = allAssets.filter(asset => asset.status === 'available');
-        const allocated = allAssets.filter(asset => asset.allocatedTo?._id === userId);
+      const all = data.data;
+      setAllAssets(all); // NEW
+      const available = all.filter(asset => asset.status === 'available');
+      const allocated = all.filter(asset => String(asset.allocatedTo?._id) === String(userId) || String(asset.allocatedTo) === String(userId));
         setAvailableAssets(available);
         setAllocatedAssets(allocated);
       }
@@ -58,86 +62,120 @@ const AssetAllocationPage = () => {
     fetchAssets();
   }, [fetchUserInfo, fetchAssets]);
 
-  const refreshAll = async () => {
-    await fetchUserInfo();
-    await fetchAssets();
+  // const refreshAll = async () => {
+  //   await fetchUserInfo();
+  //   await fetchAssets();
+  // };
+
+  const handleAllocate = (assetId, remarks = '') => {
+    setPendingOps(prev => ({
+      ...prev,
+      [assetId]: { op: 'allocate', to: targetUserId, remarks }
+    }));
   };
 
-  const handleAllocate = async (assetId) => {
-    try {
-      const res = await fetch(CHANGE_STATUS_URL(assetId, 'allocate'), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ allocatedTo: userId })
-      });
-      const result = await res.json();
-      if (res.ok) {
-        toast.success(' Allocation successful');
-        // setHasAssetsAllocated(false); // Show button again
-       
-        refreshAll();
-      } else {
-        toast.error(result.message || 'Allocation failed');
-      }
-    } catch (err) {
-      console.error('Allocation failed:', err);
-      toast.error('Allocation failed');
+  const handleDeallocate = (assetId) => {
+    setPendingOps(prev => ({
+      ...prev,
+      [assetId]: { op: 'deallocate' }
+    }));
+  };
+
+   const handleAllocationDone = async () => { 
+  const ops = Object.entries(pendingOps).map(([assetId, op]) => ({
+    assetId,
+    op: op.op,
+    assignedTo: op.to || undefined,
+    remarks: op.remarks || ''
+  }));
+
+  if (ops.length === 0) {
+    toast.info('No staged changes.');
+    return;
+  }
+
+  const API_BASE = process.env.REACT_APP_API_BASE_URL;
+  const targetUserId = String(userInfo?.user?._id || userInfo?._id || userId);
+
+  try {
+    const bulkRes = await fetch(`${API_BASE}/api/assets/bulk/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        assets: ops,
+        userId: targetUserId  
+      }),
+    });
+
+    if (bulkRes.ok) {
+      setAllAssets(prev =>
+        prev.map(asset => {
+          const op = ops.find(o => o.assetId === asset._id);
+          if (!op) return asset;
+
+          if (op.op === 'allocate') {
+            return { ...asset, status: 'allocated', allocatedTo: { _id: targetUserId } };
+          }
+          if (op.op === 'deallocate') {
+            return { ...asset, status: 'available', allocatedTo: null };
+          }
+          return asset;
+        })
+      );
+
+      setPendingOps({});
+      setHasAssetsAllocated(true);
+      toast.success('Changes saved');
+      navigate('/onboarding');  
+
+      return;
     }
+
+    // fallback handling unchanged...
+  } catch (e) {
+    console.warn('Bulk endpoint not available, falling back...', e);
+  }
+};
+
+
+
+
+
+  // --- Overlay helpers (staging) ---
+  const getEffectiveStatus = (asset) => {
+    const op = pendingOps[asset._id];
+    if (!op) return asset.status;
+    return op.op === 'allocate' ? 'allocated' : 'available';
+  };
+  const getEffectiveAllocatedTo = (asset) => {
+    const op = pendingOps[asset._id];
+    if (!op) return asset.allocatedTo;
+    return op.op === 'allocate' ? targetUserId : null;
   };
 
-  const handleDeallocate = async (assetId) => {
-    try {
-      const res = await fetch(CHANGE_STATUS_URL(assetId, 'deallocate'), {
-        method: 'PATCH',
-        credentials: 'include',
-      });
-      const result = await res.json();
-      if (res.ok) {
-        toast.success(' Deallocation successful');
-        // setHasAssetsAllocated(false); // Show button again
-        
-        refreshAll();
-      } else {
-        toast.error(result.message || 'Deallocation failed');
-      }
-    } catch (err) {
-      console.error('Deallocation failed:', err);
-      toast.error('Deallocation failed');
-    }
-  };
+  // Apply overlay to ALL assets we know
+  const allWithOverlay = (allAssets.length ? allAssets : [...availableAssets, ...allocatedAssets]).map(a => ({
+    ...a,
+    __effectiveStatus: getEffectiveStatus(a),
+    __effectiveAllocatedTo: getEffectiveAllocatedTo(a),
+  }));
 
-  const handleAllocationDone = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/update-allocation-status/${userId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        
-      });
-      const result = await res.json();
-      if (res.ok) {
-        toast.success(' Marked allocation as done');
-        
-        setHasAssetsAllocated(true);
-      } else {
-        toast.error(result.message || 'Failed to mark as done');
-      }
-    } catch (err) {
-      console.error('Failed to update allocation status:', err);
-      toast.error('Server Error');
-    }
-  };
-
-  const filteredAssets = availableAssets.filter(asset =>
-    asset.name.toLowerCase().includes(search.toLowerCase()) &&
+  // Visible AVAILABLE (with your existing filters)
+  const visibleAvailable = allWithOverlay.filter(asset =>
+    asset.__effectiveStatus === 'available' &&
+    (asset.assetName || '').toLowerCase().includes(search.toLowerCase()) &&
     (!type || asset.type?.name === type) &&
     (!category || asset.type?.category?.name === category)
   );
+
+  // Visible ALLOCATED to THIS user (tab 2)
+  const visibleAllocated = allWithOverlay.filter(asset => {
+    if (asset.__effectiveStatus !== 'allocated') return false;
+    const at = asset.__effectiveAllocatedTo;
+    const atId = typeof at === 'string' ? at : at?._id || at?.id || null;
+    return String(atId) === String(targetUserId);
+  });
 
   
 
@@ -224,12 +262,12 @@ const AssetAllocationPage = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredAssets.length === 0 ? (
+            {visibleAvailable.length === 0 ? (
               <tr><td colSpan="5" className="text-center py-4">No assets available.</td></tr>
             ) : (
-              filteredAssets.map((asset) => (
+              visibleAvailable.map((asset) => (
                 <tr key={asset._id} className="border-t">
-                  <td className="px-4 py-2">{asset.name}</td>
+                  <td className="px-4 py-2">{asset.assetName}</td>
                   <td className="px-4 py-2">{asset.type?.name}</td>
                   <td className="px-4 py-2">{asset.serialNumber}</td>
                   <td className="px-4 py-2">{asset.type?.category?.name}</td>
@@ -262,12 +300,12 @@ const AssetAllocationPage = () => {
             </tr>
           </thead>
           <tbody>
-            {allocatedAssets.length === 0 ? (
+            {visibleAllocated.length === 0 ? (
               <tr><td colSpan="5" className="text-center py-4">No assets allocated.</td></tr>
             ) : (
-              allocatedAssets.map((asset) => (
+              visibleAllocated.map((asset) => (
                 <tr key={asset._id} className="border-t">
-                  <td className="px-4 py-2">{asset.name}</td>
+                  <td className="px-4 py-2">{asset.assetName}</td>
                   <td className="px-4 py-2">{asset.type?.name}</td>
                   <td className="px-4 py-2">{asset.serialNumber}</td>
                   <td className="px-4 py-2">{asset.type?.category?.name}</td>

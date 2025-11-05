@@ -56,7 +56,7 @@ const Loginpage = () => {
         dispatch(updateToast({ message: res.msg, type: 'error' }))
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   }
   return (

@@ -1,16 +1,11 @@
 import React, { useState } from "react";
 import Header from "../common/PortfolioResearchHeader";
-import AccessDenied from "./AccessDenied";
-import { useSelector } from "react-redux";
 
 const CasImport = () => {
   const [panNumber, setPanNumber] = useState("");
   const [email, setEmail] = useState("");
   const [casFile, setCasFile] = useState(null);
   const [pdfPassword, setPdfPassword] = useState("");
-
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
 
   const handlePanChange = (e) => {
     const upperCasePan = e.target.value.toUpperCase();
@@ -51,7 +46,7 @@ const CasImport = () => {
       return;
     }
 
-    console.log("CAS triggered with PAN:", panNumber, "and Email:", email);
+    // console.log("CAS triggered with PAN:", panNumber, "and Email:", email);
     // Add your logic to trigger CAS here
   };
 
@@ -64,17 +59,14 @@ const CasImport = () => {
       alert("Please enter the password for the PDF.");
       return;
     }
-    console.log(
-      "PDF uploaded for CAS:",
-      casFile.name,
-      "with password:",
-      pdfPassword
-    );
+    // console.log(
+    //   "PDF uploaded for CAS:",
+    //   casFile.name,
+    //   "with password:",
+    //   pdfPassword
+    // );
     // Further processing logic here
   };
-
-  if(!permissions.find(perm => perm === 'Portfolio Analysis')) 
-    return (<AccessDenied />)
 
   return (
     <div>

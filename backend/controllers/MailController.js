@@ -1,7 +1,7 @@
 const sendEmail = require("../utils/sendEmail")
 
 const sendEmailController = async (req, res) => {
-  console.log('recieved...')
+  // console.log('recieved...')
   const {from, subject, body, toAddress, ccAddress} = req.body
   
   if(!subject || !toAddress) {

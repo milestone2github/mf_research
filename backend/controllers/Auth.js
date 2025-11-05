@@ -7,6 +7,7 @@ const { ACCESS_TOKEN_NOT_FOUND } = require('../utils/stringConstants');
 const { refreshZohoAccessToken } = require('../utils/refreshZohoAccessToken ');
 const { fetchZohoPeopleData } = require('../utils/fetchZohoPeopleData');
 const Department = require('../models/Department');
+const { FE } = require('../models/RouteOptimization');
 
 
 // Initiates login with Zoho OAuth
@@ -14,7 +15,7 @@ const Department = require('../models/Department');
 const loginWithZoho = (req, res) => {
   const redirectUrl = req.query.redirect || process.env.DEFAULT_FRONTEND_URL; 
   const state = encodeURIComponent(JSON.stringify({ redirectUrl }));
-  const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email,ZOHOPEOPLE.forms.ALL&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline&state=${state}&prompt=consent`;
+  const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email,ZOHOPEOPLE.forms.ALL&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline&state=${state}`;
   res.redirect(authUrl);
 }
 
@@ -106,13 +107,13 @@ const zohoCallback = async (req, res) => {
         let updatedDept = await Department.findOne({ name: latestDeptName });
         if (!updatedDept) {
           updatedDept = await Department.create({ name: latestDeptName });
-          console.log(`[SYNC] Created new department: "${latestDeptName}" with ID ${updatedDept._id}`);
+          // console.log(`[SYNC] Created new department: "${latestDeptName}" with ID ${updatedDept._id}`);
         }
 
         let updatedRole = await Role.findOne({ name: latestRoleName });
         if (!updatedRole) {
           updatedRole = await Role.create({ name: latestRoleName });
-          console.log(`[SYNC] Created new role: "${latestRoleName}" with ID ${updatedRole._id}`);
+          // console.log(`[SYNC] Created new role: "${latestRoleName}" with ID ${updatedRole._id}`);
         }
 
         let updated = false;
@@ -120,21 +121,21 @@ const zohoCallback = async (req, res) => {
         if (!userExist.department.equals(updatedDept._id)) {
           userExist.department = updatedDept._id;
           updated = true;
-          console.log(`[SYNC] Department changed for ${email}: ${userExist.department} → ${updatedDept._id}`);
+          // console.log(`[SYNC] Department changed for ${email}: ${userExist.department} → ${updatedDept._id}`);
         }
 
         if (!userExist.role.equals(updatedRole._id)) {
           userExist.role = updatedRole._id;
           updated = true;
-          console.log(`[SYNC] Role changed for ${email}: ${userExist.role} → ${updatedRole._id}`);
+          // console.log(`[SYNC] Role changed for ${email}: ${userExist.role} → ${updatedRole._id}`);
         }
 
         if (updated) {
-          console.log(`[SYNC] Updated user ${email} with new department and/or role. Syncing now -(promotion/transfer detected)`);
+          // console.log(`[SYNC] Updated user ${email} with new department and/or role. Syncing now -(promotion/transfer detected)`);
           userExist.lastSyncedWithZoho = currDate;
           await userExist.save();
         } else {
-          console.log(`[SYNC] No changes in department or role for ${email}. Just updating last sync timestamp.`);
+          // console.log(`[SYNC] No changes in department or role for ${email}. Just updating last sync timestamp.`);
           userExist.lastSyncedWithZoho = currDate;
           await userExist.save();
         }
@@ -147,7 +148,7 @@ const zohoCallback = async (req, res) => {
 
       setUserSession(userExist);
 
-      console.log("Session Set (Existing User):", req.session);
+      // console.log("Session Set (Existing User):", req.session);
       return res.redirect(redirectUrl);
     }
 
@@ -157,14 +158,15 @@ const zohoCallback = async (req, res) => {
 
     if (!department) {
       department = await Department.create({ name: zohoUser.Department });
-      console.log("Created new department:", department);
+      // console.log("Created new department:", department);
     }
 
     let role = await Role.findOne({ name: zohoUser.Title });
 
     if (!role) {
-      role = await Role.create({ name: zohoUser.Title });
-      console.log("Created new role:", role);
+      role = await Role.create({ name: zohoUser.Title, department: department._id });
+      // console.log("Created new role:", role);
+      // console.log(`[ROLE-CREATE] New role "${role.name}" created under department "${department.name}" with ID ${role._id}`);
     }
 
     // Step 6: Create new user in the database
@@ -176,7 +178,7 @@ const zohoCallback = async (req, res) => {
       department: department._id,
       role: role._id,
       status: 'active',
-      internalDashboardRole: zohoUser.InternalDashboardRole || "",
+      internalDashboardRole: zohoUser.internalDashboardRole || "",
       lastSyncedWithZoho: new Date()
     });
 
@@ -196,7 +198,7 @@ const zohoCallback = async (req, res) => {
 
     setUserSession(newUser);
 
-    console.log("New User Created & Session Set:", req.session); // Debug
+    // console.log("New User Created & Session Set:", req.session); // Debug
 
     return res.redirect(redirectUrl);
 
@@ -216,7 +218,7 @@ const logout = (req, res) => {
         return res.status(500).json({ message: "Could not log out." });
       }
       res.clearCookie("user");
-      console.log("Logout: Session destroyed- cookies clear") //debug
+      // console.log("Logout: Session destroyed- cookies clear") //debug
       res.status(204).send(); // No content to send back
     });
   } else {
@@ -225,7 +227,7 @@ const logout = (req, res) => {
 };
 
 const verifySession = async (req, res) => {
-  console.log("Session Data:", req.session);//debug
+  // console.log("Session Data:", req.session);//debug
   if (req.session && req.session.user) {
     // refresh the session expiration time by the time set during configuration  
     req.session.touch(); 
@@ -238,7 +240,7 @@ const verifySession = async (req, res) => {
       // Update session and prepare response user object
       req.session.user.permissions = permissions;
 
-    console.log("Updated session user:", req.session.user);
+    // console.log("Updated session user:", req.session.user);
 
     // If the session exists and contains user information, the user is logged in
     res.status(200).json({ loggedIn: true, user: req.session.user });
@@ -271,43 +273,60 @@ const verifyGoogleUser = async (req, res) => {
       return res.status(400).json({ success: false, msg: "permission denied" })
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ success: false, msg: "Internal server error" })
   }
 }
 
-// Extract access_token and fetch list of SM users
 const fetchSMList = async (req, res) => {
   try {
-    let access_token = req.session.user?.access_token;
-    const refresh_token = req.session.user?.refresh_token;
 
-    if (!access_token && !refresh_token) {
-      return res.status(401).json({ message: ACCESS_TOKEN_NOT_FOUND });
-    }
-    
-    if (!access_token && refresh_token) {
-      access_token = await refreshZohoAccessToken(refresh_token);
-      req.session.user.access_token = access_token;
-    }
-  
-    const peopleUrl = 'https://people.zoho.com/people/api/forms/P_EmployeeView/records';
-    const fetchPeople = await axios.get(peopleUrl, {
-      headers: {
-        'Authorization': `Zoho-oauthtoken ${access_token}`
-      }
-    });
-    
-    const serviceManagers = fetchPeople.data
-    .filter(person => person.Title === 'Service Manager')
-    .map(person => `${person['First Name']} ${person['Last Name']}`.trim());
-    
-    res.status(200).json({ data: serviceManagers });
+    const serviceManagers = await User.find({status:"active"})
+      .populate("role")
+      .then(users => 
+        users.filter(u => u.role?.name === "Service Manager" || u.role?.name === "Chief Operation Officer" && u.name) // skip null/empty names
+          .map(u => u.name)
+      );
+
+    res.status(200).json({ success: true, data: serviceManagers });
   } catch (err) {
-    console.error("Error in fetchSMList: \n", err);
-    res.status(500).json({success: false, msg: "Internal server error"});
+    console.error("Error in fetchSMList:", err);
+    res.status(500).json({ success: false, msg: "Internal server error" });
   }
-}
+};
+
+// Extract access_token and fetch list of SM users
+// const fetchSMList = async (req, res) => {
+//   try {
+//     let access_token = req.session.user?.access_token;
+//     const refresh_token = req.session.user?.refresh_token;
+
+//     if (!access_token && !refresh_token) {
+//       return res.status(401).json({ message: ACCESS_TOKEN_NOT_FOUND });
+//     }
+    
+//     if (!access_token && refresh_token) {
+//       access_token = await refreshZohoAccessToken(refresh_token);
+//       req.session.user.access_token = access_token;
+//     }
+  
+//     const peopleUrl = 'https://people.zoho.com/people/api/forms/P_EmployeeView/records';
+//     const fetchPeople = await axios.get(peopleUrl, {
+//       headers: {
+//         'Authorization': `Zoho-oauthtoken ${access_token}`
+//       }
+//     });
+    
+//     const serviceManagers = fetchPeople.data
+//     .filter(person => person.Title === 'Service Manager')
+//     .map(person => `${person['First Name']} ${person['Last Name']}`.trim());
+    
+//     res.status(200).json({ data: serviceManagers });
+//   } catch (err) {
+//     console.error("Error in fetchSMList: \n", err);
+//     res.status(500).json({success: false, msg: "Internal server error"});
+//   }
+// }
 
 // Fetch RM Names from Zoho People
 const fetchRMList = async (req, res) => {
@@ -367,6 +386,42 @@ async function getCombinedPermissions(user) {
   return combinedPermissionKeys;
 }
 
+// Generate JWT token (currently for Field Executives) out of Contact Number
+const generateJWT = async (req, res) => {
+	try {
+		const { contactNumber } = req.body;
+		if (!contactNumber) {
+			return res.status(400).json({ error: "Phone number required." });
+		}
+
+		// Find Field Executive (FE) by phone number
+		const fe = await FE.findOne({ contactNumber });
+		if (!fe) {
+			return res.status(404).json({ error: "Field Executive not found." });
+		}
+
+    if (fe.status.toLowerCase() !== 'active') {
+      console.log(`User: ${fe.name} having employeeId: ${fe.employeeId} is ${fe.status}`);  // debug
+      return res.status(403).json({ error: `User: ${fe.name} is ${fe.status}` });
+    }
+
+		// Create token
+		const token = jwt.sign(
+			// { contactNumber, employeeId: fe.employeeId },
+			{ feId: fe._id },
+			process.env.JWT_SECRET,
+			{ expiresIn: "60d" }
+		);
+
+		res
+			.status(200)
+			.json({ token, feName: fe.name, contactNumber: fe.contactNumber });
+	} catch (err) {
+		console.error("Problem in generate-jwt API", err);
+		res.status(500).json({ message: "Internal Server Error." });
+	}
+};
+
 module.exports = {
   loginWithZoho,
   zohoCallback,
@@ -374,5 +429,6 @@ module.exports = {
   verifyGoogleUser,
   logout,
   fetchSMList,
-  fetchRMList
+  fetchRMList,
+  generateJWT
 }

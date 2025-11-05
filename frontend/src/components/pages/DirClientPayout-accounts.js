@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
-import AccessDenied from "./AccessDenied";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import PayoutConfirmModal from "../common/PayoutConfirmModal";
 import { updateToast } from "../../reducers/ToastSlice";
 import Toast from "../common/Toast";
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const DirectClientPayouts = () => {
   const [data, setData] = useState([]);
@@ -26,9 +26,6 @@ const DirectClientPayouts = () => {
   const [loadingRelease, setLoadingRelease] = useState(false)
   const dispatch = useDispatch()
 
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
-
   const gettotalsum = (data) => {
     let sum = 0;
     data.forEach((item) => {
@@ -47,13 +44,10 @@ const DirectClientPayouts = () => {
   }, [filterDate, data]);
 
   useEffect(() => {
-    if (!permissions.find(perm => perm === 'Direct Client Payout Accounts')) {
-      return;
-    }
     setLoading(true);
     axios
       .get(
-        "https://milestone-api.azurewebsites.net/api/InsurancePayoutData?code=C3iSrLJO-5W4iJY0PPjc2ke-1Nf2jWA3ehJ2vqMbqFrdAzFuWuE-Ag==&mode=dir"
+        `${apiBaseUrl}/api/payout/insurance-data?mode=dir`
       )
       .then((response) => {
         let responseData = response.data.map((item) => ({
@@ -102,9 +96,6 @@ const DirectClientPayouts = () => {
       (assoc) => assoc.statusDetails && assoc.statusDetails.priority === 1
     );
     if (priorityOneRecords.length === 0) {
-      console.log(
-        "No records with priority 1 found for inclusion in the Excel file."
-      );
       dispatch(
         updateToast({ type: "error", message: "There are no pending records available for download from Accounts" })
       );
@@ -222,7 +213,7 @@ const DirectClientPayouts = () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Priority One Records");
     XLSX.writeFile(workbook, "PriorityOneRecords.xlsx");
 
-    console.log("Excel file has been created with priority 1 records.");
+    // console.log("Excel file has been created with priority 1 records.");
   };
 
   const handleReleasePayout = async (id) => {
@@ -230,7 +221,7 @@ const DirectClientPayouts = () => {
 
     try {
       const response = await fetch(
-        "https://milestone-api.azurewebsites.net/api/UpdateInsuracePayout_Accounts?code=zaCGvV0xsN5tMHJfSos0km4FRT3RH784csNXGRpC6P1bAzFu2Aj-6w==",
+        `${apiBaseUrl}/api/payout/update-insurance-accounts`,
         {
           method: "POST",
           headers: {
@@ -254,7 +245,7 @@ const DirectClientPayouts = () => {
         updateToast({ type: "success", message: "Payout released" })
       );
 
-      console.log("Payout released successfully.");
+      // console.log("Payout released successfully.");
     } catch (error) {
       console.error("Error releasing payout:", error.message);
       dispatch(
@@ -276,9 +267,6 @@ const DirectClientPayouts = () => {
     setPayoutModalError(null)
     setSelectedPayoutItem(null)
   }
-
-  if (!permissions.find(perm => perm === 'Direct Client Payout Accounts'))
-    return (<AccessDenied />);
 
   if (loading) return <div className="  h-[80vh] flex justify-center items-center"><div class="loader"></div>
   </div>;

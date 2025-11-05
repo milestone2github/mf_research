@@ -1,4 +1,6 @@
 require("dotenv").config();
+const http = require("http");
+const { Server } = require("socket.io");
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -8,14 +10,18 @@ const port = process.env.PORT || 5000;
 const session = require("express-session");
 const { connectToMilestoneDB, connetToTransactionsDb } = require("./dbConfig/connection");
 const authRoutes = require('./routes/Auth');
+const insuranceLeadsRoutes = require("./routes/insuranceLeads");
 const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
 const { pendingTransactionsNotification, springVerifyStatusCheck } = require("./utils/scheduledTasks");
 const MongoStore = require("connect-mongo");
 const router = require("./routes");
-const { getwebHookAccessToken } = require("./utils/webHookAccessToken");
+const { TRANSACTION_DB_NAME } = require("./utils/stringConstants");
 connetToTransactionsDb();
 const milestoneDbConnection = connectToMilestoneDB();
+
+// wrap express in http server
+const server = http.createServer(app);
 
 // Configure session middleware
 app.use(
@@ -25,7 +31,7 @@ app.use(
     saveUninitialized: true,
     store: MongoStore.create({
       mongoUrl: process.env.MONGO_URI,
-      dbName: "mftransactiondb", // database name
+      dbName: TRANSACTION_DB_NAME, // database name
       ttl: 24 * 60 * 60, // 1-day session expiration
     }),
     cookie: {
@@ -38,6 +44,26 @@ app.use(
 
 // Get allowed origins from environment variable
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
+
+// create socket server
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true
+  }
+});
+
+// Socket connection handler
+io.on("connection", (socket) => {
+  console.log("🟢 New client connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Client disconnected:", socket.id);
+  });
+});
+
+// make io accessible in routes/controllers
+app.set("io", io);
 
 // CORS configuration
 const corsOptions = {
@@ -63,9 +89,10 @@ function dbAccess(req, res, next) {
 }
 
 app.use(dbAccess); // Use the middleware
-
 app.use('/auth', authRoutes);
+app.use("/api/insurance-leads", insuranceLeadsRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
+
 // Centralized Routes
 app.use('/api', router);
 
@@ -75,15 +102,13 @@ app.get("*", (_req, res) => {
 });
 
 // Start the server and connect to MongoDB
-app.listen(port, async () => {
+server.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
   // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
-  /*
-  cron.schedule("0 11 * * *", () => {
-    console.log("Running SpringVerify daily background check status cron at 11:00 AM...");
-    springVerifyStatusCheck();
-  });
-  */
-
+  
+  // cron.schedule("0 11 * * *", () => {
+  //   console.log("Running SpringVerify daily background check status cron at 11:00 AM...");
+  //   springVerifyStatusCheck();
+  // });
 });

@@ -5,12 +5,15 @@ import Modal from '../common/Modal';
 import {
   FETCH_TYPES_URL,
   FETCH_CATEGORIES_URL,
+  FETCH_TYPES_BASED_ON_CAT_URL, 
   CREATE_TYPE_URL,
   CREATE_CATEGORY_URL,
   CREATE_ASSET_URL,
   FETCH_SINGLE_ASSET_URL,
   UPDATE_ASSET_URL
 } from '../../utils/urlConstants';
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import ConfirmModal from './ConfirmModal';
 
 const AddEditAsset = () => {
   const { id } = useParams();
@@ -20,12 +23,11 @@ const AddEditAsset = () => {
   const typesFromState = location.state?.types || [];
   const categoriesFromState = location.state?.categories || [];
 
-  const [name, setName] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [remarks, setRemarks] = useState('');
   const [selectedType, setSelectedType] = useState(null);
 
-  const [types, setTypes] = useState(typesFromState);
+  const [types, setTypes] = useState([]);
   const [categories, setCategories] = useState(categoriesFromState);
 
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
@@ -35,26 +37,92 @@ const AddEditAsset = () => {
   const [newTypeName, setNewTypeName] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+
+  const [assetCode, setAssetCode] = useState('');
+  const [dateOfPurchase, setDateOfPurchase] = useState('');
+  const [assetName, setAssetName] = useState('');
+  const [brandName, setBrandName] = useState('');
+  const [modelNumber, setModelNumber] = useState('');
+  const [warrantyExpiryDate, setWarrantyExpiryDate] = useState('');
+  const [merchants, setMerchants] = useState([]);
+  const [selectedMerchantId, setSelectedMerchantId] = useState('');
+
+  const [merchantDropdownOpen, setMerchantDropdownOpen] = useState(false);
+  const [showAddMerchantModal, setShowAddMerchantModal] = useState(false);
+
+  const [newMerchantName, setNewMerchantName] = useState('');
+  const [newMerchantPhone, setNewMerchantPhone] = useState('');
+  const [newMerchantEmail, setNewMerchantEmail] = useState('');
+  const [newMerchantContactPerson, setNewMerchantContactPerson] = useState('');
+  const [newMerchantAddress, setNewMerchantAddress] = useState('');
+  const [loadingAsset, setLoadingAsset] = useState(false);
+  const [loadingMerchant, setLoadingMerchant] = useState(false);
+
+  
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
 
   // For Editing the Asset Data
   useEffect(() => {
     if (id) {
       axios.get(FETCH_SINGLE_ASSET_URL(id))
-        .then(res => {
+        .then(async (res) => {
           const asset = res.data;
-          setName(asset.data.name || '');
           setSerialNumber(asset.data.serialNumber || '');
           setRemarks(asset.data.remarks || '');
-          setSelectedType(asset.data.type || null);
+          setAssetCode(asset.data.assetCode || '');
+          setDateOfPurchase(asset.data.dateOfPurchase ? asset.data.dateOfPurchase.slice(0,10) : '');
+          setAssetName(asset.data.assetName || '');
+          setBrandName(asset.data.brandName || '');
+          setModelNumber(asset.data.modelNumber || '');
+          setWarrantyExpiryDate(asset.data.warrantyExpiryDate ? asset.data.warrantyExpiryDate.slice(0,10) : '');
+          setSelectedMerchantId(asset.data.merchantId?._id || asset.data.merchantId || '');
+
+          const categoryId = asset.data.type?.category?._id;
+          const typeId = asset.data.type?._id;
+          if (categoryId) {
+            setSelectedCategoryId(categoryId);
+            const typeRes = await axios.get(FETCH_TYPES_BASED_ON_CAT_URL(categoryId));
+            setTypes(typeRes.data?.data || []);
+            const matchedType = typeRes.data?.data?.find(t => t._id === typeId);
+            setSelectedType(matchedType || asset.data.type || null);
+          } else {
+            setSelectedType(asset.data.type || null);
+          }
         })
         .catch(err => console.error('Failed to fetch asset:', err));
     }
   }, [id]);
 
   useEffect(() => {
-    if (!types.length) fetchTypes();
+    // if (!types.length) fetchTypes();
     if (!categories.length) fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (selectedCategoryId) {
+      setTypes([]);
+      setSelectedType(null);
+    }
+  }, [selectedCategoryId]);
+
+
+  useEffect(() => {
+  const fetchMerchants = async () => {
+    try {
+      const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/assets/merchants`, { withCredentials: true });
+      if (res.data?.data) {
+        setMerchants(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch merchants:', err);
+    }
+  };
+
+  fetchMerchants();
+}, []);
 
   const fetchTypes = async () => {
     const res = await axios.get(FETCH_TYPES_URL);
@@ -67,12 +135,36 @@ const AddEditAsset = () => {
   };
 
   const handleAddAsset = async () => {
-    if (!name || !serialNumber || !selectedType) return;
+  try {
     
+    if (
+      !assetName ||
+      !serialNumber ||
+      !selectedCategoryId ||
+      !selectedType ||
+      !assetCode ||
+      !dateOfPurchase ||
+      !warrantyExpiryDate ||
+      !brandName ||
+      !modelNumber ||
+      !selectedMerchantId
+    ) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    setLoadingAsset(true); // start spinner
+
     const payload = {
-      name,
+      assetCode,
+      dateOfPurchase,
+      assetName,
+      brandName,
+      modelNumber,
       serialNumber,
+      warrantyExpiryDate,
       type: selectedType._id,
+      merchantId: selectedMerchantId, 
       remarks
     };
 
@@ -81,66 +173,230 @@ const AddEditAsset = () => {
     } else {
       await axios.post(CREATE_ASSET_URL, payload, { withCredentials: true });
     }
-    navigate('/assets');
-  };
+
+    navigate("/assets/manage");
+  } catch (err) {
+    console.error("Error saving asset:", err);
+  } finally {
+    setLoadingAsset(false); // stop spinner
+  }
+};
+
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
+  if (!newCategoryName.trim()) return;
+
+  try {
     const res = await axios.post(CREATE_CATEGORY_URL, { name: newCategoryName });
-    setCategories(prev => [...prev, res.data.data]);
-    setSelectedCategoryId(res.data.data._id);
-    setShowAddCategoryInput(false);
+
+    const newCat = res.data.data;
+
+    //  Update dropdown list
+    setCategories((prev) => [...prev, newCat]);
+
+    //  Auto-select the new category
+    setSelectedCategoryId(newCat._id);
+
+    //  Reset modal state
     setNewCategoryName('');
-  };
+    setShowAddCategoryModal(false);  //  closes modal
+  } catch (err) {
+    console.error("Error creating category:", err);
+  }
+};
+
 
   const handleAddType = async () => {
-    if (!newTypeName.trim() || !selectedCategoryId) return;
+  if (!newTypeName.trim() || !selectedCategoryId) return;
 
-    try {
-      await axios.post(CREATE_TYPE_URL, {
-        name: newTypeName,
-        category: selectedCategoryId
-      });
+  try {
+    await axios.post(CREATE_TYPE_URL, {
+      name: newTypeName,
+      category: selectedCategoryId,
+    });
 
-      const res = await axios.get(FETCH_TYPES_URL);
-      setTypes(res.data.data);
+    //  Fetch updated types but keep current category
+    const res = await axios.get(FETCH_TYPES_BASED_ON_CAT_URL(selectedCategoryId));
+    setTypes(res.data.data);
 
-      const added = res.data.data.find(t => t.name === newTypeName);
-      if (added) setSelectedType(added);
+    //  Auto-select the type we just added
+    const added = res.data.data.find((t) => t.name === newTypeName);
+    if (added) setSelectedType(added);
 
-      setShowAddTypeModal(false);
-      setNewTypeName('');
-      setSelectedCategoryId('');
-    } catch (err) {
-      console.error('Error creating type:', err);
-    }
-  };
+    //  Close modal and reset
+    setShowAddTypeModal(false);
+    setNewTypeName('');
+  } catch (err) {
+    console.error("Error creating type:", err);
+  }
+};
+
+
+  const handleAddMerchant = async () => {
+  try {
+    setLoadingMerchant(true); // start spinner
+    const res = await axios.post(
+      `${process.env.REACT_APP_API_BASE_URL}/api/assets/merchants`,
+      {
+        name: newMerchantName,
+        phone: newMerchantPhone,
+        email: newMerchantEmail,
+        contactPerson: newMerchantContactPerson,
+        address: newMerchantAddress,
+      },
+      { withCredentials: true }
+    );
+
+    const newMerchant = res.data.data;
+    setMerchants((prev) => [...prev, newMerchant]);
+    setSelectedMerchantId(newMerchant._id);
+
+    // reset form
+    setNewMerchantName('');
+    setNewMerchantPhone('');
+    setNewMerchantEmail('');
+    setNewMerchantContactPerson('');
+    setNewMerchantAddress('');
+    setShowAddMerchantModal(false);
+  } catch (err) {
+    console.error("Error creating merchant:", err);
+  } finally {
+    setLoadingMerchant(false); // stop spinner
+  }
+};
+
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-4">Add / Update Asset</h2>
 
-      <div className="mb-4">
-        <label className="block mb-1 font-medium">Name<span className="text-red-500">*</span></label>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full border px-3 py-2 rounded"
-        />
+      <div className="flex items-center justify-between mb-6">
+      {/*  Back Button + Title */}
+      <div className="flex items-center">
+        <button
+          onClick={() => navigate("/assets/manage")}
+          className="flex items-center text-gray-600 hover:text-gray-800 transition"
+        >
+          <ArrowLeftIcon className="h-5 w-5 mr-2" />
+        </button>
+        <h2 className="text-xl font-bold text-gray-800">
+          {id ? "Update Asset" : "Add Asset"}
+        </h2>
       </div>
 
+      {/*  Delete Button (only when editing) */}
+      {id && (
+        <button
+          type="button"
+           onClick={() => setShowConfirm(true)}
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+        >
+          Delete
+        </button>
+      )}
+    </div>
+
+{/* Confirmation Modal */}
+<ConfirmModal
+  isOpen={showConfirm}
+  title="Delete Asset"
+  message="Are you sure you want to permanently delete this asset?"
+  confirmText="Delete"
+  cancelText="Cancel"
+  loading={deleting}
+  onCancel={() => setShowConfirm(false)}
+  onConfirm={async () => {
+    setDeleting(true);
+    try {
+      await axios.delete(UPDATE_ASSET_URL(id), { withCredentials: true });
+      navigate("/assets/manage");
+    } catch (err) {
+      console.error("Error deleting asset:", err);
+    } finally {
+      setDeleting(false);
+      setShowConfirm(false);
+    }
+  }}
+/>
+
+<form
+  onSubmit={(e) => {
+    e.preventDefault();
+    handleAddAsset();
+  }}>
+
       <div className="mb-4">
-        <label className="block mb-1 font-medium">Serial Number<span className="text-red-500">*</span></label>
+      <label className="block mb-1 font-medium">Asset Name</label>
+      <input value={assetName} onChange={(e) => setAssetName(e.target.value)} required className="w-full border px-3 py-2 rounded" />
+    </div>
+
+      <div className="mb-4">
+        <label className="block mb-1 font-medium">Serial Number<span className="text-red-500"></span></label>
         <input
           value={serialNumber}
           onChange={(e) => setSerialNumber(e.target.value)}
+          required
           className="w-full border px-3 py-2 rounded"
         />
       </div>
 
+      <div className="mb-4">
+  <label className="block mb-1 font-medium text-green-600">
+    Category <span className="text-red-500"></span>
+  </label>
+  <select
+    value={selectedCategoryId}
+    onChange={async (e) => {
+      const value = e.target.value;
+
+      if (value === "__add_new__") {
+        setShowAddCategoryModal(true); // open modal
+        return;
+      }
+
+      setSelectedCategoryId(value);
+      setSelectedType(null);
+
+      if (value) {
+        try {
+          const res = await axios.get(FETCH_TYPES_BASED_ON_CAT_URL(value));
+          setTypes(res.data.data || []);
+        } catch (err) {
+          console.error("Failed to fetch types by category:", err);
+          setTypes([]);
+        }
+      } else {
+        setTypes([]);
+      }
+    }}
+    required
+    className="w-full border px-3 py-2 rounded"
+  >
+    {/* Placeholder */}
+    <option value="">Select Category</option>
+
+    {/* Add New Category option */}
+    <option value="__add_new__" className="text-green-600 font-semibold">
+      + Add New Category
+    </option>
+
+    
+    {categories
+      .filter((cat) => cat.name.toLowerCase() !== "select category")
+      .map((cat) => (
+        <option key={cat._id} value={cat._id}>
+          {cat.name}
+        </option>
+      ))}
+  </select>
+</div>
+
+
+
+
       <div className="mb-4 relative">
-        <label className="block mb-1 font-medium text-green-600">Type<span className="text-red-500">*</span></label>
+        <label className="block mb-1 font-medium text-green-600">Type<span className="text-red-500"></span></label>
         <button
+         type="button"
           onClick={() => setTypeDropdownOpen(prev => !prev)}
           className="w-full border px-3 py-2 rounded text-left"
         >
@@ -153,6 +409,7 @@ const AddEditAsset = () => {
                 setShowAddTypeModal(true);
                 setTypeDropdownOpen(false);
               }}
+              type="button"
               className="px-4 py-2 text-green-600 font-semibold hover:bg-gray-100 cursor-pointer border-b"
             >
               + Add New Type
@@ -164,6 +421,7 @@ const AddEditAsset = () => {
                   setSelectedType(type);
                   setTypeDropdownOpen(false);
                 }}
+                type="button"
                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
               >
                 {type.name}
@@ -172,6 +430,75 @@ const AddEditAsset = () => {
           </div>
         )}
       </div>
+      
+      <div className="mb-4">
+      <label className="block mb-1 font-medium">Asset Code</label>
+      <input value={assetCode} onChange={(e) => setAssetCode(e.target.value)} required className="w-full border px-3 py-2 rounded" />
+    </div>
+
+    <div className="mb-4">
+      <label className="block mb-1 font-medium">Date of Purchase</label>
+      <input type="date" value={dateOfPurchase} onChange={(e) => setDateOfPurchase(e.target.value)} required className="w-full border px-3 py-2 rounded" />
+    </div>
+
+    <div className="mb-4">
+      <label className="block mb-1 font-medium">Warranty Expiry Date</label>
+      <input type="date" value={warrantyExpiryDate} onChange={(e) => setWarrantyExpiryDate(e.target.value)} required className="w-full border px-3 py-2 rounded" />
+    </div>
+
+    
+
+    <div className="mb-4">
+      <label className="block mb-1 font-medium">Brand Name</label>
+      <input value={brandName} onChange={(e) => setBrandName(e.target.value)} required className="w-full border px-3 py-2 rounded" />
+    </div>
+
+    <div className="mb-4">
+      <label className="block mb-1 font-medium">Model Number</label>
+      <input value={modelNumber} onChange={(e) => setModelNumber(e.target.value)} required className="w-full border px-3 py-2 rounded" />
+    </div>
+
+
+    <div className="mb-4 relative">
+  <label  className="block mb-1 font-medium text-green-600">Merchant</label>
+  <button
+    type="button"
+    onClick={() => setMerchantDropdownOpen(prev => !prev)}
+    className="w-full border px-3 py-2 rounded text-left"
+  >
+    {merchants.find(m => m._id === selectedMerchantId)?.name || 'Select Merchant'}
+  </button>
+
+  {merchantDropdownOpen && (
+    <div className="absolute z-10 mt-1 w-full bg-white border shadow rounded max-h-60 overflow-y-auto">
+      <div
+        onClick={() => {
+          setShowAddMerchantModal(true);
+          setMerchantDropdownOpen(false);
+        }}
+        type="button"
+        className="px-4 py-2 text-green-600 font-semibold hover:bg-gray-100 cursor-pointer border-b"
+      >
+        + Add New Merchant
+      </div>
+      {merchants.map((m) => (
+        <div
+          key={m._id}
+          onClick={() => {
+            setSelectedMerchantId(m._id);
+            setMerchantDropdownOpen(false);
+          }}
+          role="button"
+          tabIndex={0}
+          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+        >
+          {m.name}
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
 
       <div className="mb-4">
         <label className="block mb-1 font-medium text-gray-600">Remarks (optional)</label>
@@ -183,21 +510,33 @@ const AddEditAsset = () => {
         />
       </div>
 
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4 mt-6">
         <button
-          onClick={() => navigate('/assets')}
+          type="button"
+          onClick={() => navigate("/assets/manage")}
           className="px-4 py-2 border rounded"
         >
           Close
         </button>
-        <button
-          onClick={handleAddAsset}
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-        >
-          {id ? 'Update' : 'Add'}
+
+
+       <button
+        type="submit"
+        className="px-4 py-2 bg-blue-600 text-white rounded flex items-center justify-center"
+        disabled={loadingAsset}
+      >
+        {loadingAsset ? (
+          <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          ) : id ? (
+          "Update"
+          ) : (
+            "Add"
+          )}
         </button>
       </div>
 
+      
+</form>
       {showAddTypeModal && (
         <Modal onClose={() => setShowAddTypeModal(false)} title="Add New Type">
           <div className="space-y-4">
@@ -206,60 +545,27 @@ const AddEditAsset = () => {
               <input
                 value={newTypeName}
                 onChange={(e) => setNewTypeName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddType();
+                  }
+                }}
                 className="w-full border px-3 py-2 rounded"
               />
-            </div>
-
-            <div className="relative">
-              <label className="block mb-1 font-medium">Category</label>
-              <select
-                value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="w-full border px-3 py-2 rounded"
-              >
-                <option value="">Select Category</option>
-                {categories.map((cat) => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-2">
-                {!showAddCategoryInput ? (
-                  <button
-                    onClick={() => setShowAddCategoryInput(true)}
-                    className="text-blue-600 hover:underline text-sm"
-                  >
-                    + Add New Category
-                  </button>
-                ) : (
-                  <div className="flex gap-2 mt-2">
-                    <input
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      className="border px-3 py-2 rounded w-full"
-                      placeholder="New Category Name"
-                    />
-                    <button
-                      onClick={handleAddCategory}
-                      className="bg-green-600 text-white px-3 py-2 rounded"
-                    >
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-3">
               <button
                 onClick={() => setShowAddTypeModal(false)}
+                type="button"
                 className="px-4 py-2 border rounded"
               >
                 Close
               </button>
               <button
                 onClick={handleAddType}
+                type="button"
                 className="px-4 py-2 bg-blue-600 text-white rounded"
               >
                 Add
@@ -268,6 +574,150 @@ const AddEditAsset = () => {
           </div>
         </Modal>
       )}
+
+    {showAddCategoryModal && (
+  <Modal onClose={() => setShowAddCategoryModal(false)} title="Add New Category">
+    <div className="space-y-4">
+      <div>
+        <label className="block mb-1 font-medium">Category Name</label>
+        <input
+          value={newCategoryName}
+          onChange={(e) => setNewCategoryName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddCategory();
+            }
+          }}
+          className="w-full border px-3 py-2 rounded"
+          placeholder="Enter category name"
+        />
+      </div>
+
+      <div className="flex justify-end gap-3 pt-3">
+        <button
+          onClick={() => setShowAddCategoryModal(false)}
+          type="button"
+          className="px-4 py-2 border rounded"
+        >
+          Close
+        </button>
+        <button
+          onClick={handleAddCategory}
+          type="button"
+          className="px-4 py-2 bg-green-600 text-white rounded"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  </Modal>
+)}
+
+
+
+
+      {showAddMerchantModal && (
+  <Modal onClose={() => setShowAddMerchantModal(false)} title="Add New Merchant">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+
+        // Optional manual check (for extra safety)
+        if (
+          !newMerchantName.trim() ||
+          !newMerchantPhone.trim() ||
+          !newMerchantEmail.trim() ||
+          !newMerchantContactPerson.trim() ||
+          !newMerchantAddress.trim()
+        ) {
+          alert("Please fill in all fields before adding the merchant.");
+          return;
+        }
+
+        handleAddMerchant();
+      }}
+      className="space-y-4 max-h-[70vh] overflow-y-auto pr-2"
+    >
+    <div>
+      <label className="block mb-1 font-medium">Name<span className="text-red-500"></span></label>
+      <input
+        required
+        value={newMerchantName}
+        onChange={(e) => setNewMerchantName(e.target.value)}
+        className="w-full border px-3 py-2 rounded"
+      />
+    </div>
+
+    <div>
+      <label className="block mb-1 font-medium">Phone</label>
+      <input
+        required
+        type="tel"
+        pattern="[0-9]{10}"
+        title="Phone number must be exactly 10 digits"
+        value={newMerchantPhone}
+        onChange={(e) => setNewMerchantPhone(e.target.value)}
+        className="w-full border px-3 py-2 rounded"
+      />
+    </div>
+
+    <div>
+      <label className="block mb-1 font-medium">Email</label>
+      <input
+          required
+        type="email"
+        value={newMerchantEmail}
+        onChange={(e) => setNewMerchantEmail(e.target.value)}
+        className="w-full border px-3 py-2 rounded"
+      />
+    </div>
+
+    <div>
+      <label className="block mb-1 font-medium">Contact Person</label>
+      <input
+        required
+        value={newMerchantContactPerson}
+        onChange={(e) => setNewMerchantContactPerson(e.target.value)}
+        className="w-full border px-3 py-2 rounded"
+      />
+    </div>
+
+    <div>
+      <label className="block mb-1 font-medium">Address</label>
+      <textarea
+        required
+        value={newMerchantAddress}
+        onChange={(e) => setNewMerchantAddress(e.target.value)}
+        className="w-full border px-3 py-2 rounded"
+        rows={2}
+      />
+    </div>
+
+    <div className="flex justify-end gap-3 pt-3">
+      <button
+        type="button" 
+        onClick={() => setShowAddMerchantModal(false)}
+        className="px-4 py-2 border rounded"
+      >
+        Close
+      </button>
+      <button
+        type="submit"
+        disabled={loadingMerchant}
+        className="px-4 py-2 bg-blue-600 text-white rounded flex items-center justify-center"
+      >
+        {loadingMerchant ? (
+          <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        ) : (
+          'Add'
+        )}
+      </button>
+    </div>
+  </form>
+</Modal>
+
+)}
     </div>
   );
 };

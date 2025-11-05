@@ -15,13 +15,11 @@ import {
 } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import AccessDenied from "./AccessDenied";
 
 const backendUrl = process.env.REACT_APP_API_BASE_URL;
 
 function Workdrive() {
   const { userData } = useSelector((state) => state.user);
-  const permissions = userData?.role?.permissions;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [items, setItems] = useState([]);
   const [allData, setAllData] = useState([]);
@@ -60,12 +58,20 @@ function Workdrive() {
       setItems(JSON.parse(decodeURIComponent(filesData)));
       setToken(tokenParam);
       setPath(JSON.parse(decodeURIComponent(pathData)));
-      console.log(JSON.parse(decodeURIComponent(pathData)))
+
+      sessionStorage.removeItem("zohoAuthAttempted");
       fetchAllNotes();
-    } else {
-      handleLogin(); // Automatically handle login if not authenticated
+      return;
+    } 
+    // guard against infinite redirects when success=false
+    if (
+      !isAuthenticated &&
+      !sessionStorage.getItem("zohoAuthAttempted")
+    ) {
+      sessionStorage.setItem("zohoAuthAttempted", "1");
+      handleLogin();
     }
-  }, [location]);
+  }, []);
 
   useEffect(() => {
     if (items.length > 0 && allData.length > 0) {
@@ -207,8 +213,6 @@ function Workdrive() {
         return <FaFile className="inline-block text-gray-500 mr-2 text-2xl" />;
     }
   };
-
-  if (!permissions.find((perm) => perm === "Workdrive")) return <AccessDenied />;
 
   return (
     <div className="container mx-auto p-5">

@@ -11,12 +11,11 @@ const { schemeMap } = require("../utils/maps");
 const MarketingUser = require("../models/MarketingUser");
 const User = require("../models/User");
 const { toTitleCase } = require("../utils/formatString");
-const searchName = process.env.DEPT || "6myr677aa7bb389754f5b817b3f5a91ed6c9b"; 
       
 require('dotenv').config()
 const querystring = require('querystring');
 const Workdrive = require("../models/Workdrive");
-const { request } = require("http");
+const Employee = require("../models/Employee");
 
 const getKycStatus = async (req, res) => {
   try {
@@ -193,22 +192,25 @@ const postTransForm = async (req, res) => {
     let formData = req.body.formData;
     let allFormsData = []; // to post all entries at once to zoho flow
 
+     const io = req.app.get("io"); // get socket.io instance
+
     // modify transaction preference from string to Date 
     const { transactionPreference, relationshipManager } = formData.commonData;
 
-// ✅ Check and insert new RM if needed
-if (relationshipManager && typeof relationshipManager === 'string') {
-  const existingEmployee = await Employee.findOne({ name: relationshipManager.trim() }).lean();
+    // ✅ Check and insert new RM if needed
+    if (relationshipManager && typeof relationshipManager === 'string') {
+      // rm name in title case
+      const nameInTitleCase = toTitleCase(relationshipManager.trim());
+      const existingEmployee = await Employee.findOne({ name: nameInTitleCase }).lean();
 
-  if (!existingEmployee) {
-    await Employee.create({
-      name: relationshipManager.trim(),
-      department: 'Sales',
-      role: 'relationship manager',
-    });
-    console.log(`New Relationship Manager '${relationshipManager}' added to Employee list.`);
-  }
-}
+      if (!existingEmployee) {
+        await Employee.create({
+          name: nameInTitleCase,
+          department: 'Sales',
+          role: 'relationship manager',
+        });
+      }
+    }
 
     if (transactionPreference === 'ASAP') {
       formData.commonData.transactionPreference = new Date()
@@ -287,7 +289,7 @@ if (relationshipManager && typeof relationshipManager === 'string') {
         // store systematic data in database
         const ressys = await Transactions.create(combinedSystematic); // Corrected variable name
         if (ressys) {
-          console.log("Data stored successfully in systematic");
+          // console.log("Data stored successfully in systematic");
           results.push("Data stored successfully in systematic");
 
           // add mongo's id field to systematic data
@@ -321,7 +323,7 @@ if (relationshipManager && typeof relationshipManager === 'string') {
         // store data in database
         const resp = await Transactions.create(combinedRedemption);
         if (resp) {
-          console.log("Data stored successfully in predemption");
+          // console.log("Data stored successfully in predemption");
           results.push("Data stored successfully in predemption");
 
           // add mongo's id field to purchase/redemption data
@@ -354,7 +356,7 @@ if (relationshipManager && typeof relationshipManager === 'string') {
         // store switch data to database 
         const resswit = await Transactions.create(combinedSwitch);
         if (resswit) {
-          console.log("Data stored successfully in Switch");
+          // console.log("Data stored successfully in Switch");
           results.push("Data stored successfully in Switch");
 
           // add mongo's id field to purchase/redemption data
@@ -384,14 +386,19 @@ if (relationshipManager && typeof relationshipManager === 'string') {
 
       // send email to user 
       sendEmail({
-        from: "noreply@mnivesh.niveshonline.com", 
-        subject: "MF Transactions", 
-        body: generateHtmlContent(mailData), 
-        toAddress: email, 
+        from: "noreply@mnivesh.niveshonline.com",
+        subject: "MF Transactions",
+        body: generateHtmlContent(mailData),
+        toAddress: email,
         ccAddress: "pramod@niveshonline.com"
       });
 
-      res.status(200).json(results);
+      // Broadcast new transaction to all clients
+      io.emit("newTransaction", allFormsData);
+
+      res.status(201).json({ message: "Saved", data: allFormsData });
+
+      // res.status(200).json(results);
     } else {
       res.status(400).json({ message: "No valid form data provided" });
     }
@@ -671,7 +678,7 @@ const getNfoSchemes = async (req, res) => {
 
     res.status(200).json({ message: 'Found NFO schemes', data: uniqueSchemes });
   } catch (error) {
-    console.log('Error while getting NFO schemes', error.message);
+    // console.log('Error while getting NFO schemes', error.message);
     res.status(500).json({ error: `Error getting NFO schemes: ${error.message}` });
   }
 };
@@ -876,7 +883,7 @@ const getIsin = async (req, res) => { // accepts amc in query
 
 // create marketing user doc 
 const createMarketingUser = async (req, res) => {
-  const {email, company, phone} = req.body
+  const {email, name, phone} = req.body
   const user = req.user._id;
   const validationErrors = []
 
@@ -886,13 +893,14 @@ const createMarketingUser = async (req, res) => {
   // Phone validation regex
   const phoneRegex = /^\d{10,12}$/;
 
-  if(!email || !company || !phone) {
-    validationErrors.push('Email, phone, and company name all are required')
+  if(!email || !name ) {
+    validationErrors.push('Email and name name all are required')
   }
   if(!emailRegex.test(email)) {
     validationErrors.push('Invalid email address')
   }
-  if(!phoneRegex.test(phone)) {
+  // Phone is optional, but if provided — must be valid
+  if (phone && !phoneRegex.test(phone)) {
     validationErrors.push('Invalid phone number')
   }
   
@@ -903,7 +911,7 @@ const createMarketingUser = async (req, res) => {
   try {
     const newUser = await MarketingUser.findOneAndUpdate(
       {user}, 
-      {email, phone, company}, 
+      {email, name, ...(phone && { phone }) },
       {upsert: true, new: true}
     )
 
@@ -920,7 +928,7 @@ const createMarketingUser = async (req, res) => {
 
 // update marketing user 
 const updateMarketingUser = async (req, res) => {
-  const {email, company, phone} = req.body
+  const {email, name, phone} = req.body
   const id = req.params.id
   const validationErrors = []
   let updateFields = {}
@@ -931,8 +939,8 @@ const updateMarketingUser = async (req, res) => {
   // Phone validation regex
   const phoneRegex = /^\d{10,12}$/;
 
-  if(!email || !company || !phone) {
-    validationErrors.push('Email, phone, or company one of them is required')
+  if(!email || !name || !phone) {
+    validationErrors.push('Email, phone, or name one of them is required')
   }
   if(email) {
     updateFields.email = email
@@ -947,7 +955,7 @@ const updateMarketingUser = async (req, res) => {
     }
   }
 
-  if(company) {updateFields.company = company}
+  if(name) {updateFields.name = name}
   
   if(validationErrors.length) {
     return res.status(400).json({error: validationErrors})
@@ -969,7 +977,7 @@ const updateMarketingUser = async (req, res) => {
 // route to get marketing user 
 const getMarketingUser = async (req, res) => {
   try {
-    const user = await MarketingUser.findOne({user: req.user._id}).lean()
+    const user = await MarketingUser.findOne({user: req.user._id}).populate( 'user').lean()
     if(!user) {
       return res.status(404).json({error: 'Marketing user not found'})
     }

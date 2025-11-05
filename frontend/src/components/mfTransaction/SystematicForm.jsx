@@ -41,7 +41,7 @@ function SystematicForm({ index, updateCollapsed }) {
     debounce((keywords) => {
       dispatch(fetchAmcNameOptions(keywords))
         .then((action) => {
-          console.log("Dispatched fetch Amc names");
+          // console.log("Dispatched fetch Amc names");
         })
         .catch((error) => {
           console.error("Error while fetching Amc names:", error);
@@ -55,7 +55,7 @@ function SystematicForm({ index, updateCollapsed }) {
     debounce((amc, keywords) => {
       dispatch(fetchSchemeNameOptions({ amc, keywords }))
         .then((action) => {
-          console.log("Dispatched fetch scheme names");
+          // console.log("Dispatched fetch scheme names");
         })
         .catch((error) => {
           console.error("Error while fetching Scheme names:", error);
@@ -97,7 +97,7 @@ function SystematicForm({ index, updateCollapsed }) {
     if (commonData.iWellCode) {
       dispatch(fetchFolioOptions({ iWell: commonData.iWellCode, amcName: systematicItem.systematicMfAmcName }))
         .then((action) => {
-          console.log("Dispatched fetchFolioOptions");
+          // console.log("Dispatched fetchFolioOptions");
         })
         .catch((error) => {
           console.error("Error while fetching folios:", error);

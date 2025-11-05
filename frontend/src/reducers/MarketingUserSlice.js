@@ -5,7 +5,7 @@ const initialState = {
   user: {
     _id: '',
     email: '',
-    company: '',
+    name: '',
     phone: ''
   },
   fetchStatus: '',

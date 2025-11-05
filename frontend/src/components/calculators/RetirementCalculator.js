@@ -3,8 +3,6 @@ import "./RetirementCalculator.css";
 import TwoThumbRangeSlider from "../common/TwoThumbRangeSlider";
 import RangeSlider from "../common/RangeSlider";
 import BackButton from "../common/BackButton";
-import { useSelector } from "react-redux";
-import AccessDenied from "../pages/AccessDenied";
 
 const initialError = {
   ageError: null,
@@ -27,11 +25,7 @@ const RetirementCalculator = () => {
   const [publicLink, setPublicLink] = useState("");
   const [error, setError] = useState(initialError);
 
-  const { userData } = useSelector(state => state.user);
-  const permissions = userData?.role?.permissions;
-
   const generatePublicLink = () => {
-    console.log("generatePublicLink function called");
     const formData = {
       currentAge,
       retirementAge,
@@ -61,7 +55,6 @@ const RetirementCalculator = () => {
       .then((data) => {
         if (data.link) {
           setPublicLink(data.link);
-          console.log(`Your public link is: ${data.link}`);
         } else {
           alert("Error generating link. Please try again.");
         }
@@ -169,7 +162,6 @@ const RetirementCalculator = () => {
     // // Calculate the SIP required based on the investment mix
     // const sipRequired = (additionalFundsRequired * (100 - investmentMix)) / 100;
 
-    console.log(`lumpSumRequired ${lumpSumRequired}`);
     setResults({
       totalCorpusNeeded,
       lumpSumRequired,
@@ -280,9 +272,7 @@ const RetirementCalculator = () => {
       setError(prevError => ({...prevError, lifeExpectancy: null}))
     }
   }, [lifeExpectancy])
-  
-  if(!permissions.find(perm => perm === 'Retirement Calculator')) 
-    return (<AccessDenied />)
+
 
   return (
     <div className="retirement-calculator px-3">

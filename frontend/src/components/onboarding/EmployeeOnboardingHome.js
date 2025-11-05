@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCheckCircle, FaClock } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+
 
 const EmployeeOnboardingHome = () => {
   const navigate = useNavigate();
@@ -10,6 +12,12 @@ const EmployeeOnboardingHome = () => {
     assetToAllocateCount: 0,
   });
   const [users, setUsers] = useState([]);
+  const [deleteId, setDeleteId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [deleteName, setDeleteName] = useState('');
+  const [confirmInput, setConfirmInput] = useState('');
+
+
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/onboarding-status`)
@@ -118,12 +126,13 @@ const handleSpringVerifyAction = async (userId, action) => {
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Offer Letter</th>
               <th className="px-4 py-2">Form Submission</th>
-              <th className="px-6 py-2 w-40">Verification</th>
               <th className="px-4 py-2">NDA</th>
+              <th className="px-6 py-2 w-40">Verification</th>
               <th className="px-4 py-2">User Setup</th>
-              <th className="px-4 py-2">Assets</th>
               <th className="px-4 py-2">Gotra</th>
+              <th className="px-4 py-2">Assets</th>
               <th className="px-4 py-2">Notify</th>
+              <th className='px-4 py-2'>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -139,7 +148,6 @@ const handleSpringVerifyAction = async (userId, action) => {
     const isEligibleForAllocation =
       offerGenerated &&
       formStatus === 'Submitted' &&
-      backgroundVerified &&
       ndaSigned &&
       zohoCreated;
 
@@ -150,6 +158,12 @@ const handleSpringVerifyAction = async (userId, action) => {
 
         <td className="px-4 py-2">{renderStatus(offerGenerated ? 'Completed' : 'Pending')}</td>
         <td className="px-4 py-2">{renderStatus(formStatus)}</td>
+
+        {/* NDA status  */}
+        <td className="px-4 py-2">
+          {renderStatus(ndaSigned ? 'Completed' : 'Pending')}
+        </td>
+
         <td className="px-6 py-2 w-40">
   {offerGenerated &&
   formStatus === 'Submitted' &&
@@ -175,13 +189,20 @@ const handleSpringVerifyAction = async (userId, action) => {
        
 
 
-        {/* NDA status  */}
-        <td className="px-4 py-2">
-          {renderStatus(ndaSigned ? 'Completed' : 'Pending')}
-        </td>
+        
         {/* Zoho user status  */}
         <td className="px-4 py-2">
           {renderStatus(zohoCreated ? 'Completed' : 'Pending')}
+        </td>
+
+
+        {/* Gotra */}
+        <td className="px-4 py-2">
+          {renderStatus(
+            onboarding?.gotra?.sent
+              ? 'Completed'
+              : 'Pending'
+          )}
         </td>
 
         <td className="px-4 py-2">
@@ -200,23 +221,31 @@ const handleSpringVerifyAction = async (userId, action) => {
 </td>
 
 
-        {/* Gotra: show only after eligible */}
+        
+
+        {/* Notify: show only after eligible */}
         <td className="px-4 py-2">
           {renderStatus(
-            isEligibleForAllocation && onboarding?.gotra?.sent
+            onboarding?.hasNotifiedToAll
               ? 'Completed'
               : 'Pending'
           )}
         </td>
 
-        {/* Notify: show only after eligible */}
         <td className="px-4 py-2">
-          {renderStatus(
-            isEligibleForAllocation && onboarding?.hasNotifiedToAll
-              ? 'Completed'
-              : 'Pending'
-          )}
-        </td>
+           <button
+          onClick={() => {
+          setDeleteId(user._id);
+          setDeleteName(user.onboarding?.hrFilledInfo?.name || '');
+          setConfirmInput('');
+          setShowModal(true);
+        }}
+
+          className="text-red-600 border border-red-600 px-2 py-1 rounded hover:bg-red-50 text-sm"
+        >
+          Delete
+        </button>
+         </td>
       </tr>
     );
   })}
@@ -225,6 +254,74 @@ const handleSpringVerifyAction = async (userId, action) => {
 
         </table>
       </div>
+      {showModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+    <div className="bg-gray-900 text-white p-6 rounded shadow-md w-full max-w-md text-left">
+      <h2 className="text-xl font-semibold text-white mb-4 flex justify-center items-center gap-2">
+  Confirm Delete <span>🗑️</span>
+    </h2>
+      <p className="mb-4">
+        To confirm deletion of <span className="font-bold text-white">"{deleteName}"</span>,
+        please type the name below:
+      </p>
+
+      <input
+        type="text"
+        placeholder="Type name to confirm"
+        className="w-full px-4 py-2 rounded border border-gray-400 text-black focus:outline-none"
+        value={confirmInput}
+        onChange={(e) => setConfirmInput(e.target.value)}
+        onPaste={(e) => {
+          e.preventDefault();
+          toast.warning('Paste ❌ Not allowed. Please type the name manually.');
+        }}
+      />
+
+      <p className="text-xs text-red-400 mt-1">Paste ❌ Not allowed. Please type the name manually.</p>
+
+      <div className="flex justify-end space-x-4 mt-6">
+        <button
+          onClick={() => setShowModal(false)}
+          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
+        >
+          Cancel
+        </button>
+        <button
+          disabled={confirmInput.trim() !== deleteName.trim()}
+          onClick={async () => {
+            try {
+              const res = await fetch(
+                `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/delete/${deleteId}`,
+                { method: 'DELETE' }
+              );
+              const result = await res.json();
+              if (res.ok) {
+                toast.success(result.message || 'User deleted successfully');
+                setUsers(users.filter(u => u._id !== deleteId));
+              } else {
+                toast.error(result.message || 'Failed to delete user');
+              }
+            } catch (err) {
+              console.error(err);
+              toast.error('Unexpected error');
+            } finally {
+              setShowModal(false);
+            }
+          }}
+          className={`px-4 py-2 rounded text-white ${
+            confirmInput.trim() === deleteName.trim()
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-red-400 cursor-not-allowed'
+          }`}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 };

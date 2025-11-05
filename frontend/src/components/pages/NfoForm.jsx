@@ -6,7 +6,6 @@ import { FaCheck, FaClipboard } from "react-icons/fa";
 import UccTable from "../nfoComponents/UccTable";
 import debounce from "../../utils/debounce";
 import { useDispatch, useSelector } from "react-redux";
-import AccessDenied from "./AccessDenied";
 import Toast from "../common/Toast";
 import { updateToast } from "../../reducers/ToastSlice";
 import KycStatusTable from '../nfoComponents/KycStatusTable';
@@ -41,7 +40,6 @@ function NfoForm() {
   const [minAmount, setMinAmount] = useState(1);
 
   const { userData } = useSelector((state) => state.user);
-  const permissions = userData?.role?.permissions;
   const dispatch = useDispatch();
   const [searchAll, setSearchAll] = useState(false);
   const [schemeOption, setSchemeOption] = useState("Growth");
@@ -57,7 +55,7 @@ function NfoForm() {
       })
         .then((response) => {
           if (!response.ok) {
-            console.log("Error fetching ISIN");
+            console.error("Error fetching ISIN");
             return response.json().then((error) => {
               throw error;
             });
@@ -78,7 +76,7 @@ function NfoForm() {
           );
         })
         .catch((error) => {
-          console.log("Internal server error while getting folios isin data", error);
+          console.error("Internal server error while getting folios isin data", error);
         });
     };
 
@@ -107,15 +105,14 @@ function NfoForm() {
       const jsonRes = await response.json();
 
       if (!response.ok) {
-        console.log("Error fetching folios from folio master");
+        console.error("Error fetching folios from folio master");
         return;
       }
 
       let folios = jsonRes.data.map((item) => item["_id"]);
-      console.log(folios);
       setFolioList([...folios]);
     } catch (error) {
-      console.log("Internal server error while getting folios from folio master:", error.message);
+      console.error("Internal server error while getting folios from folio master:", error.message);
     }
   }
 
@@ -128,13 +125,13 @@ function NfoForm() {
       const jsonData = await response.json();
 
       if (!response.ok) {
-        console.log("Error fetching UCC");
+        console.error("Error fetching UCC");
         return;
       }
 
       setUccList(jsonData.data);
     } catch (error) {
-      console.log("Internal server error while getting UCC data");
+      console.error("Internal server error while getting UCC data");
     }
   };
 
@@ -148,15 +145,14 @@ function NfoForm() {
         }
       );
       const jsonRes = await response.json();
-      console.log(jsonRes.data)
       if (!response.ok) {
-        console.log("Error fetching folios");
+        console.error("Error fetching folios");
         return;
       }
       
       setFoliosFromIwell(jsonRes.data);
     } catch (error) {
-      console.log("Internal server error while getting folios:", error.message);
+      console.error("Internal server error while getting folios:", error.message);
     }
   };
 
@@ -185,14 +181,14 @@ function NfoForm() {
         const jsonRes = await response.json();
 
         if (!response.ok) {
-          console.log("Error fetching NFO AMC");
+          console.error("Error fetching NFO AMC");
           return;
         }
         // let amcs = jsonRes.data.map((item) => item["_id"]);
         let amcs = jsonRes.data;
         setAmcList(amcs);
       } catch (error) {
-        console.log("Internal server error while getting NFO AMCs");
+        console.error("Internal server error while getting NFO AMCs");
       }
     };
     fetchNfoAmc();
@@ -215,7 +211,7 @@ function NfoForm() {
         const jsonRes = await response.json();
 
         if (!response.ok) {
-          console.log("Error fetching NFO");
+          console.error("Error fetching NFO");
           return;
         }
         setNfoList(jsonRes.data.map((item) => item["Scheme Name"]));
@@ -227,13 +223,11 @@ function NfoForm() {
         }));
         setSchemesWithCode(schemesWithCode);
       } catch (error) {
-        console.log("Internal server error while getting NFO data");
+        console.error("Internal server error while getting NFO data");
       }
     };
     fetchNfoData();
     setNfo("");
-    console.log(folioList );
-    console.log(overallKycStatus );
   }, [amc]);
 
   useEffect(() => {
@@ -263,7 +257,7 @@ function NfoForm() {
         );
         const data = await response.json();
         if (!response.ok) {
-          console.log("Error fetching names");
+          console.error("Error fetching names");
           return;
         }
 
@@ -274,7 +268,7 @@ function NfoForm() {
         }));
         setClientList(names);
       } catch (error) {
-        console.log("Internal server error while getting names");
+        console.error("Internal server error while getting names");
       }
     }, 400),
     []
@@ -298,7 +292,7 @@ function NfoForm() {
         const data = await response.json();
 
         if (!response.ok) {
-          console.log("Error fetching PAN numbers");
+          console.error("Error fetching PAN numbers");
           return;
         }
 
@@ -309,7 +303,7 @@ function NfoForm() {
         }));
         setPanList(list);
       } catch (error) {
-        console.log("Internal server error while getting PAN numbers");
+        console.error("Internal server error while getting PAN numbers");
       }
     }, 500),
     []
@@ -333,7 +327,7 @@ function NfoForm() {
         const data = await response.json();
 
         if (!response.ok) {
-          console.log("Error fetching family head");
+          console.error("Error fetching family head");
           return;
         }
 
@@ -344,7 +338,7 @@ function NfoForm() {
         }));
         setFamilyHeadList(list);
       } catch (error) {
-        console.log("Internal server error while getting family head");
+        console.error("Internal server error while getting family head");
       }
     }, 500),
     []
@@ -429,7 +423,7 @@ function NfoForm() {
         updateToast({ type: "success", message: "Submitted successfully" })
       );
     } catch (error) {
-      console.log("Error occurred while submitting NFO form", error.message);
+      console.error("Error occurred while submitting NFO form", error.message);
       dispatch(
         updateToast({ type: "error", message: "Internal server error" })
       );
@@ -443,8 +437,6 @@ function NfoForm() {
     return false;
   };
 
-  if (!permissions.find((perm) => perm === "NFO")) return <AccessDenied />;
-  
   return (
     <form onSubmit={handleSubmit} className="relative flex flex-col gap-y-8 md:mx-0">
         {bseStatus===0 && (
