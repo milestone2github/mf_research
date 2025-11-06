@@ -15,19 +15,26 @@ async function optimizeFERoute(feId, currentLocation = null) {
 				? `${currentLocation.coordinates[1]},${currentLocation.coordinates[0]}`
 				: `${feRoute.baseLocation.coordinates[1]},${feRoute.baseLocation.coordinates[0]}`;
 
+		// 2. Define today’s UTC range
+		const startOfDay = new Date();
+		startOfDay.setUTCHours(0, 0, 0, 0);
+		const endOfDay = new Date();
+		endOfDay.setUTCHours(23, 59, 59, 999);
+		
 		// 2. Get all active client meetings
 		const meetings = await ClientMeeting.find({
 			assignedFE: feId,
 			isCompleted: false,
 			onHold: false,
 			status: "pending",
+			"availability.start": { $gte: startOfDay, $lte: endOfDay },
 		})
-			.select("location availability priority")
-			.lean();
+		.select("location availability priority")
+		.lean();
 
 		if (!meetings.length) return;
 
-    console.log("Meetings found ---> ", meetings); // debug
+    // console.log("Meetings found ---> ", meetings); // debug
 
 		// 3. Sort by priority (optional before optimization)
 		meetings.sort((a, b) => a.priority - b.priority);
@@ -54,7 +61,7 @@ async function optimizeFERoute(feId, currentLocation = null) {
 		const optimizedOrder = response.data.routes?.[0]?.waypoint_order;
 		if (!optimizedOrder) return;
 
-    console.log("Optimized Orders generated ==> ", optimizedOrder); // debug
+    console.log(`Optimized Order for FE = ${feId} generated ==> ${optimizedOrder}`); // debug
 
 		// 6. Update order field
 		for (let i = 0; i < optimizedOrder.length; i++) {
