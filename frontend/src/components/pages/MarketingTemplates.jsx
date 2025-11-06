@@ -1,50 +1,43 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import html2canvas from 'html2canvas'
-import { FaPhoneAlt } from 'react-icons/fa'
-import { HiOutlineAtSymbol } from "react-icons/hi";
-import templateImg from '../../assets/template.jpeg'
-import appStoreBadge from '../../assets/downloadOnTheAppStore.png'
-import playStoreBadge from '../../assets/GetItOnGooglePlay.png'
-import mNiveshLogo from '../../assets/mNiveshLogo.png'
 import { BsArrowDownCircle, BsPencilSquare } from "react-icons/bs";
 import { BiLoaderAlt } from "react-icons/bi";
 import { IoMdClose } from 'react-icons/io';
 import { updateToast } from '../../reducers/ToastSlice';
 import Toast from '../common/Toast'
 import { createUser, getUser, updateUser } from '../../Actions/MarketingUserAction';
+import axios from 'axios';
 
-const defaultUser = {
-  company: 'Milestone Global Moneymart Pvt. Lmt.',
-  email: 'feedback@niveshonline.com',
-  phone: '8269135135'
-}
 
 function MarketingTemplates() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [hasCreatedMarketingUser, setHasCreatedMarketingUser] = useState(false);
+  const { userData } = useSelector((state) => state.user)
   const { user, status, error, fetchStatus } = useSelector(state => state.marketingUser)
-  // const [maktUser, setMktUser] = useState({ 
-  //   company: 'Milestone Global Moneymart Pvt. Lmt.', 
-  //   email: 'feedback@niveshonline.com', 
-  //   phone: '8269135135' 
-  // })
+  
+
   const dispatch = useDispatch()
-  const images = [1, 2, 3, 4, 5, 6]
+  const [templates, setTemplates] = useState([]);
 
-  function convertToImage(imageId) {
+  function convertToImage(templateId) {
     // console.log('imageId: ', imageId)
-    const content = document.getElementById(`image-${imageId}`);
-    const topContainer = document.getElementById(`top-container-${imageId}`)
-    const brandContainer = document.getElementById(`brand-container-${imageId}`)
-    const emailIcon = document.getElementById(`email-icon-${imageId}`)
-    const phoneIocn = document.getElementById(`phone-icon-${imageId}`)
+    const content = document.getElementById(`image-${templateId}`);
+    const topContainer = document.getElementById(`top-container-${templateId}`)
+    const brandContainer = document.getElementById(`brand-container-${templateId}`)
+   // safeguard in case elements are missing
+    if (!content || !topContainer || !brandContainer) return;
 
+    // adjust layout before capture
     topContainer.style.paddingTop = '0'
     brandContainer.style.marginTop = '-4px'
-    emailIcon.style.top = '4px'
-    phoneIocn.style.top = '4px'
 
-    html2canvas(content, { scale: 3.4 }).then(canvas => {
+    html2canvas(content, {
+      scale: window.devicePixelRatio * 2, useCORS: true,
+      allowTaint: true,
+      logging: true,
+      letterRendering: true,
+    }).then(canvas => {
       const imgData = canvas.toDataURL('image/png');
       // console.log('canvas created.'); // test
       const link = document.createElement('a');
@@ -54,11 +47,9 @@ function MarketingTemplates() {
       link.click();
       document.body.removeChild(link);
       // console.log('image downloaded.'); // test
-
+      // revert layout after capture
       topContainer.style.paddingTop = 'auto'
       brandContainer.style.marginTop = '0'
-      emailIcon.style.top = '0'
-      phoneIocn.style.top = '0'
     });
   }
 
@@ -75,14 +66,39 @@ function MarketingTemplates() {
   }, [])
 
   useEffect(() => {
-    if (fetchStatus === 404) {
-      dispatch(createUser(defaultUser))
+    const fetchTemplates = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/`);
+        if (res.data.success) {
+          setTemplates(res.data.data); // store templates from backend
+        } else {
+          console.error('Failed to fetch templates:', res.data.message);
+        }
+      } catch (err) {
+        console.error('Error fetching templates:', err);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
+
+
+  useEffect(() => {
+    if (fetchStatus === 404 && !hasCreatedMarketingUser) {
+      const marketingUserPayload = {
+        name: userData.name,
+        email: userData.email,
+        phone: user?.phone || userData?.phone || user?.user?.onboarding?.hrFilledInfo?.phone || ''
+      };
+      dispatch(createUser(marketingUserPayload))
+      setHasCreatedMarketingUser(true)
     }
     else if (fetchStatus !== 404 && error) {
       console.error(error)
       dispatch(updateToast({ type: 'error', message: error }))
     }
-  }, [fetchStatus, error])
+  }, [fetchStatus, error, hasCreatedMarketingUser])
 
   if (status === 'pending')
     return (<div className=" h-[80vh] flex justify-center items-center">
@@ -103,36 +119,58 @@ function MarketingTemplates() {
         </div>
       </div>
       <section className='flex flex-wrap gap-6 sm:gap-8 justify-center mt-4'>{
-        images.map(image => (
-          <div key={image} className='relative group w-[316px] sm:w-[395px] overflow-hidden shadow'>
-            <figure id={`image-${image}`}>
-              <img src={templateImg} className='w-[316px] sm:w-[395px]' alt="" />
-              <div id={`top-container-${image}`} style={{ padding: '2px', backgroundColor: 'white' }}>
-                <p style={{ marginBottom: '1px' }} className='text-[6px] sm:text-[7.5px] '>Disclaimer: Mutual Fund investments are subject to market risk, read all scheme related documents carefully.</p>
-                <p style={{ fontWeight: '600', marginBottom: '4px' }} className='text-[6px] sm:text-[7.5px] '>Distributed by AMFI registered Mutual Fund Distributor</p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'center' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <div>
-                      <img src={mNiveshLogo} className='w-[80px] sm:w-[98px]' alt="mNivesh" />
-                    </div>
-                    <div style={{ display: 'flex', gap: '2px' }}>
-                      <img src={playStoreBadge} className='39px sm:w-[48px]' alt="Get it on Google Play" />
-                      <img src={appStoreBadge} className='39px sm:w-[48px]' alt="Download on the App Store" />
-                    </div>
-                  </div>
-                  <div id={`brand-container-${image}`} className='relative flex flex-col justify-start'>
-                    <div style={{ fontWeight: 'bold' }} className='text-[6px] sm:text-[7px] '>{user.company}</div>
-                    <div className='flex text-[6px] sm:text-[7px] items-center gap-px absolute top-[10px]'><span id={`email-icon-${image}`} className='relative'><HiOutlineAtSymbol /></span><span>: {user.email}</span></div>
-                    <div className='flex text-[6px] sm:text-[7px] items-center gap-px absolute top-5'><span id={`phone-icon-${image}`} className='relative'><FaPhoneAlt /></span><span>: +91 {user.phone}</span></div>
-                  </div>
+        templates.length <= 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 mt-8 text-center w-full">
+            <h2 className="text-gray-700 font-medium text-lg">Nothing here yet.</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Templates will appear once they’re published.
+            </p>
+          </div>
+        ) :
+        (templates.map((tpl) => (
+          <div key={tpl._doc._id } className='relative group w-[316px] sm:w-[395px] overflow-hidden shadow'>
+            <figure id={`image-${tpl._doc._id }`}>
+              <img
+                src={tpl.proxyImageUrl}
+                className='w-[316px] sm:w-[395px]' alt={tpl._doc.title }
+              />
+      
+              {/* footer  */}
+
+              <div
+                id={`top-container-${tpl._doc._id}`}
+                className="relative w-full text-white"
+              >
+                <img
+                  src={require('../../assets/FooterMarketingTemplate.png')}
+                  alt="footer"
+                  style={{
+                    width: '100%',
+                    height: '72px',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+                {/* Overlay text */}
+                <div
+                  id={`brand-container-${tpl._doc._id}`}
+                  className="absolute left-[56%] top-[40%] flex flex-col text-[6px] sm:text-[7px] font-bold leading-tight text-gray-600"
+                >
+
+                  <div className="flex items-center mt-[.5px]">{user?.name}</div>
+                  <div className="flex items-center mt-[5px]">{user?.email}</div>
+                  <div className="flex items-center mt-[5px]">+91 {user?.phone}</div>
+
                 </div>
               </div>
 
+              {/* Download button */}
               <div className='absolute left-0 -bottom-full w-full h-full transition-all duration-300 bg-black/20 flex items-start justify-center group-hover:bottom-0'>
               </div>
               <div className='absolute flex items-center justify-center w-full py-6 px-16 transition-all duration-200 delay-75 -top-full group-hover:top-0  bg-indigo-950'>
                 <button
-                  onClick={() => convertToImage(image)}
+                  onClick={() => {
+                    convertToImage(tpl._doc._id)}}
                   className='border text-sm flex items-center gap-1 py-2 px-8 bg-[#307473] hover:bg-[#2A6564] text-white'
                 ><BsArrowDownCircle />
                   <span>Download</span>
@@ -141,49 +179,8 @@ function MarketingTemplates() {
               </div>
 
             </figure>
-          </div>))}
+          </div>)))}
       </section>
-      {/* <section className='grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 gap-8 mt-4'>{
-        images.map(image => (
-          <div key={image} className='relative group w-[316px] overflow-hidden shadow'>
-            <figure id={`image-${image}`}>
-              <img src={templateImg} className='w-[316px]' alt="" />
-              <div id={`top-container-${image}`} style={{ padding: '2px', backgroundColor: 'white' }}>
-                <p style={{ fontSize: '6px', marginBottom: '1px' }}>Disclaimer: Mutual Fund investments are subject to market risk, read all scheme related documents carefully.</p>
-                <p style={{ fontSize: '6px', fontWeight: '600', marginBottom: '4px' }}>Distributed by AMFI registered Mutual Fund Distributor</p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'center' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <div>
-                      <img src={mNiveshLogo} style={{ width: '80px' }} alt="mNivesh" />
-                    </div>
-                    <div style={{ display: 'flex', gap: '2px' }}>
-                      <img src={playStoreBadge} style={{ width: '39px' }} alt="Get it on Google Play" />
-                      <img src={appStoreBadge} style={{ width: '39px' }} alt="Download on the App Store" />
-                    </div>
-                  </div>
-                  <div id={`brand-container-${image}`} className='relative flex flex-col justify-start'>
-                    <div style={{ fontSize: '6px', fontWeight: 'bold' }}>Milestone Global Moneymart Pvt. Lmt.</div>
-                    <div className='flex text-[6px] items-center gap-px absolute top-[10px]'><span id={`email-icon-${image}`} className='relative'><HiOutlineAtSymbol /></span><span>: feedback@niveshonline.com</span></div>
-                    <div className='flex text-[6px] items-center gap-px absolute top-5'><span id={`phone-icon-${image}`} className='relative'><FaPhoneAlt /></span><span>: +91 8269135135</span></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className='absolute left-0 -top-full w-full h-full transition-all duration-300 bg-black/20 flex items-start justify-center group-hover:top-0'>
-                <div className='relative flex items-center justify-center w-full py-6 px-16 transition-all duration-200 delay-75 -top-full group-hover:top-0  bg-indigo-950'>
-                  <button
-                    onClick={() => convertToImage(image)}
-                    className='border text-sm flex items-center gap-1 py-2 px-8 bg-[#307473] hover:bg-[#2A6564] text-white'
-                  ><BsArrowDownCircle />
-                    <span>Download</span>
-                  </button>
-
-                </div>
-
-              </div>
-            </figure>
-          </div>))}
-      </section> */}
 
       <UserForm isModalOpen={isModalOpen} handleClose={handleCancelEdit} />
       <Toast />
@@ -195,16 +192,27 @@ export default MarketingTemplates
 
 const UserForm = ({ isModalOpen, handleClose }) => {
   const { user, updateStatus, error } = useSelector(state => state.marketingUser)
+  const { userData } = useSelector((state) => state.user)
+
   const [marketingUser, setMarketingUser] = useState({
-    company: 'Milestone Global Moneymart Pvt. Lmt.',
-    email: 'feedback@niveshonline.com',
-    phone: '8269135135'
+    _id: user?._id,
+    name: user?.name || userData?.name || '',
+    email: user?.email || userData?.email || '',
+    phone: user?.user?.onboarding?.hrFilledInfo?.phone || user?.phone || ''
   })
+
   const dispatch = useDispatch()
 
   useEffect(() => {
-    setMarketingUser(user)
-  }, [user])
+    // When marketingUser changes in store, sync local form
+    setMarketingUser({
+      _id: user?._id,
+      name: user?.name || userData?.name || '',
+      email: user?.email || userData?.email || '',
+      phone: user?.phone || userData?.phone || user?.user?.onboarding?.hrFilledInfo?.phone || ''
+    })
+  }, [user, userData])
+
 
   useEffect(() => {
     if (updateStatus === 'completed') {
@@ -223,8 +231,13 @@ const UserForm = ({ isModalOpen, handleClose }) => {
   }
 
   const handleCancel = (e) => {
+     setMarketingUser({
+      _id: user?._id,
+      name: user?.name || userData?.name || '',
+      email: user?.email || userData?.email || '',
+      phone: user?.user?.onboarding?.hrFilledInfo?.phone || user?.phone || marketingUser.phone || ''
+    })
     handleClose()
-    setMarketingUser(user)
   }
 
   return (
@@ -239,15 +252,15 @@ const UserForm = ({ isModalOpen, handleClose }) => {
         <p className='text-gray-800 text-2xl font-bold'>Edit branding details</p>
         <div className='flex flex-col gap-y-4'>
           <div className="flex flex-col gap-y-px">
-            <label htmlFor="company" className='text-sm text-gray-600'>Company</label>
+            <label htmlFor="name" className='text-sm text-gray-600'>Name</label>
             <input
               type="text"
-              name="company"
-              id="company"
+              name="name"
+              id="name"
               required
               autoComplete='off'
               className='rounded-md p-2 w-full border border-gray-500 focus:outline-2 focus:outline-blue-500'
-              value={marketingUser.company}
+              value={marketingUser.name}
               onChange={handleBrandingChange}
             />
           </div>
@@ -260,7 +273,7 @@ const UserForm = ({ isModalOpen, handleClose }) => {
               required
               autoComplete='off'
               className='rounded-md p-2 w-full border border-gray-500 focus:outline-2 focus:outline-blue-500'
-              value={marketingUser.email}
+              value={marketingUser?.email}
               onChange={handleBrandingChange}
             />
           </div>
@@ -273,6 +286,7 @@ const UserForm = ({ isModalOpen, handleClose }) => {
               required
               autoComplete='off'
               className='rounded-md p-2 w-full border border-gray-500 focus:outline-2 focus:outline-blue-500'
+              placeholder='Enter your Phone Number'
               value={marketingUser.phone}
               onChange={handleBrandingChange}
             />

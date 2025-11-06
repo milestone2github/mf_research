@@ -1203,10 +1203,6 @@ const filteredHistoryTransactions = async (req, res) => {
       maxDate.setUTCHours(23, 59, 59);
       dateFilter.$lte = maxDate;
     }
-
-    // filter based on last validation date (opsExecDate)
-    filterStage1.lastValidatedAt = dateFilter;
-    fractionFilters['transactionFractions.lastValidatedAt'] = dateFilter;
   }
 
   if (amcName) {
@@ -1338,31 +1334,23 @@ const filteredHistoryTransactions = async (req, res) => {
     filterStage1[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') };
   }
 
-  // --- SORT MAP (now uses lastValidatedAt) ---
+  // --- SORT MAP (now uses effectiveValidatedAt) ---
   const sortMap = new Map();
-  sortMap.set('trxdate-asc', { lastValidatedAt: 1 });
-  sortMap.set('trxdate-desc', { lastValidatedAt: -1 });
+  sortMap.set('trxdate-asc', { effectiveValidatedAt: 1, _id: 1 });
+  sortMap.set('trxdate-desc', { effectiveValidatedAt: -1, _id: -1 });
   sortMap.set('amount-asc', { amount: 1 });
   sortMap.set('amount-desc', { amount: -1 });
   let sortBy = sortMap.get(sort || 'trxdate-desc');
 
   try {
-    // Aggregation for unique serviceManager names
-    // const uniqueSMList = await Transactions.aggregate([
-    //   { $match: filterStage1 },
-    //   { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
-    //   { $match: { $or: [{ hasFractions: false, ...filterStage2 }, { hasFractions: true, ...fractionFilters }] } },
-    //   { $group: { _id: '$serviceManager' } }, // Group by serviceManager to get unique values
-    //   { $project: { _id: 0, serviceManager: '$_id' } } // Rename field to 'serviceManager'
-    // ]);
 
     const validatedAtFieldsStage = {
       $addFields: {
         lastValidatedAt: {
-          $let: {
-            vars: { last: { $arrayElemAt: ["$validations.validatedAt", -1] } },
-            in: "$$last"
-          }
+          $ifNull: [
+            { $arrayElemAt: ["$validations.validatedAt", -1] },
+            "$transactionDate"
+          ]
         },
         transactionFractions: {
           $map: {
@@ -1373,10 +1361,10 @@ const filteredHistoryTransactions = async (req, res) => {
                 "$$frac",
                 {
                   lastValidatedAt: {
-                    $let: {
-                      vars: { last: { $arrayElemAt: ["$$frac.validations.validatedAt", -1] } },
-                      in: "$$last"
-                    }
+                    $ifNull: [
+                      { $arrayElemAt: ["$$frac.validations.validatedAt", -1] },
+                      "$$frac.transactionDate"
+                    ]
                   }
                 }
               ]
@@ -1386,10 +1374,35 @@ const filteredHistoryTransactions = async (req, res) => {
       }
     };
 
+    const dateMatchStage = (minDate || maxDate)
+      ? {
+          $match: {
+            $or: [
+              { lastValidatedAt: dateFilter },
+              { 'transactionFractions.lastValidatedAt': dateFilter }
+            ]
+          }
+        }
+      : null;
+
+    // unified fallback for missing validation dates
+    const unifiedDateStage = {
+      $addFields: {
+        effectiveValidatedAt: {
+          $ifNull: [
+            "$transactionFractions.lastValidatedAt",
+            { $ifNull: ["$lastValidatedAt", "$transactionDate"] }
+          ]
+        }
+      }
+    };
+
     const paginatedTransactions = await Transactions.aggregate([
       validatedAtFieldsStage,
+      ...(dateMatchStage ? [dateMatchStage] : []),
       { $match: filterStage1 },
       { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+      unifiedDateStage,
       {
         $match: {
           $or: [
@@ -1405,8 +1418,10 @@ const filteredHistoryTransactions = async (req, res) => {
 
     const totalCountAndAmount = await Transactions.aggregate([
       validatedAtFieldsStage,
+      ...(dateMatchStage ? [dateMatchStage] : []),
       { $match: filterStage1 },
       { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+      unifiedDateStage,
       {
         $match: {
           $or: [

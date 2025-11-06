@@ -243,7 +243,7 @@ const addComments = async (req, res) => {
 		});
 		if (!visit) return res.status(404).json({ error: "Visit not found" });
 		
-		console.log("Visit details ==> ", visit) // debug
+		// console.log("Visit details ==> ", visit) // debug
 		// 2. Get FE name (denormalization)
 		const fe = await FE.findById(feId).select("name");
 		const feName = fe ? fe.name : "Unknown FE";
@@ -375,7 +375,7 @@ const getCombinedList = async (req, res) => {
 			endFilter = parseEnd(today);
 		}
 
-		console.log("Start and End date in UTC ==> ", startFilter, endFilter); // debug
+		// console.log("Start and End date in UTC ==> ", startFilter, endFilter); // debug
 
 		// /*
 		// Fetch FERoute documents within date range and populate client, visit, and FE info
@@ -396,7 +396,7 @@ const getCombinedList = async (req, res) => {
 			])
 			.lean();
 
-		console.log("Combined Data :--> ", combinedRes); // debug
+		// console.log("Combined Data :--> ", combinedRes); // debug
 
 		// Group by FE
 		const groupByFE = Object.values(
