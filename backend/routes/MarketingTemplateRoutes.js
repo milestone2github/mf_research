@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUserTemplates, getAllTemplates, createTemplate, deleteTemplate, proxyImageUrl } = require('../controllers/marketingTemplateController');
+const { getUserTemplates, getAllTemplates, createTemplate, deleteTemplate, proxyImageUrl } = require('../controllers/MarketingTemplateController');
 const { uploadTemplateImage } = require('../middlewares/uploadTemplateImage');
 const router = express.Router();
 
