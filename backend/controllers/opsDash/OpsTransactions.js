@@ -1915,6 +1915,360 @@ const exportAllTransactions = async (req, res) => {
   }
 };
 
+const exportThTransactions = async (req, res) => {
+  const permissions = req.user?.permissions || [];
+
+  if (!permissions.includes('export_all_transactions_data')) {
+    return res.status(403).json({ error: 'Export Permission denied' });
+  }
+
+  let {
+    minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort,
+    minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey, reconcileStatus
+  } = req.query;
+  schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
+
+  let filterStage1 = {};
+  let filterStage2 = {};
+  let fractionFilters = {};
+
+  const searchByLookup = {
+    'family head': 'familyHead',
+    'investor name': 'investorName',
+    'PAN': 'panNumber',
+  };
+  //Ensures all filter logic can use .includes, .map, $in operators safely.
+  //Prevents crashes on .map() when value is a string.
+  const toArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').map(v => v.trim());
+    if (value != null) return [value];
+    return [];
+  };
+
+  // Stage 1 filters - date filters now use opsExecDate instead of transactionPreference
+  let dateFilter = {};
+  if (minDate || maxDate) {
+
+    if (minDate) {
+      minDate = new Date(minDate);
+      dateFilter.$gte = minDate;
+    }
+    if (maxDate) {
+      maxDate = new Date(maxDate);
+      maxDate.setUTCHours(23, 59, 59);
+      dateFilter.$lte = maxDate;
+    }
+  }
+
+  if (amcName) {
+    filterStage1.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName;
+  }
+  if (schemeName) {
+    filterStage1.$or = [
+      { schemeName: schemeName },
+      { fromSchemeName: schemeName }
+    ];
+  }
+  if (rmName) {
+    filterStage1.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName);
+  }
+  if (orderId) {
+    filterStage1.orderId = orderId;
+  }
+
+  if (smName) {
+    const s = toArray(smName).map(n => toTitleCase(n));
+    if (s.includes('Unassigned')) {
+      // If "Unassigned" is selected, filter for empty or null serviceManager
+      filterStage1.$or = [
+        { serviceManager: { $in: s.filter(n => n !== 'Unassigned') } },
+        { serviceManager: { $in: ['', null] } }
+      ];
+    } else {
+      filterStage1.serviceManager = { $in: s };
+    }
+  }
+
+  if (transactionFor) {
+    const val = toArray(transactionFor);
+    if (val.length) filterStage1.transactionFor = { $in: val };
+  }
+
+  if (type) {
+    const types = toArray(type);
+
+    const nonSwitchTypes = types.filter(t => t !== 'Switch');
+    const isSwitchSelected = types.includes('Switch');
+
+    const typeFilters = [];
+
+    if (nonSwitchTypes.length) {
+      typeFilters.push({ transactionType: { $in: nonSwitchTypes } });
+    }
+
+    if (isSwitchSelected) {
+      typeFilters.push({ category: 'switch' });
+    }
+
+    if (typeFilters.length === 1) {
+      Object.assign(filterStage1, typeFilters[0]);
+    } else if (typeFilters.length > 1) {
+      filterStage1.$or = typeFilters;
+    }
+  }
+
+
+  // stage 2 filters 
+  // Ensure status and reconcileStatus are arrays
+  if (status && !Array.isArray(status)) {
+    status = [status];
+  }
+  if (reconcileStatus && !Array.isArray(reconcileStatus)) {
+    reconcileStatus = [reconcileStatus];
+  }
+
+  // Stage 2 filters for status
+  if (status) {
+    const includeStatuses = status.filter(s => !s.startsWith('NOT-'));
+    const excludeStatuses = status.filter(s => s.startsWith('NOT-')).map(s => s.slice(4));
+
+    if (includeStatuses.length || excludeStatuses.length) {
+      filterStage2.status = {};
+      fractionFilters['transactionFractions.status'] = {};
+
+      if (includeStatuses.length) {
+        filterStage2.status.$in = includeStatuses;
+        fractionFilters['transactionFractions.status'].$in = includeStatuses;
+      }
+      if (excludeStatuses.length) {
+        filterStage2.status.$nin = excludeStatuses;
+        fractionFilters['transactionFractions.status'].$nin = excludeStatuses;
+      }
+    }
+  }
+
+  // Stage 2 filters for reconcileStatus
+  if (reconcileStatus && reconcileStatus.length) {
+    const hasNotExist = reconcileStatus.includes('NOT-EXIST');
+    reconcileStatus = reconcileStatus.filter(status => status !== 'NOT-EXIST');
+
+    if (hasNotExist) {
+      const conditions = [{ $exists: false }];
+      if (reconcileStatus.length) {
+        conditions.unshift({ $in: reconcileStatus });
+      }
+      filterStage2['$or'] = conditions.map(condition => ({ 'reconciliation.reconcileStatus': condition }));
+      fractionFilters['$or'] = conditions.map(condition => ({ 'transactionFractions.reconciliation.reconcileStatus': condition }));
+    } else {
+      filterStage2['reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+      fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+    }
+  }
+
+  // approvalStatus filter
+  const approvals = toArray(approvalStatus);
+  if (approvals.length) {
+    filterStage2.approvalStatus = { $in: approvals };
+    fractionFilters['transactionFractions.approvalStatus'] = { $in: approvals };
+  }
+
+  if (minAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount) };
+  }
+  if (maxAmount?.toString()) {
+    filterStage2.amount = { $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $lte: Number(maxAmount) };
+  }
+  if (minAmount?.toString() && maxAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+  }
+
+  if (searchBy && searchKey) {
+    filterStage1[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') };
+  }
+
+  // --- SORT MAP (now uses effectiveValidatedAt) ---
+  const sortMap = new Map();
+  sortMap.set('trxdate-asc', { effectiveValidatedAt: 1, _id: 1 });
+  sortMap.set('trxdate-desc', { effectiveValidatedAt: -1, _id: -1 });
+  sortMap.set('amount-asc', { amount: 1 });
+  sortMap.set('amount-desc', { amount: -1 });
+  let sortBy = sortMap.get(sort || 'trxdate-desc');
+
+  try {
+
+    const validatedAtFieldsStage = {
+      $addFields: {
+        lastValidatedAt: {
+          $ifNull: [
+            { $arrayElemAt: ["$validations.validatedAt", -1] },
+            "$transactionDate"
+          ]
+        },
+        transactionFractions: {
+          $map: {
+            input: "$transactionFractions",
+            as: "frac",
+            in: {
+              $mergeObjects: [
+                "$$frac",
+                {
+                  lastValidatedAt: {
+                    $ifNull: [
+                      { $arrayElemAt: ["$$frac.validations.validatedAt", -1] },
+                      "$$frac.transactionDate"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    };
+
+    const dateMatchStage = (minDate || maxDate)
+      ? {
+        $match: {
+          $or: [
+            { lastValidatedAt: dateFilter },
+            { 'transactionFractions.lastValidatedAt': dateFilter }
+          ]
+        }
+      }
+      : null;
+
+    // unified fallback for missing validation dates
+    const unifiedDateStage = {
+      $addFields: {
+        effectiveValidatedAt: {
+          $ifNull: [
+            "$transactionFractions.lastValidatedAt",
+            { $ifNull: ["$lastValidatedAt", "$transactionDate"] }
+          ]
+        }
+      }
+    };
+
+    const finalTransactions = await Transactions.aggregate([
+      validatedAtFieldsStage,
+      ...(dateMatchStage ? [dateMatchStage] : []),
+      { $match: filterStage1 },
+      { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+      unifiedDateStage,
+      {
+        $match: {
+          $or: [
+            { hasFractions: false, ...filterStage2 },
+            { hasFractions: true, ...fractionFilters }
+          ]
+        }
+      },
+      { $sort: sortBy }
+    ]);
+
+    // --- Excel workbook setup ---
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Transaction History');
+    sheet.columns = [
+      { header: 'S. No.',             key: 'sNo' },
+      { header: 'TS Transaction Type',key: 'tsTransactionType',      width: 10 },
+      { header: 'Status',             key: 'status',                 width: 15 },
+      { header: 'Reconcile Status',   key: 'reconcileStatus',        width: 15 },
+      { header: 'Preferred date',     key: 'preferredDate',          width: 15 },
+      { header: 'Ops Exec date',      key: 'opsExecDate',            width: 15 },
+      { header: 'Transaction type',   key: 'transactionType',        width: 20 },
+      { header: 'Pan number',         key: 'panNumber',              width: 15 },
+      { header: 'Investor name',      key: 'investorName',           width: 25 },
+      { header: 'Family head',        key: 'familyHead',             width: 25 },
+      { header: 'RM name',            key: 'relationshipManager',    width: 25 },
+      { header: 'AMC name',           key: 'amcName',                width: 25 },
+      { header: 'Scheme name',        key: 'schemeName',             width: 25 },
+      { header: 'Amount',             key: 'amount',                 width: 15 },
+      { header: 'Units',              key: 'transactionUnits',       width: 15 },
+      { header: 'From scheme',        key: 'fromScheme',             width: 20 },
+      { header: 'SM name',            key: 'serviceManager',         width: 25 },
+      { header: 'Folio No.',          key: 'folioNo',                width: 20 },
+      { header: 'From scheme option', key: 'fromSchemeOption',       width: 20 },
+      { header: 'Scheme Option',      key: 'schemeOption',           width: 20 },
+      { header: 'Frequency',          key: 'frequency  ',            width: 15 },
+      { header: 'Registrant',         key: 'registrantName',         width: 20 },
+      { header: 'Transaction for',    key: 'transactionFor',         width: 20 },
+      { header: 'Payment mode',       key: 'paymentMode',            width: 20 },
+      { header: 'First trx amount',   key: 'firstTransactionAmount', width: 20 },
+      { header: 'SIP/SWP/STP date',   key: 'sipSwpStpDate',          width: 20 },
+      { header: 'SIP Pause month',    key: 'sipPauseMonth',          width: 20 },
+      { header: 'Tenure of SIP',      key: 'tenure',                 width: 15 },
+      { header: 'Approval Status',    key: 'approvalStatus',         width: 20 },
+      { header: 'Order ID',           key: 'orderId',                width: 20 },
+      { header: 'Order Platform',     key: 'orderPlatform',          width: 20 },
+      { header: 'Cheque No.',         key: 'chequeNumber',           width: 20 },
+    ];
+
+    finalTransactions.forEach((txn, i) => {
+      const isFraction = !!txn.transactionFractions?._id;
+      const f = txn.transactionFractions || {};
+      const effectiveValidatedAt = txn.effectiveValidatedAt ? dayjs(txn.effectiveValidatedAt).format('YYYY-MM-DD') : '';
+
+      const row = {
+        sNo: i + 1,
+        tsTransactionType: isFraction ? 'Fraction' : 'Main',
+        status: isFraction ? f.status : txn.status,
+        reconcileStatus: isFraction ? f.reconciliation?.reconcileStatus || '' : txn.reconciliation?.reconcileStatus || '',
+        preferredDate: txn.transactionPreference ? dayjs(txn.transactionPreference).format('YYYY-MM-DD') : '',
+        opsExecDate: effectiveValidatedAt,
+        transactionType: txn.transactionType,
+        panNumber: txn.panNumber,
+        investorName: txn.investorName,
+        familyHead: txn.familyHead,
+        relationshipManager: txn.relationshipManager,
+        amcName: txn.amcName,
+        schemeName: txn.schemeName,
+        amount: isFraction ? f.fractionAmount : txn.amount,
+        transactionUnits: txn.transactionUnits || '',
+        fromScheme: txn.fromSchemeName || '',
+        serviceManager: txn.serviceManager,
+        folioNo: isFraction ? f.folioNumber : txn.folioNumber || '',
+        fromSchemeOption: txn.fromSchemeOption || '',
+        schemeOption: txn.schemeOption || '',
+        frequency: txn.frequency || '',
+        registrantName: txn.registrantName || '',
+        transactionFor: txn.transactionFor,
+        paymentMode: txn.paymentMode || '',
+        firstTransactionAmount: txn.firstTransactionAmount || '',
+        sipSwpStpDate: (isFraction ?
+          (f.transactionDate ? dayjs(f.transactionDate).format('YYYY-MM-DD') : '') :
+          (txn.sipSwpStpDate ? dayjs(txn.sipSwpStpDate).format('YYYY-MM-DD') : '')),
+        sipPauseMonth: txn.sipPauseMonth || '',
+        tenure: txn.tenure || '',
+        approvalStatus: isFraction ? f.approvalStatus : txn.approvalStatus,
+        orderId: isFraction ? f.orderId : txn.orderId,
+        orderPlatform: isFraction ? f.orderPlatform : txn.orderPlatform,
+        chequeNumber: txn.chequeNumber || '',
+      };
+
+      sheet.addRow(row);
+    });
+
+    // --- Send response as XLSX ---
+    const ts = dayjs().utcOffset(330).format('YYYYMMDD_HHmm');
+    const filename = `TH_export_${ts}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting transaction history data:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // Fetch unique SM Names from Transactions
 const getAllSMNames = async (_req, res) => {
   try {
@@ -1998,6 +2352,7 @@ module.exports = {
   updateNote,
   setRelationshipManager, //TEMPORARY
   exportAllTransactions,
+  exportThTransactions,
   getAllSMNames,  // New
   getAllRMNames,  // New
 }
