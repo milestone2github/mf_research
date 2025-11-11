@@ -892,6 +892,10 @@ const assignClientsToFE = async (req, res) => {
 
 		const startUTC = new Date(slotStart);
 		const endUTC = new Date(slotEnd);
+		const nowUTC = new Date();
+
+		// Avoid creating entries in the past
+		if (endUTC <= nowUTC) return res.status(400).json({ message: "Cannot assign slots in the past" });
 
 		// 2. Verify FE exists
 		const fe = await FE.findById(feId);
@@ -914,13 +918,30 @@ const assignClientsToFE = async (req, res) => {
 		}
 
 		// 4. Check FE slot conflicts
-		const conflict = feRoute.bookedSlots.some(
-			(slot) => startUTC < slot.end && endUTC > slot.start
+		// const conflict = feRoute.bookedSlots.some(
+		// 	(slot) => startUTC < slot.end && endUTC > slot.start
+		// );
+
+		const visitIds = feRoute.bookedSlots.map((s) => s.visit).filter(Boolean);
+		const meetings = await ClientMeeting.find(
+			{ _id: { $in: visitIds } },
+			{ _id: 1, actualVisitStart: 1, actualVisitEnd: 1 }
+		).lean();
+
+		const meetingMap = new Map(
+			meetings.map((m) => [m._id.toString(), m])
 		);
-		if (conflict)
-			return res
-				.status(400)
-				.json({ message: "FE is not available in this slot" });
+
+		const hasConflict = feRoute.bookedSlots.some((slot) => {
+			const m = meetingMap.get(slot.visit?.toString());
+			const slotStart = m?.actualVisitStart || slot.start;
+			const slotEnd = m?.actualVisitEnd || slot.end;
+
+			return startUTC < slotEnd && endUTC > slotStart;
+		});
+
+		if (hasConflict) return res.status(400).json({ message: "FE is not available in this slot" });
+		
 		// 5. Fetch the specific ClientMeeting
 		const visit = await ClientMeeting.findOne({
 			_id: visitId,
@@ -942,7 +963,7 @@ const assignClientsToFE = async (req, res) => {
 		// 7. Update FERoute bookedSlots
 		feRoute.bookedSlots.push({
 			client: visit.clientId,
-			visit: visitId,
+			visit: visit._id,
 			start: startUTC,
 			end: endUTC,
 		});
