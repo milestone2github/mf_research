@@ -4,7 +4,7 @@ const insuranceUri = process.env.MONGO_URI;
 const dbName = "insurance-policy";
 let insuranceDb; // global cached instance
 
-// ✅ Run once at startup
+// function to create and connect DB instance
 async function dbInstanceConnect() {
   try {
     const client = new MongoClient(insuranceUri);
@@ -123,7 +123,7 @@ async function postMessageData(req, res) {
       }
     }
 
-    // 4️⃣ Fetch NAME and EMAIL using shared insuranceDb instance
+    // Fetch NAME and EMAIL using shared insuranceDb instance
     if (!insuranceDb) {
       console.warn("insurance-policy DB not connected yet, reconnecting...");
       await dbInstanceConnect();
@@ -138,7 +138,7 @@ async function postMessageData(req, res) {
     const NAME = leadDoc ? leadDoc.NAME || null : null;
     const EMAIL = leadDoc ? leadDoc.EMAIL || null : null;
 
-    // 5️⃣ Prepare response
+    // Prepare response
     const responseData = {
       pan: selected.PAN || null,
       name: selected.NAME || null,
