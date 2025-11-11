@@ -1,3 +1,25 @@
+const { MongoClient } = require("mongodb");
+
+const insuranceUri = process.env.MONGO_URI;
+const dbName = "insurance-policy";
+let insuranceDb; // global cached instance
+
+// function to create and connect DB instance
+async function dbInstanceConnect() {
+  try {
+    const client = new MongoClient(insuranceUri);
+    await client.connect();
+    console.log("Connected to insurance-policy DB");
+    insuranceDb = client.db(dbName);
+  } catch (err) {
+    console.error("insurance-policy DB connection failed:", err.message);
+  }
+}
+dbInstanceConnect(); // run once at module load
+
+// ==============================================
+// Main handler function
+// ==============================================
 async function postMessageData(req, res) {
   const waid = req.body.waid;
   if (!waid) {
@@ -5,21 +27,23 @@ async function postMessageData(req, res) {
   }
 
   try {
-    // grab the MongoDB Database instance you attached in middleware
+    // Milestone DB from middleware
     const db = req.milestoneDb;
-    const mintCollection  = db.collection('MintDb');
-    const freshCollection = db.collection('FreshClients');
+    const mintCollection = db.collection("MintDb");
+    const freshCollection = db.collection("FreshClients");
 
-    const projection = {
+    // Projection for both collections
+    const baseProjection = {
       PAN: 1,
       NAME: 1,
-      'FAMILY HEAD': 1,
       EMAIL: 1,
-      'RELATIONSHIP  MANAGER': 1,
+      "FAMILY HEAD": 1,
+      "RELATIONSHIP  MANAGER": 1,
       LANGUAGE: 1,
       USERNAME: 1,
       AUM: 1,
-      Marketing: 1,
+      Marketing1: 1,
+      Marketing2: 1,
       MarketingTimeStamp: 1,
       CalcMode: 1,
       CalcType: 1,
@@ -32,78 +56,102 @@ async function postMessageData(req, res) {
       Value6: 1,
       Value7: 1,
       CalcTimeStamp: 1,
-      _id: 0
+      _id: 0,
     };
 
-    // 1) Try MintDb
-    const docs = await mintCollection.find({ MOBILE: waid }, { projection }).toArray();
-
+    // Try MintDb first
     let selected = null;
-    let highestAumDoc = null;
+    let mode = "existing";
 
-    for (const doc of docs) {
-      const aum = parseInt(doc.AUM) || 0;
-      if (doc['FAMILY HEAD'] === doc.NAME && aum > 0) {
-        selected = doc;
-        break;
-      }
-      if (!highestAumDoc || aum > (parseInt(highestAumDoc.AUM) || 0)) {
-        highestAumDoc = doc;
-      }
-    }
-    if (!selected) selected = highestAumDoc;
+    const mintDocs = await mintCollection
+      .find({ MOBILE: waid }, { projection: baseProjection })
+      .toArray();
 
-    // 2) Fallback to FreshClients
-    let mode = 'existing';
-    if (!selected) {
-      var freshDoc =  await freshCollection.findOne({ MOBILE: waid }, { projection });
-        if (freshDoc) {
-            // use the existing fresh record
-            selected = freshDoc;
-            mode = 'fresh';
-        } else {
-            // 2) No fresh record: create a new one with null defaults
-            const emptyDoc = {
-            MOBILE: waid,
-            PAN: null,
-            NAME: null,
-            'FAMILY HEAD': null,
-            EMAIL: null,
-            'RELATIONSHIP  MANAGER': null,
-            LANGUAGE: null,
-            USERNAME: null,
-            AUM: null,
-            Marketing: null,
-            MarketingTimeStamp: null,
-            CalcMode: null,
-            CalcType: null,
-            CalcStage: null,
-            Value1: null,
-            Value2: null,
-            Value3: null,
-            Value4: null,
-            Value5: null,
-            Value6: null,
-            Value7: null,
-            CalcTimeStamp: null
-            };
-            const { insertedId } = await freshCollection.insertOne(emptyDoc);
-            selected = { ...emptyDoc, _id: insertedId };
-            mode = 'fresh';
+    if (mintDocs.length > 0) {
+      let highestAumDoc = null;
+      for (const doc of mintDocs) {
+        const aum = parseFloat(doc.AUM) || 0;
+        if (doc["FAMILY HEAD"] === doc.NAME && aum > 0) {
+          selected = doc;
+          break;
         }
+        if (!highestAumDoc || aum > (parseFloat(highestAumDoc.AUM) || 0)) {
+          highestAumDoc = doc;
+        }
+      }
+      if (!selected) selected = highestAumDoc;
     }
-    // prepare and send response
+
+    // Fallback to FreshClients if not found
+    if (!selected) {
+      const freshDoc = await freshCollection.findOne(
+        { MOBILE: waid },
+        { projection: baseProjection }
+      );
+      if (freshDoc) {
+        selected = freshDoc;
+        mode = "fresh";
+      } else {
+        const emptyDoc = {
+          MOBILE: waid,
+          PAN: null,
+          NAME: null,
+          EMAIL: null,
+          "FAMILY HEAD": null,
+          "RELATIONSHIP  MANAGER": null,
+          LANGUAGE: null,
+          USERNAME: null,
+          AUM: null,
+          Marketing1: null,
+          Marketing2: null,
+          MarketingTimeStamp: null,
+          CalcMode: null,
+          CalcType: null,
+          CalcStage: null,
+          Value1: null,
+          Value2: null,
+          Value3: null,
+          Value4: null,
+          Value5: null,
+          Value6: null,
+          Value7: null,
+          CalcTimeStamp: null,
+        };
+        const { insertedId } = await freshCollection.insertOne(emptyDoc);
+        selected = { ...emptyDoc, _id: insertedId };
+        mode = "fresh";
+      }
+    }
+
+    // Fetch NAME and EMAIL using shared insuranceDb instance
+    if (!insuranceDb) {
+      console.warn("insurance-policy DB not connected yet, reconnecting...");
+      await dbInstanceConnect();
+    }
+
+    const whatsappCollection = insuranceDb.collection("WhatsappLead");
+    const leadDoc = await whatsappCollection.findOne(
+      { MOBILE: waid },
+      { projection: { NAME: 1, EMAIL: 1 } }
+    );
+
+    const NAME = leadDoc ? leadDoc.NAME || null : null;
+    const EMAIL = leadDoc ? leadDoc.EMAIL || null : null;
+
+    // Prepare response
     const responseData = {
-      mode,
       pan: selected.PAN || null,
       name: selected.NAME || null,
-      familyHead: selected['FAMILY HEAD'] || null,
       email: selected.EMAIL || null,
-      relationshipManager: selected['RELATIONSHIP  MANAGER'] || null,
+      relationshipManager: selected["RELATIONSHIP  MANAGER"] || null,
       language: selected.LANGUAGE || null,
       username: selected.USERNAME || null,
-      marketing: selected.Marketing || null,
+      mode,
+      marketing1: selected.Marketing1 || null,
+      marketing2: selected.Marketing2 || null,
       marketingTimeStamp: selected.MarketingTimeStamp || null,
+      NAME,
+      EMAIL,
       calcMode: selected.CalcMode || null,
       calcType: selected.CalcType || null,
       calcStage: selected.CalcStage || null,
@@ -114,15 +162,16 @@ async function postMessageData(req, res) {
         selected.Value4 || null,
         selected.Value5 || null,
         selected.Value6 || null,
-        selected.Value7 || null
+        selected.Value7 || null,
       ],
-      calcTimeStamp: selected.CalcTimeStamp || null
+      calcTimeStamp: selected.CalcTimeStamp || null,
+      rmCode: selected["RELATIONSHIP  MANAGER"] || null,
     };
 
     res.json(responseData);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error in postMessageData:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
