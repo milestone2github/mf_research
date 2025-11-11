@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { CHANGE_STATUS_URL } from '../../utils/urlConstants';
 import axios from 'axios';
 import AllocateAssetModal from './AllocateAssetModal';
+import ConfirmModal from './ConfirmModal';
 
 const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => {
   const { status, allocatedTo, _id, serialNumber } = asset;
   const [showAllocateModal, setShowAllocateModal] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const navigate = useNavigate();
 
   const handleStatusChange = async (newStatus, extraBody = {}) => {
@@ -40,11 +43,22 @@ const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => 
   const handleRepair = () => handleStatusChange('repair');
   const handleRestore = () => handleStatusChange('restore');
 
-  const handleRemove = async () => {
-    const confirm = window.confirm(`Do you want to delete this asset?\nAffected asset: ${asset.name}`);
-    if (!confirm) return;
-    handleStatusChange('remove');
-  };
+  const handleRemove = () => {
+      setShowConfirm(true);
+    };
+
+    const handleConfirmRemove = async () => {
+      setRemoving(true);
+      try {
+        await handleStatusChange('remove');
+      } catch (err) {
+        console.error("Failed to remove asset", err);
+      } finally {
+        setRemoving(false);
+        setShowConfirm(false);
+      }
+    };
+
 
   const handleEdit = (id) => {
     navigate(`/assets/edit/${id}`);
@@ -119,6 +133,16 @@ const AssetActions = ({ asset, setModalData, fetchAssets, selectedFilters }) => 
         onClose={() => setShowAllocateModal(false)}
         asset={asset}
         onAllocate={handleConfirmAllocate}
+      />
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Remove Asset"
+        message={`Are you sure you want to remove this asset?\nAffected asset: ${asset.assetName || asset.name}`}
+        confirmText="Remove"
+        cancelText="Cancel"
+        loading={removing}
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={handleConfirmRemove}
       />
       </div>
     </div>
