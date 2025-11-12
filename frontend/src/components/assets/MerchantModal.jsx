@@ -7,6 +7,7 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
   const isEdit = !!selectedMerchant;
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [formData, setFormData] = useState({
     name: "",
@@ -49,6 +50,25 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
   };
 
   const handleSubmit = async () => {
+    const newErrors = {};
+
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^[0-9]{10}$/.test(formData.phone)) {
+      newErrors.phone = "Please enter a valid 10-digit phone number";
+    }
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
     try {
       if (isEdit) {
         await axios.put(
@@ -119,8 +139,15 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
+              className={`w-full border rounded-md px-3 py-2 mt-1 focus:ring-2 outline-none ${
+                errors.phone
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-500"
+              }`}
             />
+            {errors.phone && (
+              <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+            )}
           </div>
           <div>
             <label className="text-sm text-gray-600">Email</label>
@@ -128,8 +155,15 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
+              className={`w-full border rounded-md px-3 py-2 mt-1 focus:ring-2 outline-none ${
+                errors.email
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-500"
+              }`}
             />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+            )}
           </div>
           <div>
             <label className="text-sm text-gray-600">Contact Person</label>
