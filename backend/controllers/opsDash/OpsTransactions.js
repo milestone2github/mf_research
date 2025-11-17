@@ -1555,9 +1555,15 @@ const setServiceManager = async (req, res) => {
   }
 
   try {
-    // Update all matching transactions
+    // Update only transactions WITHOUT any service manager assigned
     const result = await Transactions.updateMany(
-      { familyHead: fh, relationshipManager: rm },
+      { familyHead: fh, relationshipManager: rm , 
+        $or: [
+          { serviceManager: null },
+          { serviceManager: "" },
+          { serviceManager: undefined }
+        ]
+      } ,
       { $set: { serviceManager: toTitleCase(sm) } }
     );
 
