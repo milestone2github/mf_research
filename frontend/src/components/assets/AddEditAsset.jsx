@@ -14,6 +14,7 @@ import {
 } from '../../utils/urlConstants';
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import ConfirmModal from './ConfirmModal';
+import { toast } from "react-toastify";
 
 const AddEditAsset = () => {
   const { id } = useParams();
@@ -33,6 +34,8 @@ const AddEditAsset = () => {
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [showAddTypeModal, setShowAddTypeModal] = useState(false);
   const [showAddCategoryInput, setShowAddCategoryInput] = useState(false);
+  const [loadingCategory, setLoadingCategory] = useState(false);
+  const [loadingType, setLoadingType] = useState(false);
 
   const [newTypeName, setNewTypeName] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -187,6 +190,7 @@ const AddEditAsset = () => {
   if (!newCategoryName.trim()) return;
 
   try {
+    setLoadingCategory(true);
     const res = await axios.post(CREATE_CATEGORY_URL, { name: newCategoryName });
 
     const newCat = res.data.data;
@@ -201,7 +205,10 @@ const AddEditAsset = () => {
     setNewCategoryName('');
     setShowAddCategoryModal(false);  //  closes modal
   } catch (err) {
-    console.error("Error creating category:", err);
+    if (err.response?.status === 409) toast.error("Category already exists");
+    else toast.error("Failed to create category");
+  } finally {
+    setLoadingCategory(false);
   }
 };
 
@@ -210,6 +217,7 @@ const AddEditAsset = () => {
   if (!newTypeName.trim() || !selectedCategoryId) return;
 
   try {
+    setLoadingType(true);
     await axios.post(CREATE_TYPE_URL, {
       name: newTypeName,
       category: selectedCategoryId,
@@ -227,7 +235,10 @@ const AddEditAsset = () => {
     setShowAddTypeModal(false);
     setNewTypeName('');
   } catch (err) {
-    console.error("Error creating type:", err);
+    if (err.response?.status === 409) toast.error("Type already exists");
+    else toast.error("Failed to create type");
+  } finally {
+    setLoadingType(false);
   }
 };
 
@@ -259,6 +270,11 @@ const AddEditAsset = () => {
     setNewMerchantAddress('');
     setShowAddMerchantModal(false);
   } catch (err) {
+    if (err.response?.status === 409) {
+      toast.error("Merchant already exists");
+      return;
+    }
+    toast.error("Failed to create merchant");
     console.error("Error creating merchant:", err);
   } finally {
     setLoadingMerchant(false); // stop spinner
@@ -566,9 +582,14 @@ const AddEditAsset = () => {
               <button
                 onClick={handleAddType}
                 type="button"
+                disabled={loadingType}
                 className="px-4 py-2 bg-blue-600 text-white rounded"
               >
-                Add
+                {loadingType ? (
+                  <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  "Add"
+                )}
               </button>
             </div>
           </div>
@@ -605,9 +626,14 @@ const AddEditAsset = () => {
         <button
           onClick={handleAddCategory}
           type="button"
+          disabled={loadingCategory}
           className="px-4 py-2 bg-green-600 text-white rounded"
         >
-          Add
+          {loadingCategory ? (
+            <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          ) : (
+            "Add"
+          )}
         </button>
       </div>
     </div>
