@@ -4,6 +4,21 @@ import AssetActions from './AssetActions';
 
 const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading, currentPage, ITEMS_PER_PAGE }) => {
   const navigate = useNavigate();
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available':
+        return 'bg-green-100 text-green-700 border border-green-400';
+      case 'allocated':
+        return 'bg-orange-100 text-orange-700 border border-orange-400';
+      case 'repair':
+        return 'bg-yellow-100 text-yellow-700 border border-yellow-400';
+      case 'removed':
+        return 'bg-gray-100 text-gray-700 border border-gray-400';
+      default:
+        return 'bg-gray-100 text-gray-700 border border-gray-400';
+    }
+  };
+
   return (
     <div className="overflow-x-auto border rounded-lg max-w-full shadow-sm">
     <table className="min-w-full bg-white border border-gray-200 text-sm">
@@ -70,7 +85,13 @@ const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading
               {allocatedName}
             </td>
 
-            <td className="py-2 px-4 border-b text-center whitespace-nowrap">{asset.status}</td>
+            <td className="py-2 px-4 border-b text-center whitespace-nowrap">
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold inline-block ${getStatusColor(asset.status)}`}
+            >
+              {asset.status ? asset.status.charAt(0).toUpperCase() + asset.status.slice(1) : '-'}
+            </span>
+           </td>
             <td className="py-2 px-4 border-b text-center whitespace-nowrap">{asset.remarks || '-'}</td>
             <td className="py-2 px-4 border-b whitespace-nowrap">
               <AssetActions

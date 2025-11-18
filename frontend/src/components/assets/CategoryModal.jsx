@@ -6,11 +6,13 @@ import {
   BASE_ASSET, // for category delete & update
 } from "../../utils/urlConstants";
 import ConfirmModal from "./ConfirmModal";
+import { toast } from "react-toastify";
 
 const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories }) => {
   const isEdit = !!selectedCategory;
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
 
   const [formData, setFormData] = useState({
@@ -33,6 +35,7 @@ const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories })
 
   const handleSubmit = async () => {
     try {
+      setSaving(true);
       if (isEdit) {
         await axios.put(
           `${process.env.REACT_APP_API_BASE_URL}${BASE_ASSET(`categories/${selectedCategory._id}`)}`,
@@ -45,8 +48,14 @@ const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories })
       refreshCategories();
       onClose();
     } catch (err) {
-      console.error("Failed to save category:", err);
-    }
+        if (err.response?.status === 409) {
+          toast.error("Category already exists");
+          return;
+        }
+        toast.error("Failed to save category");
+      } finally {
+        setSaving(false);
+      }
   };
 
   const handleDeleteConfirmed = async () => {
@@ -112,9 +121,14 @@ const CategoryModal = ({ isOpen, onClose, selectedCategory, refreshCategories })
           )}
           <button
             onClick={handleSubmit}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md"
+            disabled={saving}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md flex items-center justify-center"
           >
-            Save
+            {saving ? (
+              <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            ) : (
+              "Save"
+            )}
           </button>
         </div>
       </div>

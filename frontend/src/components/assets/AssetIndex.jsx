@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import SearchModal from '../common/SearchModal';
 import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 import { Link, useNavigate } from 'react-router-dom';
 import AssetList from './AssetList';
@@ -21,6 +20,7 @@ function AssetIndex() {
   const [categories, setCategories] = useState([]);
   const [types, setTypes] = useState([]);
   const status = ['available', 'allocated', 'repair', 'removed'];
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -136,8 +136,28 @@ function AssetIndex() {
 			{/* Filters */}
 			<div className="flex flex-wrap gap-4 justify-between items-center mb-6">
 				<div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
-					<SearchModal onSearch={handleSearch} />
-
+        {/*  search for asset */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSearch(searchTerm);
+          }}
+          className="flex flex-wrap gap-3 items-center"
+        >
+          <input
+            type="text"
+            placeholder="Search by asset name,serial no, brand, model"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="border px-3 py-2 rounded-md w-56 focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md"
+          >
+            Search
+          </button>
+        </form>
 					{/* Category Filter */}
 					<select
 						className="border px-3 py-2 rounded-md w-36"

@@ -772,7 +772,7 @@ const getAssignedAssets = async (req, res) => {
   try {
     const { q, sortBy } = req.query;
 
-    const assets = await Assets.find({ "allocations.0": { $exists: true } })
+    const assets = await Assets.find({ "allocations.status": 'allocated' })
   .populate("allocations.userId", "name email")
   .populate("allocations.assignedBy", "name email")
   .populate("updatedBy", "name email")

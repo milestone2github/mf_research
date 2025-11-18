@@ -36,7 +36,7 @@ const ConfirmModal = ({
         </h2>
 
         {/* Message */}
-        <p className="text-gray-600 text-center mb-6">{message}</p>
+        <p className="text-gray-600 text-center mb-6 whitespace-pre-line break-words">{message}</p>
 
         {/* Buttons */}
         <div className="mt-6 flex justify-end gap-3 w-full px-1">
