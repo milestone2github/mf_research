@@ -1555,16 +1555,19 @@ const setServiceManager = async (req, res) => {
   }
 
   try {
-    // Update only transactions WITHOUT any service manager assigned
+    // Update only transactions which are in pending state
     const result = await Transactions.updateMany(
-      { familyHead: fh, relationshipManager: rm , 
+      {
+        familyHead: fh,
+        relationshipManager: rm,
         $or: [
-          { serviceManager: null },
-          { serviceManager: "" },
-          { serviceManager: undefined }
+          { hasFractions: false, status: 'PENDING' },
+          { hasFractions: true, 'transactionFractions.status': 'PENDING' }
         ]
-      } ,
-      { $set: { serviceManager: toTitleCase(sm) } }
+      },
+      {
+        $set: { serviceManager: toTitleCase(sm) }
+      }
     );
 
     // If no transactions were updated, send a 404 error
