@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import ConfirmModal from "./ConfirmModal";
+import { toast } from "react-toastify";
 
 const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) => {
   const isEdit = !!selectedMerchant;
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -70,6 +72,7 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
     if (Object.keys(newErrors).length > 0) return;
 
     try {
+      setSaving(true);
       if (isEdit) {
         await axios.put(
           `${process.env.REACT_APP_API_BASE_URL}/api/assets/merchants/${selectedMerchant._id}`,
@@ -86,7 +89,13 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
       refreshMerchants();
       onClose();
     } catch (err) {
-      console.error("Error saving merchant:", err);
+      if (err.response?.status === 409) {
+        toast.error("Merchant already exists");
+        return;
+      }
+      toast.error("Failed to save merchant");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -211,9 +220,14 @@ const MerchantModal = ({ isOpen, onClose, selectedMerchant, refreshMerchants }) 
           )}
           <button
             onClick={handleSubmit}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md"
+            disabled={saving}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md flex items-center justify-center"
           >
-            {isEdit ? "Update" : "Save"}
+            {saving ? (
+              <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            ) : (
+              isEdit ? "Update" : "Save"
+            )}
           </button>
         </div>
       </div>
