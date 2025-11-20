@@ -4,6 +4,9 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useRef } from "react";
 import { BASE_LOCATION_COORDINATES } from "../../utils/stringConstants";
+import { IoBatteryHalf, IoBatteryFull  } from "react-icons/io5";
+import { PiBatteryLowFill } from "react-icons/pi";
+import { TbBatteryOff } from "react-icons/tb";
 
 export const TrackFERoute = () => {
 	const baseUrl = process.env.REACT_APP_API_BASE_URL;
@@ -159,11 +162,38 @@ export const TrackFERoute = () => {
 		markersRef.current = newMarkers;
 	}, [feData, map]);
 
+	const BatteryIndicator = (percentage) => {
+		if (percentage == null) {
+			return (
+				<div className="flex flex-col items-center leading-tight">
+					<span className="text-[9px] text-gray-600">Battery</span>
+				</div>
+			);
+		}
+		if (percentage <= 20)
+			return (
+				<div className="flex flex-col items-center leading-tight">
+					<PiBatteryLowFill    size={32} className="text-red-600" />
+				</div>
+			);
+		if (percentage <= 60)
+			return (
+				<div className="flex flex-col items-center leading-tight">
+					<IoBatteryHalf size={32} className="text-yellow-500" />
+				</div>
+			);
+
+		return (
+			<div className="flex flex-col items-center leading-tight">
+				<IoBatteryFull size={32} className="text-green-600" />
+			</div>
+		);
+	};
+
 	return (
-		<div className="max-w-3xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-xl">
-			<div className="flex">
-				{/* Back button */}
-				<div className="mb-4">
+		<div className="max-w-3xl mx-auto mt-2 p-6 bg-white shadow-lg rounded-xl">
+			<div className="flex justify-between">
+				<div className="w-24">
 					<button
 						type="button"
 						onClick={() => navigate(-1)}
@@ -172,12 +202,15 @@ export const TrackFERoute = () => {
 						← Back
 					</button>
 				</div>
-				<h1 className="mx-auto text-2xl font-bold mb-4 text-center">
+				<h1 className="text-2xl font-bold mb-4 text-center">
 					Track FE Route
 				</h1>
+				<div className="w-24"></div>
 			</div>
 
+			{/* ---------------- FE Select + Battery + Refresh ---------------- */}
 			<div className="flex items-center gap-4 mb-4">
+				{/* Select FE */}
 				<select
 					value={selectedFE}
 					onChange={(e) => {
@@ -194,6 +227,32 @@ export const TrackFERoute = () => {
 					))}
 				</select>
 
+				{/* Battery Indicator (MIDDLE) */}
+				<div className="flex items-center gap-1 min-w-[80px] h-[38px] border border-gray-400 px-2 rounded-lg">
+
+					{/* Battery Icon + Label */}
+					<div className="flex flex-col items-center justify-center leading-tight">
+						{BatteryIndicator(feData?.latestBattery?.batteryPercentage)}
+					</div>
+
+					{/* Percentage OR N/A */}
+					<span
+						className={`text-xl font-medium ${feData?.latestBattery?.batteryPercentage == null
+								? "text-gray-500"
+								: feData.latestBattery.batteryPercentage <= 20
+									? "text-red-600"
+									: feData.latestBattery.batteryPercentage <= 60
+										? "text-yellow-500"
+										: "text-green-600"
+							}`}
+					>
+						{feData?.latestBattery?.batteryPercentage == null
+							? <TbBatteryOff size={32} className="text-gray-600" />
+							: `${feData.latestBattery.batteryPercentage}%`}
+					</span>
+
+				</div>
+
 				<button
 					onClick={() => fetchFEData(selectedFE)}
 					disabled={!selectedFE}
@@ -203,6 +262,7 @@ export const TrackFERoute = () => {
 				</button>
 			</div>
 
+			{/* Map */}
 			<div id="map" className="w-full h-96 rounded-lg shadow-inner"></div>
 		</div>
 	);

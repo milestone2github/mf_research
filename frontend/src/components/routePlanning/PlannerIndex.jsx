@@ -11,12 +11,12 @@ const PlannerIndex = () => {
 				>
 					Create New Field Executive
 				</Link>
-				<Link
+				{/* <Link
 					to="client/add"
 					className="border px-6 py-8 rounded text-2xl basis-64 grow shrink hover:bg-white"
 				>
 					Create New Client
-				</Link>
+				</Link> */}
 				<Link
 					to="client/add/visit"
 					className="border px-6 py-8 rounded text-2xl basis-64 grow shrink hover:bg-white"
