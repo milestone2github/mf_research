@@ -1,35 +1,56 @@
-import React, { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { BsArrowDownCircle, BsPencilSquare } from "react-icons/bs";
 import { CgSpinner } from "react-icons/cg";
 import { BiLoaderAlt } from "react-icons/bi";
 import { IoMdClose } from 'react-icons/io';
 import { updateToast } from '../../reducers/ToastSlice';
-import Toast from '../common/Toast'
+import Toast from '../common/Toast';
 import { createUser, getUser, updateUser } from '../../Actions/MarketingUserAction';
 import axios from 'axios';
 import footerImgSrc from '../../assets/FooterMarketingTemplate.png';
 
+//  Image Loader Utility
 const loadImage = (src) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous'; // important if images are served from another domain with CORS
+    img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = src;
   });
 };
 
+//  Skeleton Card Component
+const TemplateSkeleton = () => (
+  <div className="relative w-[316px] sm:w-[395px] overflow-hidden shadow rounded">
+    {/* Main image placeholder */}
+    <div className="w-full bg-gray-200 animate-pulse" style={{ height: '260px' }} />
+
+    {/* Footer placeholder */}
+    <div className="w-full bg-gray-300 animate-pulse" style={{ height: '72px' }} />
+  </div>
+);
+
+
+/* ---------------------------
+   Main Component
+--------------------------- */
 function MarketingTemplates() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [hasCreatedMarketingUser, setHasCreatedMarketingUser] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const { userData } = useSelector((state) => state.user)
-  const { user, status, error, fetchStatus } = useSelector(state => state.marketingUser)
-
-  const dispatch = useDispatch()
   const [templates, setTemplates] = useState([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);   // NEW
+  const [imageLoaded, setImageLoaded] = useState({});              // NEW
+  const { userData } = useSelector((state) => state.user);
+  const { user, status, error, fetchStatus } = useSelector(state => state.marketingUser);
 
+  const dispatch = useDispatch();
+
+
+  //  Full Image → Download Generator
   async function convertToImage(tpl, user) {
     try {
       setIsDownloading(true);
@@ -112,29 +133,35 @@ function MarketingTemplates() {
     }
   }
 
-  const handleEditMarkting = () => {
-    setIsModalOpen(true)
-  }
 
-  const handleCancelEdit = () => {
-    setIsModalOpen(false)
-  }
+  const handleEditMarkting = () => setIsModalOpen(true);
+  const handleCancelEdit = () => setIsModalOpen(false);
 
+  //  Fetch User
   useEffect(() => {
-    dispatch(getUser())
-  }, [])
+    dispatch(getUser());
+  }, []);
 
+
+  //  Fetch Templates
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/`);
+        setTemplatesLoading(true);
+
+        const res = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/`
+        );
+
         if (res.data.success) {
-          setTemplates(res.data.data); // store templates from backend
+          setTemplates(res.data.data);
         } else {
-          console.error('Failed to fetch templates:', res.data.message);
+          console.error('Failed:', res.data.message);
         }
       } catch (err) {
-        console.error('Error fetching templates:', err);
+        console.error('Error:', err);
+      } finally {
+        setTemplatesLoading(false);
       }
     };
 
@@ -142,61 +169,109 @@ function MarketingTemplates() {
   }, []);
 
 
-
+  //  Auto-create Marketing User
   useEffect(() => {
     if (fetchStatus === 404 && !hasCreatedMarketingUser) {
-      const marketingUserPayload = {
+      dispatch(createUser({
         name: userData.name,
         email: userData.email,
         phone: user?.phone || userData?.phone || user?.user?.onboarding?.hrFilledInfo?.phone || ''
-      };
-      dispatch(createUser(marketingUserPayload))
-      setHasCreatedMarketingUser(true)
-    }
-    else if (fetchStatus !== 404 && error) {
-      console.error(error)
-      dispatch(updateToast({ type: 'error', message: error }))
-    }
-  }, [fetchStatus, error, hasCreatedMarketingUser])
+      }));
 
-  if (status === 'pending')
-    return (<div className=" h-[80vh] flex justify-center items-center">
-      <div className="loader"></div>
-    </div>)
+      setHasCreatedMarketingUser(true);
+    }
 
-  return (
-    <main className='relative overflow-x-hidden'>
-      <div className='mb-2 flex bg-gray-100 px-2 py-2 rounded-lg'>
-        <h3 className='text-3xl font-bold '>Marketing Templates</h3>
-        <div className='fixed z-10 bottom-6 right-6 p-3 rounded-lg bg-white shadow-slate-200'>
-          <button title='Edit branding'
+    if (fetchStatus !== 404 && error) {
+      dispatch(updateToast({ type: 'error', message: error }));
+    }
+  }, [fetchStatus, error]);
+
+
+  //  Loading UI for fetching user
+  if (status === 'pending') {
+    return (
+      <div className="h-[80vh] flex justify-center items-center">
+        <div className="loader"></div>
+      </div>
+    );
+  }
+
+
+
+ return (
+    <main className="relative overflow-x-hidden">
+
+      <div className="mb-2 flex bg-gray-100 px-2 py-2 rounded-lg">
+        <h3 className="text-3xl font-bold">Marketing Templates</h3>
+
+        <div className="fixed z-10 bottom-6 right-6 p-3 rounded-lg bg-white shadow-slate-200">
+          <button
+            title="Edit branding"
             onClick={handleEditMarkting}
-            className='border text-sm flex items-center rounded-md py-3 px-3 bg-blue-500 hover:bg-blue-600 text-white'>
+            className="border text-sm flex items-center rounded-md py-3 px-3 bg-blue-500 hover:bg-blue-600 text-white"
+          >
             <BsPencilSquare />
           </button>
-
         </div>
       </div>
-      <section className='flex flex-wrap gap-6 sm:gap-8 justify-center mt-4'>{
-        templates.length <= 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 mt-8 text-center w-full">
+
+
+      {/* TEMPLATES GRID + SKELETONS */}
+      <section className="flex flex-wrap gap-6 sm:gap-8 justify-center mt-4">
+
+        {/* PAGE-LEVEL SKELETONS */}
+        {templatesLoading ? (
+          <>
+            {Array.from({ length: 4 }).map((_, i) => <TemplateSkeleton key={i} />)}
+          </>
+        ) : templates.length === 0 ? (
+          <div className="flex flex-col items-center py-10 mt-8 text-center w-full">
             <h2 className="text-gray-700 font-medium text-lg">Nothing here yet.</h2>
             <p className="text-gray-500 text-sm mt-1">
               Templates will appear once they’re published.
             </p>
           </div>
-        ) :
-          (templates.map((tpl) => (
-            <div key={tpl._doc._id} className='relative group w-[316px] sm:w-[395px] overflow-hidden shadow'>
-              <figure id={`image-${tpl._doc._id}`}>
-                <img
-                  src={tpl.proxyImageUrl}
-                  className='w-[316px] sm:w-[395px]' alt={tpl._doc.title}
-                />
+        ) : (
+          templates.map((tpl) => {
+            const id = tpl._doc._id;
+            const loaded = imageLoaded[id];
 
-                {/* footer  */}
+            return (
+              <div
+                key={id}
+                className="relative group w-[316px] sm:w-[395px] overflow-hidden shadow rounded"
+              >
 
-                <div
+                {/* CARD-LEVEL SKELETON */}
+                {!loaded && (
+                  <div className="absolute inset-0 z-0">
+                    <div className="w-full bg-gray-200 animate-pulse" style={{ height: '260px' }} />
+                    <div className="w-full bg-gray-300 animate-pulse" style={{ height: '72px' }} />
+                  </div>
+                )}
+
+
+                {/* REAL CARD */}
+                <figure
+                  className={`relative z-10 transition-opacity duration-300 ${
+                    loaded ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  {/* Main Image */}
+                  <img
+                    src={tpl.proxyImageUrl}
+                    alt={tpl._doc.title}
+                    className="w-[316px] sm:w-[395px]"
+                    onLoad={() =>
+                      setImageLoaded((prev) => ({ ...prev, [id]: true }))
+                    }
+                    onError={() =>
+                      setImageLoaded((prev) => ({ ...prev, [id]: true }))
+                    }
+                  />
+
+                  {/* footer  */}
+                  <div
                   id={`top-container-${tpl._doc._id}`}
                   className="relative w-full text-white"
                 >
@@ -216,7 +291,7 @@ function MarketingTemplates() {
                     className="absolute left-[56%] top-[40%] flex flex-col text-[6px] sm:text-[7px] font-bold leading-tight text-gray-600"
                   >
 
-                    <div className="flex items-center mt-[1.5px]">{user?.name}</div>
+                    <div className="flex items-center mt-[2px]">{user?.name}</div>
                     <div className="flex items-center mt-[5px]">{user?.email}</div>
                     <div className="flex items-center mt-[4px]">+91 {user?.phone}</div>
 
@@ -235,30 +310,36 @@ function MarketingTemplates() {
                     </button>
                 </div>
 
-              </figure>
-            </div>)))}
+                </figure>
+              </div>
+            );
+          })
+        )}
+
       </section>
 
+
+      {/* SIDEBAR FORM + TOAST */}
       <UserForm isModalOpen={isModalOpen} handleClose={handleCancelEdit} />
       <Toast />
     </main>
-  )
+  );
 }
 
 export default MarketingTemplates
 
 const UserForm = ({ isModalOpen, handleClose }) => {
-  const { user, updateStatus, error } = useSelector(state => state.marketingUser)
-  const { userData } = useSelector((state) => state.user)
+  const { user, updateStatus } = useSelector(state => state.marketingUser);
+  const { userData } = useSelector((state) => state.user);
 
   const [marketingUser, setMarketingUser] = useState({
     _id: user?._id,
     name: user?.name || userData?.name || '',
     email: user?.email || userData?.email || '',
     phone: user?.user?.onboarding?.hrFilledInfo?.phone || user?.phone || ''
-  })
+  });
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   useEffect(() => {
     // When marketingUser changes in store, sync local form
@@ -267,15 +348,12 @@ const UserForm = ({ isModalOpen, handleClose }) => {
       name: user?.name || userData?.name || '',
       email: user?.email || userData?.email || '',
       phone: user?.phone || userData?.phone || user?.user?.onboarding?.hrFilledInfo?.phone || ''
-    })
-  }, [user, userData])
-
+    });
+  }, [user, userData]);
 
   useEffect(() => {
-    if (updateStatus === 'completed') {
-      handleClose()
-    }
-  }, [updateStatus])
+    if (updateStatus === 'completed') handleClose();
+  }, [updateStatus]);
 
   const handleBrandingChange = (e) => {
     const { name, value } = e.target
@@ -357,5 +435,5 @@ const UserForm = ({ isModalOpen, handleClose }) => {
         </div>
       </form>
     </section>
-  )
-}
+  );
+};
