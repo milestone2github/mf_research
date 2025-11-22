@@ -1,56 +1,115 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import html2canvas from 'html2canvas'
 import { BsArrowDownCircle, BsPencilSquare } from "react-icons/bs";
+import { CgSpinner } from "react-icons/cg";
 import { BiLoaderAlt } from "react-icons/bi";
 import { IoMdClose } from 'react-icons/io';
 import { updateToast } from '../../reducers/ToastSlice';
 import Toast from '../common/Toast'
 import { createUser, getUser, updateUser } from '../../Actions/MarketingUserAction';
 import axios from 'axios';
+import footerImgSrc from '../../assets/FooterMarketingTemplate.png';
 
+const loadImage = (src) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // important if images are served from another domain with CORS
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+};
 
 function MarketingTemplates() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [hasCreatedMarketingUser, setHasCreatedMarketingUser] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { userData } = useSelector((state) => state.user)
   const { user, status, error, fetchStatus } = useSelector(state => state.marketingUser)
-  
 
   const dispatch = useDispatch()
   const [templates, setTemplates] = useState([]);
 
-  function convertToImage(templateId) {
-    // console.log('imageId: ', imageId)
-    const content = document.getElementById(`image-${templateId}`);
-    const topContainer = document.getElementById(`top-container-${templateId}`)
-    const brandContainer = document.getElementById(`brand-container-${templateId}`)
-   // safeguard in case elements are missing
-    if (!content || !topContainer || !brandContainer) return;
+  async function convertToImage(tpl, user) {
+    try {
+      setIsDownloading(true);
+      // 1) Load main template image
+      const mainImg = await loadImage(tpl.proxyImageUrl);
 
-    // adjust layout before capture
-    topContainer.style.paddingTop = '0'
-    brandContainer.style.marginTop = '-4px'
+      // 2) Load footer background image
+      const footerImg = await loadImage(footerImgSrc);
 
-    html2canvas(content, {
-      scale: window.devicePixelRatio * 2, useCORS: true,
-      allowTaint: true,
-      logging: true,
-      letterRendering: true,
-    }).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      // console.log('canvas created.'); // test
-      const link = document.createElement('a');
-      link.href = imgData;
-      link.download = 'output.png';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      // console.log('image downloaded.'); // test
-      // revert layout after capture
-      topContainer.style.paddingTop = 'auto'
-      brandContainer.style.marginTop = '0'
-    });
+      // Keep the footer aspect ratio but scale it to the width of the main image
+      const footerHeight = Math.round(
+        (footerImg.naturalHeight / footerImg.naturalWidth) * mainImg.naturalWidth
+      );
+
+      // 3) Prepare canvas using original image width
+      const canvas = document.createElement('canvas');
+      canvas.width = mainImg.naturalWidth;
+      canvas.height = mainImg.naturalHeight + footerHeight;
+
+      const ctx = canvas.getContext('2d');
+
+      // 4) Draw the main template image
+      ctx.drawImage(mainImg, 0, 0, canvas.width, mainImg.naturalHeight);
+
+      // 5) Draw the footer background
+      ctx.drawImage(
+        footerImg,
+        0,
+        mainImg.naturalHeight,    // start drawing at the bottom of main image
+        canvas.width,
+        footerHeight
+      );
+
+      // 6) Draw text (name, email, phone)
+      // Set font & color
+      const fontSize = Math.round(canvas.width * 0.018);
+      ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+      ctx.fillStyle = "#374151";
+
+      // Use TOP baseline for easier control
+      ctx.textBaseline = "top";
+
+      // Horizontal position (same as preview: left ~56%)
+      const textX = canvas.width * 0.56;
+
+      // TOP of the footer area
+      const footerTop = mainImg.naturalHeight;
+
+      // Now exact Y positions for each line
+      const nameY = footerTop + footerHeight * 0.44;
+      const emailY = footerTop + footerHeight * 0.63;
+      const phoneY = footerTop + footerHeight * 0.81;
+
+      ctx.fillText(user?.name || "", textX, nameY);
+      ctx.fillText(user?.email || "", textX, emailY);
+      ctx.fillText(`+91 ${user?.phone || ""}`, textX, phoneY);
+
+
+      // 7) Export as PNG (max quality). Use JPEG if you really want smaller files.
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return;
+
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          // link.download = `${tpl._doc.title || 'template'}.png`;
+          link.download = `${tpl._doc.title || 'template'}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+        },
+        // 'image/png'
+        'image/jpeg', 0.92
+      );
+    } catch (err) {
+      console.error('Error generating image:', err);
+    } finally {
+      setIsDownloading(false);
+    }
   }
 
   const handleEditMarkting = () => {
@@ -127,59 +186,57 @@ function MarketingTemplates() {
             </p>
           </div>
         ) :
-        (templates.map((tpl) => (
-          <div key={tpl._doc._id } className='relative group w-[316px] sm:w-[395px] overflow-hidden shadow'>
-            <figure id={`image-${tpl._doc._id }`}>
-              <img
-                src={tpl.proxyImageUrl}
-                className='w-[316px] sm:w-[395px]' alt={tpl._doc.title }
-              />
-      
-              {/* footer  */}
-
-              <div
-                id={`top-container-${tpl._doc._id}`}
-                className="relative w-full text-white"
-              >
+          (templates.map((tpl) => (
+            <div key={tpl._doc._id} className='relative group w-[316px] sm:w-[395px] overflow-hidden shadow'>
+              <figure id={`image-${tpl._doc._id}`}>
                 <img
-                  src={require('../../assets/FooterMarketingTemplate.png')}
-                  alt="footer"
-                  style={{
-                    width: '100%',
-                    height: '72px',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
+                  src={tpl.proxyImageUrl}
+                  className='w-[316px] sm:w-[395px]' alt={tpl._doc.title}
                 />
-                {/* Overlay text */}
+
+                {/* footer  */}
+
                 <div
-                  id={`brand-container-${tpl._doc._id}`}
-                  className="absolute left-[56%] top-[40%] flex flex-col text-[6px] sm:text-[7px] font-bold leading-tight text-gray-600"
+                  id={`top-container-${tpl._doc._id}`}
+                  className="relative w-full text-white"
                 >
+                  <img
+                    src={footerImgSrc}
+                    alt="footer"
+                    style={{
+                      width: '100%',
+                      height: '72px',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                  {/* Overlay text */}
+                  <div
+                    id={`brand-container-${tpl._doc._id}`}
+                    className="absolute left-[56%] top-[40%] flex flex-col text-[6px] sm:text-[7px] font-bold leading-tight text-gray-600"
+                  >
 
-                  <div className="flex items-center mt-[.5px]">{user?.name}</div>
-                  <div className="flex items-center mt-[5px]">{user?.email}</div>
-                  <div className="flex items-center mt-[5px]">+91 {user?.phone}</div>
+                    <div className="flex items-center mt-[1.5px]">{user?.name}</div>
+                    <div className="flex items-center mt-[5px]">{user?.email}</div>
+                    <div className="flex items-center mt-[4px]">+91 {user?.phone}</div>
 
+                  </div>
                 </div>
-              </div>
 
-              {/* Download button */}
-              <div className='absolute left-0 -bottom-full w-full h-full transition-all duration-300 bg-black/20 flex items-start justify-center group-hover:bottom-0'>
-              </div>
-              <div className='absolute flex items-center justify-center w-full py-6 px-16 transition-all duration-200 delay-75 -top-full group-hover:top-0  bg-indigo-950'>
-                <button
-                  onClick={() => {
-                    convertToImage(tpl._doc._id)}}
-                  className='border text-sm flex items-center gap-1 py-2 px-8 bg-[#307473] hover:bg-[#2A6564] text-white'
-                ><BsArrowDownCircle />
-                  <span>Download</span>
-                </button>
+                {/* Overlay + download button */}
+                <div className="absolute inset-0 flex items-end justify-center transition-all group-hover:bg-gradient-to-bl from-black/20 to-transparent bg-transparent duration-300 ease-out group-hover:bg-black/10">
+                    <button
+                      onClick={() => convertToImage(tpl, user)}
+                      className="group hidden group-hover:flex justify-center absolute top-2 right-2 items-center gap-2 px-5 py-2.5 rounded-full bg-white/20 text-white font-medium backdrop-blur-sm  border border-white transition-all hover:bg-white/30 hover:shadow-xl cursor-pointer min-w-36"
+                    >
+                      {!isDownloading ? <><BsArrowDownCircle className="text-xl transition-transform duration-200 " />
+                      <span className="text-base tracking-wide">Download</span> </> :
+                      <span className="text-xl tracking-wide animate-spin"><CgSpinner /></span>}
+                    </button>
+                </div>
 
-              </div>
-
-            </figure>
-          </div>)))}
+              </figure>
+            </div>)))}
       </section>
 
       <UserForm isModalOpen={isModalOpen} handleClose={handleCancelEdit} />
@@ -231,7 +288,7 @@ const UserForm = ({ isModalOpen, handleClose }) => {
   }
 
   const handleCancel = (e) => {
-     setMarketingUser({
+    setMarketingUser({
       _id: user?._id,
       name: user?.name || userData?.name || '',
       email: user?.email || userData?.email || '',
