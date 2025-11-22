@@ -302,6 +302,16 @@ export const appRoutes = [
 		showInSidebar: true
   },
 
+	// insurance policy finder
+	{ 
+		requiredPermission: "insurance_policy_finder",
+		to: 'https://insurancefinder.mnivesh.com/admin/rm',
+		label: 'Insurance Policy Finder',
+		external: true,
+		protected: true,
+		showInSidebar: true
+  },
+
 	// Route Optimization
 	{
 		requiredPermission: "route_optimization",
