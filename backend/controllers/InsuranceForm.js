@@ -1,26 +1,21 @@
 // backend/controllers/InsuranceForm.js
 const express = require("express");
-const { MongoClient } = require("mongodb");
 
 const router = express.Router();
+const { connectToMilestoneDB } = require("../dbConfig/connection"); // adjust path
 
-// ---- Direct Mongo connection in this file ----
-const MONGO_URI = process.env.MONGO_URI;
-const DB_NAME = "Milestone";
-
-if (!MONGO_URI) {
-  throw new Error("MONGO_URI is not set in .env");
-}
-
-const client = new MongoClient(MONGO_URI);
 let collection;
-
-// connect once and reuse (not websocket, just DB pool)
 async function getCollection() {
   if (!collection) {
-    await client.connect();
-    const db = client.db(DB_NAME);
-    collection = db.collection("policies_data_aria"); // collection name you want
+    const conn = connectToMilestoneDB();
+    // wait until connected if needed
+    if (conn.readyState !== 1) {
+      await new Promise((resolve, reject) => {
+        conn.once("connected", resolve);
+        conn.once("error", reject);
+      });
+    }
+    collection = conn.db.collection("policies_data_aria");
   }
   return collection;
 }
