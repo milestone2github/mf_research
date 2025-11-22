@@ -366,8 +366,8 @@ export const appRoutes = [
 	
 	// InsuranceForm
 	{
-		requiredPermission: "insurace_form",
-		to: "/insurace-form",
+		requiredPermission: "insurance_form",
+		to: "/insurance-form",
 		element: <InsuranceForm />,
 		label: "Insurance Form",
 		protected: true,
