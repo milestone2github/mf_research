@@ -1,24 +1,6 @@
 // backend/controllers/InsuranceForm.js
 const express = require("express");
-
 const router = express.Router();
-const { connectToMilestoneDB } = require("../dbConfig/connection"); // adjust path
-
-let collection;
-async function getCollection() {
-  if (!collection) {
-    const conn = connectToMilestoneDB();
-    // wait until connected if needed
-    if (conn.readyState !== 1) {
-      await new Promise((resolve, reject) => {
-        conn.once("connected", resolve);
-        conn.once("error", reject);
-      });
-    }
-    collection = conn.db.collection("policies_data_aria");
-  }
-  return collection;
-}
 
 // ---- Build final JSON like your structure ----
 function buildPolicyJSON(f) {
@@ -176,8 +158,12 @@ router.post("/", async (req, res) => {
 
     const finalDoc = buildPolicyJSON(formPayload);
 
-    const col = await getCollection();
-    const result = await col.insertOne({
+    // Milestone DB from middleware
+    const db = req.milestoneDb;
+    const policiesCollection = db.collection("policies_data_aria");
+
+    // const result = await col.insertOne({
+    const result = await policiesCollection.insertOne({
       ...finalDoc,
       _ingestedAt: new Date(),
       _source: "insurance_form",
