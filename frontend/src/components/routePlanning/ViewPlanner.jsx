@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { MdContentCopy } from "react-icons/md";
+import { getPriorityLabel } from "../../utils/routeOptimPriorityLabel";
 
 export const ViewPlanner = () => {
 	const baseUrl = process.env.REACT_APP_API_BASE_URL;
@@ -290,10 +291,10 @@ export const ViewPlanner = () => {
 														})()}
 													</td>
 
-													<td className="px-4 py-2 border">
-														{slot.visit?.priority || "-"}
+													<td className="px-4 py-2 border text-xs">
+														{getPriorityLabel(slot.visit?.priority) || "-"}
 													</td>
-													<td className="px-4 py-2 border">
+													<td className="px-4 py-2 border text-xs">
 														{slot.visit?.purposeOfVisit || "-"}
 													</td>
 													<td className="px-4 py-2 border">
