@@ -7,6 +7,7 @@ import { BASE_LOCATION_COORDINATES } from "../../utils/stringConstants";
 import { IoBatteryHalf, IoBatteryFull  } from "react-icons/io5";
 import { PiBatteryLowFill } from "react-icons/pi";
 import { TbBatteryOff } from "react-icons/tb";
+import { formatDateWithTime } from "../../utils/formatDate";
 
 export const TrackFERoute = () => {
 	const baseUrl = process.env.REACT_APP_API_BASE_URL;
@@ -192,8 +193,9 @@ export const TrackFERoute = () => {
 
 	return (
 		<div className="max-w-3xl mx-auto mt-2 p-6 bg-white shadow-lg rounded-xl">
-			<div className="flex justify-between">
-				<div className="w-24">
+			{/* ---------------- Header Row: Back + Title + Last Updated ---------------- */}			{/* ---------------- Header Row: Back + Title + Last Updated ---------------- */}
+			<div className="grid grid-cols-3 items-center mb-3 h-12">
+				<div className="flex items-center  h-full">
 					<button
 						type="button"
 						onClick={() => navigate(-1)}
@@ -202,10 +204,23 @@ export const TrackFERoute = () => {
 						← Back
 					</button>
 				</div>
-				<h1 className="text-2xl font-bold mb-4 text-center">
+				<h1 className="text-xl font-semibold text-center m-0  flex items-center justify-center h-full">
 					Track FE Route
 				</h1>
-				<div className="w-24"></div>
+
+				{/* Last Updated */}
+				<div className="text-right text-xs text-gray-600  flex items-center justify-end h-full px-1">
+					{feData?.latestBattery?.timestamps ? (
+						<>
+							<span className="font-medium">Last updated:&nbsp;</span>
+							<span className="italic">
+								{formatDateWithTime(feData.latestBattery.timestamps)}
+							</span>
+						</>
+					) : (
+						<span className="text-gray-500 font-medium">Last Updated: N/A</span>
+					)}
+				</div>
 			</div>
 
 			{/* ---------------- FE Select + Battery + Refresh ---------------- */}

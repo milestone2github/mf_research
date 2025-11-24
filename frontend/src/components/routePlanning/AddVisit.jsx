@@ -147,7 +147,7 @@ export const AddVisit = () => {
 			} catch (err) {
 				console.error("Error fetching address suggestions:", err);
 			}
-		}, 1500);
+		}, 1000);
 	};
 
 
