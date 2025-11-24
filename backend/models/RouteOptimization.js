@@ -1,13 +1,21 @@
 const { Schema, model } = require("mongoose");
+const { connectToMilestoneDB } = require('../dbConfig/connection');
+
+const mintConnection  = connectToMilestoneDB();
 
 // -------------------- Client --------------------
 const clientSchema = new Schema(
-	{
-		name: { type: String, required: true },
-		address: { type: String, required: true },
-		contactNumber: { type: String, required: true, unique: true },
-	},
-	{ timestamps: true }
+  {
+    // use DB keys as paths and alias them to our app-friendly names
+    NAME: { type: String, alias: "name" },
+    EMAIL: { type: String, alias: "email" },
+    MOBILE: { type: String, alias: "mobile" },
+    ADDRESS1: { type: String, alias: "address1" },
+    ADDRESS2: { type: String, alias: "address2" },
+    CITY: { type: String, alias: "city" },
+    PIN: { type: String, alias: "pin" },
+  },
+  { timestamps: true, strict: false, collection: "MintDb" }
 );
 
 // -------------------- Field Executive Comments --------------------
@@ -98,6 +106,12 @@ const fieldExecutiveRouteSchema = new Schema(
 			},
 		],
 		currentClient: { type: Schema.Types.ObjectId, ref: "Client" },
+		battery: [
+			{
+				timestamps: { type: Date, required: true },
+				batteryPercentage: { type: Number, required: true },
+			},
+		],
 	},
 	{ timestamps: true }
 );
@@ -147,7 +161,7 @@ fieldExecutiveRouteSchema.index({
 // });
 
 // -------------------- Models --------------------
-const Client = model("Client", clientSchema);
+const Client = mintConnection.model("Client", clientSchema);
 const ClientMeeting = model("ClientMeeting", clientMeetingSchema);
 const FE = model("FE", fieldExecutiveSchema);
 const FERoute = model("FERoute", fieldExecutiveRouteSchema);
