@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { MdContentCopy } from "react-icons/md";
+import { getPriorityLabel } from "../../utils/routeOptimPriorityLabel";
 
 export const ViewUnassignedClients = () => {
 	const [clients, setClients] = useState([]);
@@ -187,7 +188,7 @@ export const ViewUnassignedClients = () => {
 														visit.availability.start
 													)} - ${formatDateTime(visit.availability.end)}`}
 											</td>
-											<td className="p-2 border">{visit.priority ?? 0}</td>
+											<td className="p-2 border text-xs">{getPriorityLabel(visit.priority)}</td>
 											<td className="p-2 border">
 												<button
 													className="px-2 py-1 bg-green-500 text-white rounded"

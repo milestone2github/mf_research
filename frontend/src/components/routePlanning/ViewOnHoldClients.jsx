@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { MdContentCopy } from "react-icons/md";
+import { getPriorityLabel } from "../../utils/routeOptimPriorityLabel";
 
 export const ViewOnHoldClients = () => {
 	const [clients, setClients] = useState([]);
@@ -212,8 +213,8 @@ export const ViewOnHoldClients = () => {
 														c.availability.end
 													)}`}
 											</td>
-											<td className="p-2 border">{c.priority ?? 0}</td>
-											<td className="p-2 border">{c.purposeOfVisit ?? "-"}</td>
+											<td className="p-2 border text-xs">{getPriorityLabel(c.priority)}</td>
+											<td className="p-2 border text-xs">{c.purposeOfVisit ?? "-"}</td>
 
 											<td className="p-2 border whitespace-nowrap">
 												<span
