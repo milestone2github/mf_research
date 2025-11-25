@@ -1,14 +1,17 @@
 const mongoose = require("mongoose");
+const axios = require("axios");
 const { FE, FERoute, Client, ClientMeeting } = require("../models/RouteOptimization");
 const { baseLocation } = require("../utils/constants");
 const { getLocationCoordinates } = require("../utils/getLocationCoordinates");
 const { optimizeFERoute } = require("../utils/routeOptimizer");
+const { FETCH_CLIENT_LIST_LIMIT } = require("../utils/stringConstants");
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 // Update Current Location of Field Executive
 const updateUserLocation = async (req, res) => {
 	try {
 		const feId = req.feId;
-		const { long, lat } = req.body;
+		const { long, lat, batteryPercentage  } = req.body;
 
 		// Check for Longitude and Latitude
 		if (!lat || !long) {
@@ -16,6 +19,11 @@ const updateUserLocation = async (req, res) => {
 				.status(400)
 				.json({ error: "Longitude and Latitude are required" });
 		}
+		if (batteryPercentage === undefined || batteryPercentage === null) {
+			return res.status(400).json({ error: "Battery percentage is required" });
+		}
+
+		const batteryLog = { timestamps: new Date(), batteryPercentage, };
 
 		// Update currentLocation in FE Route schema
     await FERoute.findOneAndUpdate(
@@ -26,6 +34,9 @@ const updateUserLocation = async (req, res) => {
 						type: "Point",
 						coordinates: [long, lat], // [LONGITUDE, LATITUDE]
 					},
+				},
+				$push: {
+					battery: batteryLog,
 				},
 				$setOnInsert: {
 					baseLocation: {
@@ -75,7 +86,11 @@ const getTasks = async (req, res) => {
 			isCompleted: false,
 			onHold: false,
 		})
-			.populate("clientId", "name address contactNumber")
+			.populate({
+				path: "clientId",
+				model: Client,
+				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+			})
 			.populate("assignedFE", "name contactNumber employeeId")
 			.select(
 				"_id clientId visitingAddress availability priority isCompleted onHold order status createdAt actualVisitStart actualVisitEnd purposeOfVisit location"
@@ -85,28 +100,36 @@ const getTasks = async (req, res) => {
 		if (!tasks.length)
 			return res.status(404).json({ message: "No tasks found for this FE" });
 
-		const formatted = tasks.map((t) => ({
-			visitId: t._id,
-			clientId: t.clientId?._id,
-			clientName: t.clientId?.name,
-			clientContact: t.clientId?.contactNumber,
-			visitingAddress: t.visitingAddress,
-			availability: t.availability,
-			priority: t.priority,
-			isCompleted: t.isCompleted,
-			onHold: t.onHold,
-			order: t.order,
-			status: t.status,
-			actualVisitStart: t.actualVisitStart,
-			actualVisitEnd: t.actualVisitEnd,
-			feId: t.assignedFE?._id,
-			feName: t.assignedFE?.name,
-			purposeOfVisit: t.purposeOfVisit,
-			locationString: t.location.urlString,
-		}));
+		const formatted = tasks.map((t) => {
+			const c = t.clientId;
 
+			const clientAddress = c
+				? [c.ADDRESS1, c.ADDRESS2, c.ADDRESS3, c.CITY, c.PIN,
+				].filter(Boolean).join(", ")
+				: "";
+				
+				return {
+					visitId: t._id,
+					clientId: c?._id,
+					clientName: c?.NAME || "",
+				clientContact: c?.MOBILE || "",
+				clientAddress: clientAddress || "",
+				visitingAddress: t.visitingAddress,
+				availability: t.availability,
+				priority: t.priority,
+				isCompleted: t.isCompleted,
+				onHold: t.onHold,
+				order: t.order,
+				status: t.status,
+				actualVisitStart: t.actualVisitStart,
+				actualVisitEnd: t.actualVisitEnd,
+				feId: t.assignedFE?._id,
+				feName: t.assignedFE?.name,
+				purposeOfVisit: t.purposeOfVisit,
+				locationString: t.location.urlString,
+			};
+		});
 		// console.log("Tasks details:--> ", formatted); // debug
-		
 		res.json(formatted);
 	} catch (err) {
 		console.error("getTasks error:", err);
@@ -314,19 +337,33 @@ const getAllCoordinates = async (req, res) => {
 			"availability.start": { $lte: endOfDay },
 			"availability.end": { $gte: startOfDay },
 		})
-			.populate("clientId", "name address contactNumber")
+			.populate({
+				path: "clientId",
+				model: Client,
+				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN"
+			})
 			.select("clientId location visitingAddress priority order")
 			.sort({ order: 1 });
 
-		const data = meetings.map((m) => ({
-			clientId: m.clientId?._id,
-			clientName: m.clientId?.name,
-			coordinates: m.location?.coordinates || [],
-			visitingAddress: m.visitingAddress,
-			order: m.order,
-			priority: m.priority,
-		}));
+		const data = meetings.map((m) => {
+			const c = m.clientId;
 
+			const clientAddress = c
+				? [c.ADDRESS1, c.ADDRESS2, c.ADDRESS3, c.CITY, c.PIN,
+				].filter(Boolean).join(", ")
+				: "";
+
+			return {
+				clientId: c?._id,
+				clientName: c?.NAME || "",
+				clientContact: c?.MOBILE || "",
+				clientAddress: clientAddress || "",
+				coordinates: m.location?.coordinates || [],
+				visitingAddress: m.visitingAddress,
+				order: m.order,
+				priority: m.priority,
+			};
+		});
 		return res.json({
 			message: "Coordinates fetched successfully",
 			data,
@@ -387,7 +424,12 @@ const getCombinedList = async (req, res) => {
 			.select("feId bookedSlots")
 			.populate([
 				{ path: "feId", select: "name employeeId contactNumber" },
-				{ path: "bookedSlots.client", select: "_id name contactNumber" },
+				// { path: "bookedSlots.client", select: "_id name contactNumber" },
+				{
+					path: "bookedSlots.client",
+					model: Client,
+					select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+				},
 				{
 					path: "bookedSlots.visit",
 					select:
@@ -417,13 +459,39 @@ const getCombinedList = async (req, res) => {
 			})
 			.map((fe) => {
 				const slots = fe.bookedSlots.filter((slot) => {
-					if (clientName && !new RegExp(clientName, "i").test(slot.client.name))
+					if (clientName && !new RegExp(clientName, "i").test(slot.client.NAME))
 						return false;
 					if (status && slot.visit.status !== status) return false;
 					if (startFilter && slot.start < startFilter) return false;
 					if (endFilter && slot.end > endFilter) return false;
 					return true;
-				});
+				})
+				.map((slot) => {
+						const c = slot.client;
+
+						// Transform Mint client format → Frontend format
+						const clientMapped = c
+							? {
+									_id: c._id,
+									name: c.NAME || "",
+									contactNumber: c.MOBILE || "",
+									address: [
+										c.ADDRESS1,
+										c.ADDRESS2,
+										c.ADDRESS3,
+										c.CITY,
+										c.PIN,
+									]
+										.filter(Boolean)
+										.join(", "),
+							  }
+							: null;
+
+						return {
+							...slot,
+							client: clientMapped,
+						};
+					});
 				return { feId: fe.feId, bookedSlots: slots };
 			})
 			.filter((fe) => fe.bookedSlots.length > 0);
@@ -488,7 +556,7 @@ const trackFEAndClient = async (req, res) => {
 
 		// Fetch FE route info
 		const feRoute = await FERoute.findOne({ feId })
-			.select("currentLocation currentClient")
+			.select("currentLocation currentClient battery")
 			.lean();
 
 		if (!feRoute)
@@ -519,10 +587,22 @@ const trackFEAndClient = async (req, res) => {
 				clientLocation = meeting.location;
 		}
 
+		let latestBattery = null;
+
+		if (feRoute.battery && feRoute.battery.length > 0) {
+			const lastEntry = feRoute.battery[feRoute.battery.length - 1];
+
+			latestBattery = {
+				batteryPercentage: lastEntry.batteryPercentage,
+				timestamps: lastEntry.timestamps,
+			};
+		}
+
 		res.status(200).json({
 			message: "FE and client tracking info fetched successfully",
 			feLocation: feRoute.currentLocation || null,
 			clientLocation,
+			latestBattery,
 		});
 	} catch (err) {
 		console.error("Error tracking FE route:", err);
@@ -531,25 +611,86 @@ const trackFEAndClient = async (req, res) => {
 };
 
 // Fetch Client's List
-const fetchClientList = async (_req, res) => {
+// controller/routePlanController.js
+const fetchClientList = async (req, res) => {
+  try {
+    const search = req.query.search?.trim() || "";
+    const query = {};
+
+    if (search) {
+      // Search by name or mobile/contact number (partial match)
+      query.$or = [
+        { NAME: { $regex: search, $options: "i" } },
+        { MOBILE: { $regex: search, $options: "i" } },
+        { CONTACTNUMBER: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const clients = await Client.find(query)
+      .select("NAME EMAIL MOBILE CONTACTNUMBER ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
+      .limit(FETCH_CLIENT_LIST_LIMIT)
+      .lean();
+
+    const clientList = clients.map((c) => ({
+      clientId: c._id,
+      name: c.NAME || "",
+      email: c.EMAIL || "",
+      mobile: c.MOBILE || c.CONTACTNUMBER || "",
+      address: [c.ADDRESS1, c.ADDRESS2, c.ADDRESS3, c.PIN, c.CITY].filter(Boolean).join(", ") || "",
+    }));
+
+    res.status(200).json({
+      message: "Clients fetched successfully",
+      clientList,
+    });
+  } catch (err) {
+    console.error("Error fetching clients:", err);
+    res.status(500).json({
+      message: "Server error",
+      details: err.message,
+    });
+  }
+};
+
+// Get address suggestions
+const searchAddresses = async (req, res) => {
 	try {
-		const clients = await Client.find()
-			.select("_id name address contactNumber")
-			.lean();
+		const { searchedAddress } = req.body;
 
-		const clientList = clients.map((c) => ({
-			clientId: c._id,
-			name: c.name,
-			address: c.address,
-			contactNumber: c.contactNumber,
+		if (!searchedAddress || searchedAddress.trim().length < 3) {
+			return res.status(400).json({ message: "Enter at least 3 characters" });
+		}
+
+		const url = "https://places.googleapis.com/v1/places:searchText";
+
+		const response = await axios.post(
+			url,
+			{
+				textQuery: searchedAddress,
+				// maxResultCount: 10,
+			},
+			{
+				headers: {
+					"Content-Type": "application/json",
+					"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+					"X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location",
+				},
+			}
+		);
+
+		const results = response.data?.places?.map((p) => ({
+			name: p.displayName?.text || "",
+			address: p.formattedAddress,
+			coordinates: p.location
+				? [p.location.longitude, p.location.latitude]
+				: null,
 		}));
+		// console.log("results", results); // debug
 
-		res
-			.status(200)
-			.json({ message: "Clients fetched successfully", clientList });
-	} catch (err) {
-		console.error("Error fetching clients:", err);
-		res.status(500).json({ message: "Server error", details: err.message });
+		res.json({ suggestions: results || [] });
+	} catch (error) {
+		console.error("Error fetching address suggestions:", error.message);
+		res.status(500).json({ message: "Failed to fetch address suggestions" });
 	}
 };
 
@@ -566,7 +707,7 @@ const fetchUnassignedClientsToday = async (_req, res) => {
 		);
 
 		// Fetch ClientMeeting entries for today that are unassigned
-		const unassignedMeetings = await ClientMeeting.find({
+		const meetings = await ClientMeeting.find({
 			isCompleted: false,
 			onHold: false,
 			assignedFE: { $in: [null, undefined] },
@@ -574,9 +715,38 @@ const fetchUnassignedClientsToday = async (_req, res) => {
 			"availability.end": { $gte: startOfDay },
 			status: "pending",
 		})
-			.populate("clientId", "name address contactNumber")
+			.populate({
+				path: "clientId",
+				model: Client,
+				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+			})
 			.select("_id clientId priority visitingAddress availability purposeOfVisit");
 
+		// Normalize client fields (capitalize → lowercase)
+		const unassignedMeetings = meetings.map((m) => {
+			const client = m.clientId;
+
+			// Build client address cleanly
+			const clientAddress = client
+				? [client.ADDRESS1, client.ADDRESS2, client.ADDRESS3, client.CITY, client.PIN,].filter(Boolean) // removes null, undefined, empty string
+					.join(", ") : "";
+
+			return {
+				_id: m._id,
+				priority: m.priority,
+				visitingAddress: m.visitingAddress,
+				purposeOfVisit: m.purposeOfVisit,
+				availability: m.availability,
+				clientId: client
+					? {
+						_id: client._id,
+						name: client.NAME || "",
+						contactNumber: client.MOBILE || "",
+						address: clientAddress || "",
+					}
+					: null,
+			};
+		});
 		res.status(200).json({
 			message: "Unassigned clients for today fetched successfully",
 			unassignedMeetings,
@@ -590,16 +760,45 @@ const fetchUnassignedClientsToday = async (_req, res) => {
 // Unassigned Clients All-Time
 const fetchUnassignedClientsAllTime = async (_req, res) => {
 	try {
-		const unassignedMeetings = await ClientMeeting.find({
+		const meetings = await ClientMeeting.find({
 			isCompleted: false,
 			onHold: false,
 			assignedFE: { $exists: false },
 			status: "pending",
 		})
-			.populate("clientId", "name address contactNumber")
+			.populate({
+				path: "clientId",
+				model: Client,
+				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+			})
 			.select(
 				"_id clientId priority visitingAddress availability purposeOfVisit"
 			);
+
+		// Transform client fields (NAME → name, MOBILE → mobile) so frontend get correct format
+		const unassignedMeetings = meetings.map((m) => {
+			const client = m.clientId;
+			// Safely build client address
+			const clientAddress = client
+				? [client.ADDRESS1, client.ADDRESS2, client.ADDRESS3, client.CITY, client.PIN,].filter(Boolean) // removes null, undefined, empty string
+					.join(", ") : "";
+
+			return {
+				_id: m._id,
+				priority: m.priority,
+				visitingAddress: m.visitingAddress,
+				purposeOfVisit: m.purposeOfVisit,
+				availability: m.availability,
+				clientId: client
+					? {
+						_id: client._id,
+						name: client.NAME || "",
+						contactNumber: client.MOBILE || "",
+						address: clientAddress || "",
+					}
+					: null,
+			};
+		});
 
 		res.status(200).json({
 			message: "Unassigned clients for all time fetched successfully",
@@ -639,13 +838,46 @@ const fetchOnHoldClients = async (req, res) => {
 			filter["availability.start"] = { $lte: endOfDayUTC };
 			filter["availability.end"] = { $gte: startOfDayUTC };
 		}
-
-		const onHoldMeetings = await ClientMeeting.find(filter)
-			.populate("clientId", "name address contactNumber")
+		// Populate client from Mint DB
+		const onHoldMeetingsRaw = await ClientMeeting.find(filter)
+			.populate({
+				path: "clientId",
+				model: Client,
+				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+			})
 			.select(
 				"_id clientId priority visitingAddress availability assignedFE isCompleted onHold purposeOfVisit status"
 			);
 
+		// Transform it into frontend-friendly format
+		const onHoldMeetings = onHoldMeetingsRaw.map((m) => {
+			const client = m.clientId;
+
+			const clientAddress = client
+				? [client.ADDRESS1, client.ADDRESS2, client.ADDRESS3, client.CITY, client.PIN,].filter(Boolean)       // removes null, undefined, empty string
+					.join(", ") : "";
+
+			return {
+				_id: m._id,
+				priority: m.priority,
+				visitingAddress: m.visitingAddress,
+				purposeOfVisit: m.purposeOfVisit,
+				availability: m.availability,
+				status: m.status,
+				onHold: m.onHold,
+				assignedFE: m.assignedFE || null,
+				isCompleted: m.isCompleted || false,
+
+				clientId: client
+					? {
+						_id: client._id,
+						name: client.NAME || "",
+						contactNumber: client.MOBILE || "",
+						address: clientAddress || "",
+					}
+					: null,
+			};
+		});
 		res.json(onHoldMeetings);
 	} catch (err) {
 		console.error("Error fetching on-hold client meetings:", err);
@@ -747,6 +979,7 @@ const addVisitForExistingClient = async (req, res) => {
 			availabilityEnd,
 			locationCoordinates,  // Longitude, Latitude
 			purposeOfVisit,
+			visitType,
 			priority = 0,
 		} = req.body;
 
@@ -755,11 +988,12 @@ const addVisitForExistingClient = async (req, res) => {
 			!visitingAddress ||
 			!availabilityStart ||
 			!availabilityEnd ||
-			!purposeOfVisit
+			!purposeOfVisit ||
+			!visitType
 		) {
-			return res
-				.status(400)
-				.json({ message: "Missing required fields for new visit" });
+			return res.status(400).json({ 
+				message: "Missing required fields for new visit" 
+			});
 		}
 
 		// Verify client exists
@@ -814,6 +1048,7 @@ const addVisitForExistingClient = async (req, res) => {
 				urlString: locationUrlString,
 			},
 			purposeOfVisit,
+			visitType,
 			priority,
 			isCompleted: false,
 			onHold: false,
@@ -841,6 +1076,14 @@ const createFE = async (req, res) => {
 			return res
 				.status(400)
 				.json({ message: "Name and contactNumber are required" });
+		}
+
+		// strict 10-digit phone validation
+		const phoneRegex = /^[0-9]{10}$/;
+		if (!phoneRegex.test(contactNumber)) {
+			return res
+				.status(400)
+				.json({ message: "Contact number must be a valid 10-digit number" });
 		}
 		
 		// Check if contact number already exists
@@ -892,6 +1135,10 @@ const assignClientsToFE = async (req, res) => {
 
 		const startUTC = new Date(slotStart);
 		const endUTC = new Date(slotEnd);
+		const nowUTC = new Date();
+
+		// Avoid creating entries in the past
+		if (endUTC <= nowUTC) return res.status(400).json({ message: "Cannot assign slots in the past" });
 
 		// 2. Verify FE exists
 		const fe = await FE.findById(feId);
@@ -914,13 +1161,30 @@ const assignClientsToFE = async (req, res) => {
 		}
 
 		// 4. Check FE slot conflicts
-		const conflict = feRoute.bookedSlots.some(
-			(slot) => startUTC < slot.end && endUTC > slot.start
+		// const conflict = feRoute.bookedSlots.some(
+		// 	(slot) => startUTC < slot.end && endUTC > slot.start
+		// );
+
+		const visitIds = feRoute.bookedSlots.map((s) => s.visit).filter(Boolean);
+		const meetings = await ClientMeeting.find(
+			{ _id: { $in: visitIds } },
+			{ _id: 1, actualVisitStart: 1, actualVisitEnd: 1 }
+		).lean();
+
+		const meetingMap = new Map(
+			meetings.map((m) => [m._id.toString(), m])
 		);
-		if (conflict)
-			return res
-				.status(400)
-				.json({ message: "FE is not available in this slot" });
+
+		const hasConflict = feRoute.bookedSlots.some((slot) => {
+			const m = meetingMap.get(slot.visit?.toString());
+			const slotStart = m?.actualVisitStart || slot.start;
+			const slotEnd = m?.actualVisitEnd || slot.end;
+
+			return startUTC < slotEnd && endUTC > slotStart;
+		});
+
+		if (hasConflict) return res.status(400).json({ message: "FE is not available in this slot" });
+		
 		// 5. Fetch the specific ClientMeeting
 		const visit = await ClientMeeting.findOne({
 			_id: visitId,
@@ -942,7 +1206,7 @@ const assignClientsToFE = async (req, res) => {
 		// 7. Update FERoute bookedSlots
 		feRoute.bookedSlots.push({
 			client: visit.clientId,
-			visit: visitId,
+			visit: visit._id,
 			start: startUTC,
 			end: endUTC,
 		});
@@ -972,6 +1236,29 @@ const assignClientsToFE = async (req, res) => {
 	}
 };
 
+const getCoordinatesFromAddress = async (req, res) => {
+	try {
+		const { address } = req.query;
+		// console.log("Entered BE getCoordinatesFromAddress"); // debug
+		// console.log("req.query", req.query); // debug
+		if (!address) {
+			return res.status(400).json({ message: "Address is required" });
+		}
+
+		const coordinates = await getLocationCoordinates(address);
+		if (!coordinates) {
+			return res
+				.status(404)
+				.json({ message: "Could not find coordinates for given address" });
+		}
+
+		res.status(200).json({ coordinates });
+	} catch (error) {
+		console.error("Error fetching coordinates:", error.message);
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
 
 module.exports = {
 	updateUserLocation,
@@ -984,6 +1271,7 @@ module.exports = {
 	fetchFEList,
 	trackFEAndClient,
 	fetchClientList,
+	searchAddresses,
 	fetchUnassignedClientsToday,
 	fetchUnassignedClientsAllTime,
 	fetchOnHoldClients,
@@ -991,4 +1279,5 @@ module.exports = {
 	addVisitForExistingClient,
 	createFE,
 	assignClientsToFE,
+	getCoordinatesFromAddress
 };

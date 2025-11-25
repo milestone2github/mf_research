@@ -94,23 +94,13 @@ export const CreateFE = () => {
 						name="contactNumber"
 						value={formData.contactNumber}
 						onChange={handleChange}
+						inputMode="numeric"
+						pattern="\d{10}"
 						maxLength={10}
+						title="Please enter a valid 10-digit contact number"
 						required
 						className="w-full px-3 py-2 border rounded-lg focus:ring focus:ring-blue-300"
 					/>
-				</div>
-
-				<div>
-					<label className="block font-medium mb-1">Status</label>
-					<select
-						name="status"
-						value={formData.status}
-						onChange={handleChange}
-						className="w-full px-3 py-2 border rounded-lg focus:ring focus:ring-blue-300"
-					>
-						<option value="active">Active</option>
-						<option value="inactive">Inactive</option>
-					</select>
 				</div>
 
 				<button

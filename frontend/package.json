@@ -14,7 +14,6 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "firebase": "^10.8.1",
-    "html2canvas": "^1.4.1",
     "localforage": "^1.10.0",
     "quill": "^2.0.3",
     "react": "^18.2.0",

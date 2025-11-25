@@ -37,6 +37,7 @@ import LeaderPerformance from '../components/pages/LeaderPerformance '
 import LumpsumauditLb from '../components/pages/LumpsumAuditLb'
 import MFSIPLeaderboard from '../components/pages/MFSIPLeaderboard'
 import UploadMarketingTemplates from '../components/pages/UploadMarketingTemplates'
+import InsuranceForm from '../components/pages/InsuranceForm'
 
 
 export const appRoutes = [
@@ -303,6 +304,16 @@ export const appRoutes = [
 		showInSidebar: true
   },
 
+	// insurance policy finder
+	{ 
+		requiredPermission: "insurance_policy_finder",
+		to: 'https://insurancefinder.mnivesh.com/admin/rm',
+		label: 'Insurance Policy Finder',
+		external: true,
+		protected: true,
+		showInSidebar: true
+  },
+
 	// Route Optimization
 	{
 		requiredPermission: "route_optimization",
@@ -363,6 +374,16 @@ export const appRoutes = [
 		protected: true,
 		showInSidebar: true,
 	},  
+	
+	// InsuranceForm
+	{
+		requiredPermission: "insurance_form",
+		to: "/insurance-form",
+		element: <InsuranceForm />,
+		label: "Insurance Form",
+		protected: true,
+		showInSidebar: true,
+	},
 
 	// Wild Card to catch all other routes
 	{

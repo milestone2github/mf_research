@@ -1,6 +1,6 @@
 import PlannerIndex from "../components/routePlanning/PlannerIndex";
 import { CreateFE } from "../components/routePlanning/CreateFE";
-import { CreateClient } from "../components/routePlanning/CreateClient";
+// import { CreateClient } from "../components/routePlanning/CreateClient";
 import { AddVisit } from "../components/routePlanning/AddVisit";
 import { ViewPlanner } from "../components/routePlanning/ViewPlanner";
 import { ViewUnassignedClients } from "../components/routePlanning/ViewUnassignedClients";
@@ -11,7 +11,7 @@ import { TrackFERoute } from "../components/routePlanning/TrackFERoute";
 export const RoutePlanningRoutes = [
 	{ to: "", element: <PlannerIndex /> },
 	{ to: "fe/add", element: <CreateFE /> },
-	{ to: "client/add", element: <CreateClient /> },
+	// { to: "client/add", element: <CreateClient /> },
 	{ to: "client/add/visit", element: <AddVisit /> },
 	{ to: "client/view/unassigned", element: <ViewUnassignedClients /> },
 	{ to: "client/view/onhold", element: <ViewOnHoldClients /> },
