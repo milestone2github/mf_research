@@ -23,6 +23,7 @@ const {
   getAllSMNames,
   getAllRMNames,
   filteredHistoryTransactions,
+  exportThTransactions,
 } = require('../../controllers/opsDash/OpsTransactions');
 const verifyUser = require('../../middlewares/VerifyUser')
 const router = require('express').Router();
@@ -53,6 +54,7 @@ router.patch('/relationship-manager', setRelationshipManager); //TEMPORARY
 
 // Export all the filtered transactions in XLSX file
 router.get('/export/filtered-transactions', verifyUser, exportAllTransactions);
+router.get('/export/history-transactions', verifyUser, exportThTransactions);
 
 // RECONCILLATION ROUTES 
 router.use('/reconciliation',  require('./Reconciliation'))

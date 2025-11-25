@@ -39,7 +39,7 @@ const AllocateAssetModal = ({ show, onClose, asset, onAllocate }) => {
           >
             <option value="">-- Select User --</option>
             {users.map(user => (
-              <option key={user._id} value={user._id}>{user.email}</option>
+              <option key={user._id} value={user._id}>{user.name  ? `${user.name} (${user.email})`  : user.email}</option>
             ))}
           </select>
         </label>

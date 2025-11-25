@@ -1555,10 +1555,19 @@ const setServiceManager = async (req, res) => {
   }
 
   try {
-    // Update all matching transactions
+    // Update only transactions which are in pending state
     const result = await Transactions.updateMany(
-      { familyHead: fh, relationshipManager: rm },
-      { $set: { serviceManager: toTitleCase(sm) } }
+      {
+        familyHead: fh,
+        relationshipManager: rm,
+        $or: [
+          { hasFractions: false, status: 'PENDING' },
+          { hasFractions: true, 'transactionFractions.status': 'PENDING' }
+        ]
+      },
+      {
+        $set: { serviceManager: toTitleCase(sm) }
+      }
     );
 
     // If no transactions were updated, send a 404 error
@@ -1684,138 +1693,180 @@ const exportAllTransactions = async (req, res) => {
 
   try {
     let {
-      minDate,
-      maxDate,
-      amcName,
-      schemeName,
-      rmName,
-      type,
-      orderId,
-      sort,
-      minAmount,
-      maxAmount,
-      smName,
-      transactionFor,
-      status,
-      approvalStatus,
-      searchBy,
-      searchKey,
-      reconcileStatus
-    } = req.query;
+    minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort,
+    minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey, reconcileStatus
+  } = req.query;
+  schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
 
-    schemeName = schemeName?.replace(/\(G\)$/, '').trim();
-    if (status && !Array.isArray(status)) status = [status];
-    if (reconcileStatus && !Array.isArray(reconcileStatus)) reconcileStatus = [reconcileStatus];
+  let filterStage1 = {};
+  let filterStage2 = {};
+  let fractionFilters = {};
+  const searchByLookup = {
+    'family head': 'familyHead',
+    'investor name': 'investorName',
+    'PAN': 'panNumber',
+  };
+  //Ensures all filter logic can use .includes, .map, $in operators safely.
+  //Prevents crashes on .map() when value is a string.
+  const toArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').map(v => v.trim());
+    if (value != null) return [value];
+    return [];
+  };
 
-    // Mongo filters
-    const filterStage1 = {};
-    const filterStage2 = {};
-    const fractionFilters = {};
-    const searchByLookup = {
-      'family head': 'familyHead',
-      'investor name': 'investorName',
-      'PAN': 'panNumber'
-    };
+  // Stage 1 filters
+  if (minDate) {
+    minDate = new Date(minDate);
+    filterStage1.transactionPreference = { $gte: minDate };
+  }
+  if (maxDate) {
+    maxDate = new Date(maxDate);
+    maxDate.setUTCHours(23, 59, 59)
+    filterStage1.transactionPreference = { $lte: maxDate };
+  }
+  if (minDate && maxDate) {
+    filterStage1.transactionPreference = { $gte: minDate, $lte: maxDate };
+  }
 
-    // Stage 1: date range
-    if (minDate) {
-      const d = new Date(minDate);
-      filterStage1.transactionPreference = { $gte: d };
-    }
-    if (maxDate) {
-      const d = new Date(maxDate);
-      d.setUTCHours(23, 59, 59);
-      filterStage1.transactionPreference = filterStage1.transactionPreference
-        ? { ...filterStage1.transactionPreference, $lte: d }
-        : { $lte: d };
-    }
-
-    // Stage 1: other simple fields
-    if (amcName) filterStage1.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName;
-    if (schemeName) filterStage1.$or = [
-      { schemeName },
+  if (amcName) {
+    filterStage1.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName;
+  }
+  if (schemeName) {
+    filterStage1.$or = [
+      { schemeName: schemeName },
       { fromSchemeName: schemeName }
     ];
-    if (rmName) {
-      const val = Array.isArray(rmName)
-        ? rmName.map(n => toTitleCase(n))
-        : toTitleCase(rmName);
-      filterStage1.relationshipManager = Array.isArray(rmName) ? { $in: val } : val;
+  }
+  if (rmName) {
+    filterStage1.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName);
+  }
+  if (orderId) {
+    filterStage1.orderId = orderId;
+  }
+
+  if (smName) {
+    const s = toArray(smName).map(n => toTitleCase(n));
+    if (s.includes('Unassigned')) {
+      // If "Unassigned" is selected, filter for empty or null serviceManager
+      filterStage1.$or = [
+        { serviceManager: { $in: s.filter(n => n !== 'Unassigned') } },
+        { serviceManager: { $in: ['', null] } }
+      ];
+    } else {
+      filterStage1.serviceManager = { $in: s };
     }
-    if (orderId) filterStage1.orderId = orderId;
-    if (smName) {
-      const val = Array.isArray(smName)
-        ? smName.map(n => toTitleCase(n))
-        : toTitleCase(smName);
-      filterStage1.serviceManager = Array.isArray(smName) ? { $in: val } : val;
-    }
-    if (transactionFor) filterStage1.transactionFor = transactionFor;
-    if (type === 'Switch') filterStage1.category = 'switch';
-    else if (type) filterStage1.transactionType = type;
-    if (searchBy && searchKey) {
-      filterStage1[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') };
+  }
+
+  if (transactionFor) {
+    const val = toArray(transactionFor);
+    if (val.length) filterStage1.transactionFor = { $in: val };
+  }
+
+  if (type) {
+    const types = toArray(type);
+
+    const nonSwitchTypes = types.filter(t => t !== 'Switch');
+    const isSwitchSelected = types.includes('Switch');
+
+    const typeFilters = [];
+
+    if (nonSwitchTypes.length) {
+      typeFilters.push({ transactionType: { $in: nonSwitchTypes } });
     }
 
-    // Stage 2: status filters
-    if (status) {
-      const include = status.filter(s => !s.startsWith('NOT-'));
-      const exclude = status.filter(s => s.startsWith('NOT-')).map(s => s.slice(4));
-      if (include.length) {
-        filterStage2.status = { $in: include };
-        fractionFilters['transactionFractions.status'] = { $in: include };
+    if (isSwitchSelected) {
+      typeFilters.push({ category: 'switch' });
+    }
+
+    if (typeFilters.length === 1) {
+      Object.assign(filterStage1, typeFilters[0]);
+    } else if (typeFilters.length > 1) {
+      filterStage1.$or = typeFilters;
+    }
+  }
+
+
+  // stage 2 filters 
+  // Ensure status and reconcileStatus are arrays
+  if (status && !Array.isArray(status)) {
+    status = [status];
+  }
+  if (reconcileStatus && !Array.isArray(reconcileStatus)) {
+    reconcileStatus = [reconcileStatus];
+  }
+
+  // Stage 2 filters for status
+  if (status) {
+    const includeStatuses = status.filter(s => !s.startsWith('NOT-'));
+    const excludeStatuses = status.filter(s => s.startsWith('NOT-')).map(s => s.slice(4));
+
+    if (includeStatuses.length || excludeStatuses.length) {
+      filterStage2.status = {};
+      fractionFilters['transactionFractions.status'] = {};
+
+      if (includeStatuses.length) {
+        filterStage2.status.$in = includeStatuses;
+        fractionFilters['transactionFractions.status'].$in = includeStatuses;
       }
-      if (exclude.length) {
-        filterStage2.status = filterStage2.status || {};
-        filterStage2.status.$nin = exclude;
-        fractionFilters['transactionFractions.status'] = fractionFilters['transactionFractions.status'] || {};
-        fractionFilters['transactionFractions.status'].$nin = exclude;
+      if (excludeStatuses.length) {
+        filterStage2.status.$nin = excludeStatuses;
+        fractionFilters['transactionFractions.status'].$nin = excludeStatuses;
       }
     }
-
-    // Stage 2: reconcileStatus
-    if (reconcileStatus?.length) {
-      const hasNotExist = reconcileStatus.includes('NOT-EXIST');
-      const rs = reconcileStatus.filter(s => s !== 'NOT-EXIST');
-      if (hasNotExist) {
-        const conds = rs.length
-          ? [{ $in: rs }, { $exists: false }]
-          : [{ $exists: false }];
-        filterStage2.$or = conds.map(c => ({ 'reconciliation.reconcileStatus': c }));
-        fractionFilters.$or = conds.map(c => ({ 'transactionFractions.reconciliation.reconcileStatus': c }));
-      } else {
-        filterStage2['reconciliation.reconcileStatus'] = { $in: rs };
-        fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = { $in: rs };
+  }
+  
+  // Stage 2 filters for reconcileStatus
+  if (reconcileStatus && reconcileStatus.length) {
+    const hasNotExist = reconcileStatus.includes('NOT-EXIST');
+    reconcileStatus = reconcileStatus.filter(status => status !== 'NOT-EXIST');
+  
+    if (hasNotExist) {
+      const conditions = [{ $exists: false }];
+      if (reconcileStatus.length) {
+        conditions.unshift({ $in: reconcileStatus });
       }
+      filterStage2['$or'] = conditions.map(condition => ({ 'reconciliation.reconcileStatus': condition }));
+      fractionFilters['$or'] = conditions.map(condition => ({ 'transactionFractions.reconciliation.reconcileStatus': condition }));
+    } else {
+      filterStage2['reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+      fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = { $in: reconcileStatus };
     }
+  }
 
-    // Stage 2: approvalStatus & amount range
-    if (approvalStatus) {
-      filterStage2.approvalStatus = approvalStatus;
-      fractionFilters['transactionFractions.approvalStatus'] = approvalStatus;
-    }
-    if (minAmount) {
-      filterStage2.amount = { $gte: Number(minAmount) };
-      fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount) };
-    }
-    if (maxAmount) {
-      filterStage2.amount = filterStage2.amount
-        ? { ...filterStage2.amount, $lte: Number(maxAmount) }
-        : { $lte: Number(maxAmount) };
-      fractionFilters['transactionFractions.fractionAmount'] = fractionFilters['transactionFractions.fractionAmount']
-        ? { ...fractionFilters['transactionFractions.fractionAmount'], $lte: Number(maxAmount) }
-        : { $lte: Number(maxAmount) };
-    }
+  // approvalStatus filter
+  const approvals = toArray(approvalStatus);
+  if (approvals.length) {
+    filterStage2.approvalStatus = { $in: approvals };
+    fractionFilters['transactionFractions.approvalStatus'] = { $in: approvals };
+  }
 
-    // Sorting
-    const sortMap = new Map([
-      ['trxdate-asc', { transactionPreference: 1 }],
-      ['trxdate-desc', { transactionPreference: -1 }],
-      ['amount-asc', { amount: 1 }],
-      ['amount-desc', { amount: -1 }]
-    ]);
-    const sortBy = sortMap.get(sort) || sortMap.get('trxdate-desc');
+  if (minAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount) };
+  }
+  if (maxAmount?.toString()) {
+    filterStage2.amount = { $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $lte: Number(maxAmount) };
+  }
+  if (minAmount?.toString() && maxAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+  }
 
-    // Aggregate ALL matching docs
+  if (searchBy && searchKey) {
+    filterStage1[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') };
+  }
+
+  // sorting options
+  const sortMap = new Map();
+  sortMap.set('trxdate-asc', { transactionPreference: 1 });
+  sortMap.set('trxdate-desc', { transactionPreference: -1 });
+  sortMap.set('amount-asc', { amount: 1 });
+  sortMap.set('amount-desc', { amount: -1 });
+  let sortBy = sortMap.get(sort || 'trxdate-desc');
+
+    // Aggregation 
     const allTxns = await Transactions.aggregate([
       { $match: filterStage1 },
       { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
@@ -1835,6 +1886,7 @@ const exportAllTransactions = async (req, res) => {
     const sheet = workbook.addWorksheet('Transactions');
     sheet.columns = [
       { header: 'S. No.',              key: 'sNo',                   width: 10 },
+      { header: 'TS Type',             key: 'tsType',                width: 15 },
       { header: 'Status',              key: 'status',                width: 15 },
       { header: 'Transaction date',    key: 'transactionDate',       width: 20 },
       { header: 'Execution date',      key: 'executionDate',         width: 20 },
@@ -1862,13 +1914,15 @@ const exportAllTransactions = async (req, res) => {
       { header: 'Tenure of SIP',       key: 'tenure',                width: 15 },
       { header: 'Approval Status',     key: 'approvalStatus',        width: 20 },
       { header: 'Order ID',            key: 'orderId',               width: 20 },
+      { header: 'Order Platform',      key: 'orderPlatform',         width: 20 },
       { header: 'Cheque No.',          key: 'chequeNumber',          width: 20 },
     ];
 
     allTxns.forEach((txn, idx) => {
       sheet.addRow({
         sNo: idx + 1,
-        status: txn.status,
+        tsType: txn.hasFractions ? 'Fraction' : 'Main',
+        status: txn.hasFractions ? txn.transactionFractions.status : txn.status,
         transactionDate: dayjs(txn.transactionPreference).format('YYYY-MM-DD'),
         executionDate: txn.createdAt ? dayjs(txn.createdAt).format('YYYY-MM-DD') : '',
         transactionType: txn.transactionType,
@@ -1882,7 +1936,7 @@ const exportAllTransactions = async (req, res) => {
         transactionUnits: txn.transactionUnits || '',
         fromScheme: txn.fromSchemeName || '',
         serviceManager: txn.serviceManager,
-        folioNo: txn.folioNumber || '',
+        folioNo: txn.hasFractions ? txn.transactionFractions.folioNumber : txn.folioNumber,
         fromSchemeOption: txn.fromSchemeOption || '',
         schemeOption: txn.schemeOption || '',
         frequency: txn.frequency || '',
@@ -1890,18 +1944,21 @@ const exportAllTransactions = async (req, res) => {
         transactionFor: txn.transactionFor,
         paymentMode: txn.paymentMode || '',
         firstTransactionAmount: txn.firstTransactionAmount || '',
-        sipSwpStpDate: txn.sipSwpStpDate ? dayjs(txn.sipSwpStpDate).format('YYYY-MM-DD') : '',
+        sipSwpStpDate: txn.hasFractions 
+          ? (txn.transactionFractions.transactionDate ? dayjs(txn.transactionFractions.transactionDate).format('YYYY-MM-DD') : '')
+          : (txn.sipSwpStpDate ? dayjs(txn.sipSwpStpDate).format('YYYY-MM-DD') : ''),
         sipPauseMonth: txn.sipPauseMonth || '',
         tenure: txn.tenure || '',
-        approvalStatus: txn.approvalStatus,
-        orderId: txn.orderId,
+        approvalStatus: txn.hasFractions ? txn.transactionFractions.approvalStatus : txn.approvalStatus,
+        orderId: txn.hasFractions ? txn.transactionFractions.orderId : txn.orderId,
+        orderPlatform: txn.hasFractions ? txn.transactionFractions.orderPlatform : txn.orderPlatform,
         chequeNumber: txn.chequeNumber || ''
       });
     });
 
     // Stream file to client
     const ts = dayjs().utcOffset(330).format('YYYYMMDD_HHmm');
-    const filename = `export_${ts}.xlsx`;
+    const filename = `all_transactions_${ts}.xlsx`;
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1912,6 +1969,360 @@ const exportAllTransactions = async (req, res) => {
   } catch (error) {
     console.error('Error exporting the data in excel format: ', error.message)
     res.status(500).json({ error: error.message })
+  }
+};
+
+const exportThTransactions = async (req, res) => {
+  const permissions = req.user?.permissions || [];
+
+  if (!permissions.includes('export_all_transactions_data')) {
+    return res.status(403).json({ error: 'Export Permission denied' });
+  }
+
+  let {
+    minDate, maxDate, amcName, schemeName, rmName, type, orderId, sort,
+    minAmount, maxAmount, smName, transactionFor, status, approvalStatus, searchBy, searchKey, reconcileStatus
+  } = req.query;
+  schemeName = schemeName?.replace(/\(G\)$/, '')?.trim();
+
+  let filterStage1 = {};
+  let filterStage2 = {};
+  let fractionFilters = {};
+
+  const searchByLookup = {
+    'family head': 'familyHead',
+    'investor name': 'investorName',
+    'PAN': 'panNumber',
+  };
+  //Ensures all filter logic can use .includes, .map, $in operators safely.
+  //Prevents crashes on .map() when value is a string.
+  const toArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',').map(v => v.trim());
+    if (value != null) return [value];
+    return [];
+  };
+
+  // Stage 1 filters - date filters now use opsExecDate instead of transactionPreference
+  let dateFilter = {};
+  if (minDate || maxDate) {
+
+    if (minDate) {
+      minDate = new Date(minDate);
+      dateFilter.$gte = minDate;
+    }
+    if (maxDate) {
+      maxDate = new Date(maxDate);
+      maxDate.setUTCHours(23, 59, 59);
+      dateFilter.$lte = maxDate;
+    }
+  }
+
+  if (amcName) {
+    filterStage1.amcName = Array.isArray(amcName) ? { $in: amcName } : amcName;
+  }
+  if (schemeName) {
+    filterStage1.$or = [
+      { schemeName: schemeName },
+      { fromSchemeName: schemeName }
+    ];
+  }
+  if (rmName) {
+    filterStage1.relationshipManager = Array.isArray(rmName) ? { $in: rmName.map(name => toTitleCase(name)) } : toTitleCase(rmName);
+  }
+  if (orderId) {
+    filterStage1.orderId = orderId;
+  }
+
+  if (smName) {
+    const s = toArray(smName).map(n => toTitleCase(n));
+    if (s.includes('Unassigned')) {
+      // If "Unassigned" is selected, filter for empty or null serviceManager
+      filterStage1.$or = [
+        { serviceManager: { $in: s.filter(n => n !== 'Unassigned') } },
+        { serviceManager: { $in: ['', null] } }
+      ];
+    } else {
+      filterStage1.serviceManager = { $in: s };
+    }
+  }
+
+  if (transactionFor) {
+    const val = toArray(transactionFor);
+    if (val.length) filterStage1.transactionFor = { $in: val };
+  }
+
+  if (type) {
+    const types = toArray(type);
+
+    const nonSwitchTypes = types.filter(t => t !== 'Switch');
+    const isSwitchSelected = types.includes('Switch');
+
+    const typeFilters = [];
+
+    if (nonSwitchTypes.length) {
+      typeFilters.push({ transactionType: { $in: nonSwitchTypes } });
+    }
+
+    if (isSwitchSelected) {
+      typeFilters.push({ category: 'switch' });
+    }
+
+    if (typeFilters.length === 1) {
+      Object.assign(filterStage1, typeFilters[0]);
+    } else if (typeFilters.length > 1) {
+      filterStage1.$or = typeFilters;
+    }
+  }
+
+
+  // stage 2 filters 
+  // Ensure status and reconcileStatus are arrays
+  if (status && !Array.isArray(status)) {
+    status = [status];
+  }
+  if (reconcileStatus && !Array.isArray(reconcileStatus)) {
+    reconcileStatus = [reconcileStatus];
+  }
+
+  // Stage 2 filters for status
+  if (status) {
+    const includeStatuses = status.filter(s => !s.startsWith('NOT-'));
+    const excludeStatuses = status.filter(s => s.startsWith('NOT-')).map(s => s.slice(4));
+
+    if (includeStatuses.length || excludeStatuses.length) {
+      filterStage2.status = {};
+      fractionFilters['transactionFractions.status'] = {};
+
+      if (includeStatuses.length) {
+        filterStage2.status.$in = includeStatuses;
+        fractionFilters['transactionFractions.status'].$in = includeStatuses;
+      }
+      if (excludeStatuses.length) {
+        filterStage2.status.$nin = excludeStatuses;
+        fractionFilters['transactionFractions.status'].$nin = excludeStatuses;
+      }
+    }
+  }
+
+  // Stage 2 filters for reconcileStatus
+  if (reconcileStatus && reconcileStatus.length) {
+    const hasNotExist = reconcileStatus.includes('NOT-EXIST');
+    reconcileStatus = reconcileStatus.filter(status => status !== 'NOT-EXIST');
+
+    if (hasNotExist) {
+      const conditions = [{ $exists: false }];
+      if (reconcileStatus.length) {
+        conditions.unshift({ $in: reconcileStatus });
+      }
+      filterStage2['$or'] = conditions.map(condition => ({ 'reconciliation.reconcileStatus': condition }));
+      fractionFilters['$or'] = conditions.map(condition => ({ 'transactionFractions.reconciliation.reconcileStatus': condition }));
+    } else {
+      filterStage2['reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+      fractionFilters['transactionFractions.reconciliation.reconcileStatus'] = { $in: reconcileStatus };
+    }
+  }
+
+  // approvalStatus filter
+  const approvals = toArray(approvalStatus);
+  if (approvals.length) {
+    filterStage2.approvalStatus = { $in: approvals };
+    fractionFilters['transactionFractions.approvalStatus'] = { $in: approvals };
+  }
+
+  if (minAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount) };
+  }
+  if (maxAmount?.toString()) {
+    filterStage2.amount = { $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $lte: Number(maxAmount) };
+  }
+  if (minAmount?.toString() && maxAmount?.toString()) {
+    filterStage2.amount = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+    fractionFilters['transactionFractions.fractionAmount'] = { $gte: Number(minAmount), $lte: Number(maxAmount) };
+  }
+
+  if (searchBy && searchKey) {
+    filterStage1[searchByLookup[searchBy]] = { $regex: new RegExp(searchKey.trim(), 'i') };
+  }
+
+  // --- SORT MAP (now uses effectiveValidatedAt) ---
+  const sortMap = new Map();
+  sortMap.set('trxdate-asc', { effectiveValidatedAt: 1, _id: 1 });
+  sortMap.set('trxdate-desc', { effectiveValidatedAt: -1, _id: -1 });
+  sortMap.set('amount-asc', { amount: 1 });
+  sortMap.set('amount-desc', { amount: -1 });
+  let sortBy = sortMap.get(sort || 'trxdate-desc');
+
+  try {
+
+    const validatedAtFieldsStage = {
+      $addFields: {
+        lastValidatedAt: {
+          $ifNull: [
+            { $arrayElemAt: ["$validations.validatedAt", -1] },
+            "$transactionDate"
+          ]
+        },
+        transactionFractions: {
+          $map: {
+            input: "$transactionFractions",
+            as: "frac",
+            in: {
+              $mergeObjects: [
+                "$$frac",
+                {
+                  lastValidatedAt: {
+                    $ifNull: [
+                      { $arrayElemAt: ["$$frac.validations.validatedAt", -1] },
+                      "$$frac.transactionDate"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    };
+
+    const dateMatchStage = (minDate || maxDate)
+      ? {
+        $match: {
+          $or: [
+            { lastValidatedAt: dateFilter },
+            { 'transactionFractions.lastValidatedAt': dateFilter }
+          ]
+        }
+      }
+      : null;
+
+    // unified fallback for missing validation dates
+    const unifiedDateStage = {
+      $addFields: {
+        effectiveValidatedAt: {
+          $ifNull: [
+            "$transactionFractions.lastValidatedAt",
+            { $ifNull: ["$lastValidatedAt", "$transactionDate"] }
+          ]
+        }
+      }
+    };
+
+    const finalTransactions = await Transactions.aggregate([
+      validatedAtFieldsStage,
+      ...(dateMatchStage ? [dateMatchStage] : []),
+      { $match: filterStage1 },
+      { $unwind: { path: '$transactionFractions', preserveNullAndEmptyArrays: true } },
+      unifiedDateStage,
+      {
+        $match: {
+          $or: [
+            { hasFractions: false, ...filterStage2 },
+            { hasFractions: true, ...fractionFilters }
+          ]
+        }
+      },
+      { $sort: sortBy }
+    ]);
+
+    // --- Excel workbook setup ---
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Transaction History');
+    sheet.columns = [
+      { header: 'S. No.',             key: 'sNo' },
+      { header: 'TS Type',            key: 'tsType',                 width: 10 },
+      { header: 'Status',             key: 'status',                 width: 15 },
+      { header: 'Reconcile Status',   key: 'reconcileStatus',        width: 15 },
+      { header: 'Preferred date',     key: 'preferredDate',          width: 15 },
+      { header: 'Ops Exec date',      key: 'opsExecDate',            width: 15 },
+      { header: 'Transaction type',   key: 'transactionType',        width: 20 },
+      { header: 'Pan number',         key: 'panNumber',              width: 15 },
+      { header: 'Investor name',      key: 'investorName',           width: 25 },
+      { header: 'Family head',        key: 'familyHead',             width: 25 },
+      { header: 'RM name',            key: 'relationshipManager',    width: 25 },
+      { header: 'AMC name',           key: 'amcName',                width: 25 },
+      { header: 'Scheme name',        key: 'schemeName',             width: 25 },
+      { header: 'Amount',             key: 'amount',                 width: 15 },
+      { header: 'Units',              key: 'transactionUnits',       width: 15 },
+      { header: 'From scheme',        key: 'fromScheme',             width: 20 },
+      { header: 'SM name',            key: 'serviceManager',         width: 25 },
+      { header: 'Folio No.',          key: 'folioNo',                width: 20 },
+      { header: 'From scheme option', key: 'fromSchemeOption',       width: 20 },
+      { header: 'Scheme Option',      key: 'schemeOption',           width: 20 },
+      { header: 'Frequency',          key: 'frequency  ',            width: 15 },
+      { header: 'Registrant',         key: 'registrantName',         width: 20 },
+      { header: 'Transaction for',    key: 'transactionFor',         width: 20 },
+      { header: 'Payment mode',       key: 'paymentMode',            width: 20 },
+      { header: 'First trx amount',   key: 'firstTransactionAmount', width: 20 },
+      { header: 'SIP/SWP/STP date',   key: 'sipSwpStpDate',          width: 20 },
+      { header: 'SIP Pause month',    key: 'sipPauseMonth',          width: 20 },
+      { header: 'Tenure of SIP',      key: 'tenure',                 width: 15 },
+      { header: 'Approval Status',    key: 'approvalStatus',         width: 20 },
+      { header: 'Order ID',           key: 'orderId',                width: 20 },
+      { header: 'Order Platform',     key: 'orderPlatform',          width: 20 },
+      { header: 'Cheque No.',         key: 'chequeNumber',           width: 20 },
+    ];
+
+    finalTransactions.forEach((txn, i) => {
+      const isFraction = !!txn.transactionFractions?._id;
+      const f = txn.transactionFractions || {};
+      const effectiveValidatedAt = txn.effectiveValidatedAt ? dayjs(txn.effectiveValidatedAt).format('YYYY-MM-DD') : '';
+
+      const row = {
+        sNo: i + 1,
+        tsType: isFraction ? 'Fraction' : 'Main',
+        status: isFraction ? f.status : txn.status,
+        reconcileStatus: isFraction ? f.reconciliation?.reconcileStatus || '' : txn.reconciliation?.reconcileStatus || '',
+        preferredDate: txn.transactionPreference ? dayjs(txn.transactionPreference).format('YYYY-MM-DD') : '',
+        opsExecDate: effectiveValidatedAt,
+        transactionType: txn.transactionType,
+        panNumber: txn.panNumber,
+        investorName: txn.investorName,
+        familyHead: txn.familyHead,
+        relationshipManager: txn.relationshipManager,
+        amcName: txn.amcName,
+        schemeName: txn.schemeName,
+        amount: isFraction ? f.fractionAmount : txn.amount,
+        transactionUnits: txn.transactionUnits || '',
+        fromScheme: txn.fromSchemeName || '',
+        serviceManager: txn.serviceManager,
+        folioNo: isFraction ? f.folioNumber : txn.folioNumber || '',
+        fromSchemeOption: txn.fromSchemeOption || '',
+        schemeOption: txn.schemeOption || '',
+        frequency: txn.frequency || '',
+        registrantName: txn.registrantName || '',
+        transactionFor: txn.transactionFor,
+        paymentMode: txn.paymentMode || '',
+        firstTransactionAmount: txn.firstTransactionAmount || '',
+        sipSwpStpDate: (isFraction ?
+          (f.transactionDate ? dayjs(f.transactionDate).format('YYYY-MM-DD') : '') :
+          (txn.sipSwpStpDate ? dayjs(txn.sipSwpStpDate).format('YYYY-MM-DD') : '')),
+        sipPauseMonth: txn.sipPauseMonth || '',
+        tenure: txn.tenure || '',
+        approvalStatus: isFraction ? f.approvalStatus : txn.approvalStatus,
+        orderId: isFraction ? f.orderId : txn.orderId,
+        orderPlatform: isFraction ? f.orderPlatform : txn.orderPlatform,
+        chequeNumber: txn.chequeNumber || '',
+      };
+
+      sheet.addRow(row);
+    });
+
+    // --- Send response as XLSX ---
+    const ts = dayjs().utcOffset(330).format('YYYYMMDD_HHmm');
+    const filename = `transaction_history_${ts}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting transaction history data:', error);
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -1998,6 +2409,7 @@ module.exports = {
   updateNote,
   setRelationshipManager, //TEMPORARY
   exportAllTransactions,
+  exportThTransactions,
   getAllSMNames,  // New
   getAllRMNames,  // New
 }

@@ -213,7 +213,15 @@ const getAssetByQuery = async (req, res) => {
     const { q, category, type, serialNumber, status, page = 1, limit = 12 } = req.query;
     const filter = {};
 
-    if (q) filter.name = { $regex: q, $options: 'i' };
+    if (q) {
+      const regex = new RegExp(q, "i");
+      filter.$or = [
+        { assetName: regex },
+        { serialNumber: regex },
+        { brandName: regex },
+        { modelNumber: regex },
+      ];
+    }
     if (serialNumber) filter.serialNumber = serialNumber;
     if (status) filter.status = status;
 
@@ -764,7 +772,7 @@ const getAssignedAssets = async (req, res) => {
   try {
     const { q, sortBy } = req.query;
 
-    const assets = await Assets.find({ "allocations.0": { $exists: true } })
+    const assets = await Assets.find({ "allocations.status": 'allocated' })
   .populate("allocations.userId", "name email")
   .populate("allocations.assignedBy", "name email")
   .populate("updatedBy", "name email")

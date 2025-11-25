@@ -7,12 +7,14 @@ import {
   BASE_ASSET,
 } from "../../utils/urlConstants";
 import ConfirmModal from "./ConfirmModal";
+import { toast } from "react-toastify";
 
 const AssetTypeModal = ({ isOpen, onClose, selectedType, refreshAssetTypes }) => {
   const isEdit = !!selectedType;
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -56,6 +58,7 @@ const AssetTypeModal = ({ isOpen, onClose, selectedType, refreshAssetTypes }) =>
 
   const handleSubmit = async () => {
     try {
+      setSaving(true);
       if (isEdit) {
         await axios.put(
           `${process.env.REACT_APP_API_BASE_URL}${BASE_ASSET(`types/${selectedType._id}`)}`,
@@ -68,7 +71,13 @@ const AssetTypeModal = ({ isOpen, onClose, selectedType, refreshAssetTypes }) =>
       refreshAssetTypes();
       onClose();
     } catch (err) {
-      console.error("Error saving asset type:", err);
+      if (err.response?.status === 409) {
+        toast.error("Asset type already exists");
+        return;
+      }
+      toast.error("Failed to save asset type");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -153,9 +162,14 @@ const AssetTypeModal = ({ isOpen, onClose, selectedType, refreshAssetTypes }) =>
           )}
           <button
             onClick={handleSubmit}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md"
+            disabled={saving}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md flex items-center justify-center"
           >
-            Save
+            {saving ? (
+              <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            ) : (
+              "Save"
+            )}
           </button>
         </div>
       </div>
