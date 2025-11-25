@@ -1102,6 +1102,14 @@ const createFE = async (req, res) => {
 				.status(400)
 				.json({ message: "Name and contactNumber are required" });
 		}
+
+		// strict 10-digit phone validation
+		const phoneRegex = /^[0-9]{10}$/;
+		if (!phoneRegex.test(contactNumber)) {
+			return res
+				.status(400)
+				.json({ message: "Contact number must be a valid 10-digit number" });
+		}
 		
 		// Check if contact number already exists
 		const existingFE = await FE.findOne({ contactNumber });
