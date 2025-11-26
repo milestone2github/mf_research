@@ -652,36 +652,11 @@ const fetchClientList = async (req, res) => {
   }
 };
 
-
-// Fetch Client's List
-// const fetchClientList = async (_req, res) => {
-//     try {
-//         const clients = await Client.find()
-//             .select("NAME EMAIL MOBILE ADDRESS1 ADDRESS2 CITY PIN")
-//             .lean(); // lean OK here because you read DB keys directly
-
-//         const clientList = clients.map((c) => ({
-//             clientId: c._id,
-//             name: c.NAME || "",
-//             email: c.EMAIL || "",
-//             mobile: c.MOBILE || "",
-//             address: [c.ADDRESS1, c.ADDRESS2, c.PIN, c.CITY].filter(Boolean).join(", ") || "",
-//         }));
-//         console.log("Clients fetched successfully", clientList);
-
-//         res.status(200).json({ message: "Clients fetched successfully", clientList });
-//     } catch (err) {
-//         console.error("Error fetching clients:", err);
-//         res.status(500).json({ message: "Server error", details: err.message });
-//     }
-// };
-
 // Get address suggestions
 const searchAddresses = async (req, res) => {
 	try {
 		const { searchedAddress } = req.body;
 
-		console.log("req.body", req.body)
 		if (!searchedAddress || searchedAddress.trim().length < 3) {
 			return res.status(400).json({ message: "Enter at least 3 characters" });
 		}
@@ -710,7 +685,7 @@ const searchAddresses = async (req, res) => {
 				? [p.location.longitude, p.location.latitude]
 				: null,
 		}));
-		console.log("results", results)
+		// console.log("results", results); // debug
 
 		res.json({ suggestions: results || [] });
 	} catch (error) {
@@ -1101,6 +1076,14 @@ const createFE = async (req, res) => {
 			return res
 				.status(400)
 				.json({ message: "Name and contactNumber are required" });
+		}
+
+		// strict 10-digit phone validation
+		const phoneRegex = /^[0-9]{10}$/;
+		if (!phoneRegex.test(contactNumber)) {
+			return res
+				.status(400)
+				.json({ message: "Contact number must be a valid 10-digit number" });
 		}
 		
 		// Check if contact number already exists
