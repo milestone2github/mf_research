@@ -157,6 +157,22 @@ const updateAsset = async (req, res) => {
   }
 };
 
+//Delete asset
+const deleteAsset = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Assets.findByIdAndDelete(id);
+    if (!deleted)
+      return res.status(404).json({ message: "Asset not found." });
+
+    res.status(200).json({ message: "Asset deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting asset:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+
 // Fetch individual asset by id
 const getAssetById = async (req, res) => {
   try {
@@ -194,13 +210,28 @@ const getAssetById = async (req, res) => {
 // Search asset by query
 const getAssetByQuery = async (req, res) => {
   try {
-    const { q, type, serialNumber, status, page = 1, limit = 12 } = req.query;
+    const { q, category, type, serialNumber, status, page = 1, limit = 12 } = req.query;
     const filter = {};
 
-    if (q) filter.name = { $regex: q, $options: 'i' };
-    if (type) filter.type = type;
+    if (q) {
+      const regex = new RegExp(q, "i");
+      filter.$or = [
+        { assetName: regex },
+        { serialNumber: regex },
+        { brandName: regex },
+        { modelNumber: regex },
+      ];
+    }
     if (serialNumber) filter.serialNumber = serialNumber;
     if (status) filter.status = status;
+
+    //  Category filtering support
+    if (category) {
+      const typesInCategory = await AssetType.find({ category }).select("_id");
+      filter.type = { $in: typesInCategory.map((t) => t._id) };
+    } else if (type) {
+      filter.type = type;
+    }
 
     const skip = (page - 1) * limit;
 
@@ -216,6 +247,7 @@ const getAssetByQuery = async (req, res) => {
           select: 'name'
         })
         .select('-__v -createdAt -updatedAt')
+        .sort({ createdAt: -1 })
         .lean({ virtuals: true })
         .skip(skip)
         .limit(Number(limit)),
@@ -281,8 +313,10 @@ const changeAssetStatus = async (req, res) => {
       // 🔹 Add new allocation record
       asset.allocations.push({
         userId: assignedTo,
+        assignedBy: updatedBy,
         allocatedAt: new Date(),
-        status: "allocated"
+        status: "allocated",
+        remarks: remarks || ""
       });
 
       // 🔹 Update user doc
@@ -358,8 +392,10 @@ const changeMultipleAssetStatus = async (req, res) => {
       if (op === "allocate") {
         asset.allocations.push({
           userId,
+          assignedBy: req.user._id,
           allocatedAt: new Date(),
-          status: "allocated"
+          status: "allocated",
+          remarks: remarks || ""
         });
 
         await User.findByIdAndUpdate(userId, {
@@ -468,10 +504,36 @@ const updateMerchant = async (req, res) => {
   }
 };
 
-// Get all merchants (for dropdown)
-const getAllMerchants = async (req, res) => {
+// Delete a merchant
+const deleteMerchant = async (req, res) => {
   try {
-    const merchants = await Merchant.find().select("_id name");
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "Merchant ID is required" });
+    }
+
+    const deletedMerchant = await Merchant.findByIdAndDelete(id);
+
+    if (!deletedMerchant) {
+      return res.status(404).json({ message: "Merchant not found" });
+    }
+
+    res.status(200).json({
+      message: "Merchant deleted successfully",
+      data: deletedMerchant,
+    });
+  } catch (err) {
+    console.error("Error deleting merchant:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+// Get all merchants (for dropdown)
+const getAllMerchants = async (req, res) => { 
+  try {
+    const merchants = await Merchant.find() .sort({ createdAt: -1 }) .select("_id name phone email contactPerson address createdAt");
     res.status(200).json({ success: true, data: merchants });
   } catch (err) {
     console.error(INTERNAL_ERROR_CONSOLE("fetching merchants"), err);
@@ -515,6 +577,55 @@ const createNewAssetCategory = async (req, res) => {
     }    
 }
 
+const updateAssetCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name?.trim()) {
+      return res.status(400).json({ message: "Category name is required." });
+    }
+
+    const updatedCat = await AssetCategories.findByIdAndUpdate(
+      id,
+      { name: name.toLowerCase() },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCat) {
+      return res.status(404).json({ message: "Category not found." });
+    }
+
+    res.status(200).json({ message: "Category updated successfully.", data: updatedCat });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: DUPLICATE_CATEGORY_FOUND_ERROR });
+    }
+
+    console.error(INTERNAL_ERROR_CONSOLE("updating category for"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
+};
+
+
+const deleteAssetCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedCat = await AssetCategories.findByIdAndDelete(id);
+
+    if (!deletedCat) {
+      return res.status(404).json({ message: "Category not found." });
+    }
+
+    res.status(200).json({ message: "Category deleted successfully.", data: deletedCat });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("deleting category for"), err);
+    res.status(500).json({ message: INTERNAL_SERVER_ERROR });
+  }
+};
+
+
 // Asset types & associated categories
 const getAllAssetTypes = async (req, res) => {
     try {
@@ -525,19 +636,20 @@ const getAllAssetTypes = async (req, res) => {
           const category = await AssetCategories.findById(cat);
           if (!category) return res.status(404).json({ message: CATEGORY_NOT_FOUND });
     
-          const types = await AssetType.find({ category: cat }).select('_id name');
+          const types = await AssetType.find({ category: cat }).select('_id name') .sort({ createdAt: -1 });
           return res.status(200).json({ message: ASSET_FETCH_SUCCESS, data: types });
         }
     
         // Case 2: fetch all categories
         if (allCat === "true") {
-          const allCategories = await AssetCategories.find().select('-__v -createdAt -updatedAt');
+          const allCategories = await AssetCategories.find() .sort({ createdAt: -1 }) .select('-__v -createdAt -updatedAt');
           return res.status(200).json({ message: CATEGORY_FETCH_SUCCESS, data: allCategories });
         }
     
         // Default: fetch all asset types with categories
         const fetchAllTypes = await AssetType.find()
           .populate('category', '_id name')
+          .sort({ createdAt: -1 })
           .select('-__v -createdAt -updatedAt');
           
         return res.status(200).json({ message: ASSET_TYPE_FETCH_SUCCESS, data: fetchAllTypes });
@@ -561,7 +673,7 @@ const getAssetsByTypeId = async (req, res) => {
                     model: 'AssetCategory'
                 }
             })
-            .populate('allocatedTo addedBy updatedBy')
+            .populate('addedBy updatedBy', 'name email')
             .select('-__v -createdAt -updatedAt');
           if (!assets || assets.length === 0) {
             return res.status(404).json({ message: ASSET_WITH_TYPE_NOT_FOUND });
@@ -597,57 +709,108 @@ const createAssetType = async (req, res) => {
     }
 }
 
+const updateAssetType = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category } = req.body;
+
+    if (!name || !category) {
+      return res.status(400).json({ message: ASSET_TYPE_FIELDS_REQUIRED });
+    }
+
+    const updatedType = await AssetType.findByIdAndUpdate(
+      id,
+      { name, category },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedType) {
+      return res.status(404).json({ message: "Asset type not found." });
+    }
+
+    res.status(200).json({
+      message: "Asset type updated successfully.",
+      data: updatedType,
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: DUPLICATE_CATEGORY_FOUND_ERROR });
+    }
+
+    console.error(INTERNAL_ERROR_CONSOLE("updating asset type for"), err);
+    res.status(500).json({
+      message: INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+
+const deleteAssetType = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedType = await AssetType.findByIdAndDelete(id);
+
+    if (!deletedType) {
+      return res.status(404).json({ message: "Asset type not found." });
+    }
+
+    res.status(200).json({
+      message: "Asset type deleted successfully.",
+      data: deletedType,
+    });
+  } catch (err) {
+    console.error(INTERNAL_ERROR_CONSOLE("deleting asset type for"), err);
+    res.status(500).json({
+      message: INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+
 const getAssignedAssets = async (req, res) => {
-	try {
-		const { q, sortBy } = req.query; // q = search term ; sortBy = sort the allocated time
+  try {
+    const { q, sortBy } = req.query;
 
-		// Base filter: only allocated assets
-		const filter = { allocatedTo: { $ne: null } };
+    const assets = await Assets.find({ "allocations.status": 'allocated' })
+  .populate("allocations.userId", "name email")
+  .populate("allocations.assignedBy", "name email")
+  .populate("updatedBy", "name email")
+  .select("assetName allocations remarks updatedAt");
 
-		// Fetch assets with population
-		let assets = await Assets.find(filter)
-			.populate("allocatedTo", "name email")
-			.populate("updatedBy", "name email")
-			.select("name remarks allocatedTo updatedBy updatedAt")
-			.lean();
+    const formattedAssets = assets.map((asset) => {
+      const lastAlloc = asset.allocations[asset.allocations.length - 1];
+      return {
+        assetName: asset.assetName || "N.A.",
+        userName: lastAlloc?.userId?.name || "N.A.",
+        updatedBy: lastAlloc?.assignedBy?.name || lastAlloc?.assignedBy?.email || asset.updatedBy?.name || asset.updatedBy?.email || "N.A.",
+        remarks: lastAlloc?.remarks || asset.remarks || "",
+        allotmentDate: lastAlloc?.allocatedAt || asset.updatedAt,
+      };
+    });
 
-		// Apply regex filtering on populated fields
-		let queryResponse = assets;
-		if (q) {
-			const regex = new RegExp(q, "i");
-			queryResponse = assets.filter((asset) =>
-                regex.test(asset.name) ||
-                regex.test(asset.allocatedTo?.name || "") ||
-                regex.test(asset.updatedBy?.name || "") ||
-                regex.test(asset.remarks || "")
-			);
-		}
+    // Apply search + sorting
+    const regex = q ? new RegExp(q, "i") : null;
+    const filtered = regex
+      ? formattedAssets.filter((asset) =>
+          [asset.assetName, asset.userName, asset.updatedBy, asset.remarks].some((v) => regex.test(v))
+        )
+      : formattedAssets;
 
-		// Sorting by allotment date (updatedAt) if available
-		if (sortBy === "asc") {
-			queryResponse = queryResponse.sort(
-				(a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)
-			);
-		} else {
-			queryResponse = queryResponse.sort(
-				(a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-			);
-		}
+    filtered.sort((a, b) => {
+      const aDate = new Date(a.allotmentDate);
+      const bDate = new Date(b.allotmentDate);
+      return sortBy === "asc" ? aDate - bDate : bDate - aDate;
+    });
 
-		// Format response
-		const result = queryResponse.map((asset) => ({
-			assetName: asset.name,
-			userName: asset.allocatedTo?.name || "N.A.",
-			updatedBy: asset.updatedBy?.name || "N.A.",
-			remarks: asset.remarks || "",
-			allotmentDate: asset.updatedAt,
-		}));
-
-		res.status(200).json({ message: "Assigned assets fetched successfully", data: result });
-	} catch (err) {
-		console.error(INTERNAL_ERROR_CONSOLE("fetching assigned assets"), err);
-		res.status(500).json({ message: INTERNAL_SERVER_ERROR });
-	}
+    res.status(200).json({
+      message: "Assigned assets fetched successfully",
+      data: filtered,
+    });
+  } catch (err) {
+    console.error("Error fetching assigned assets:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 
@@ -656,15 +819,21 @@ module.exports = {
     getAssetById,
     getAssetByQuery,
     updateAsset,
+    deleteAsset,
     changeAssetStatus,
     changeMultipleAssetStatus,
     // getAllAssetCategories,
     createNewAssetCategory,
+    updateAssetCategory,
+    deleteAssetCategory,
     getAllAssetTypes,
     createAssetType,
+    updateAssetType,
+    deleteAssetType,
     getAssetsByTypeId,
     getAssignedAssets,
     createMerchant,
     updateMerchant,
+    deleteMerchant,
     getAllMerchants
 }

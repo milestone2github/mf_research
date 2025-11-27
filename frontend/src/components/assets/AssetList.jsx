@@ -1,12 +1,30 @@
 import React from 'react';
+import { useNavigate } from "react-router-dom";
 import AssetActions from './AssetActions';
 
-const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading }) => {
+const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading, currentPage, ITEMS_PER_PAGE }) => {
+  const navigate = useNavigate();
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available':
+        return 'bg-green-100 text-green-700 border border-green-400';
+      case 'allocated':
+        return 'bg-orange-100 text-orange-700 border border-orange-400';
+      case 'repair':
+        return 'bg-yellow-100 text-yellow-700 border border-yellow-400';
+      case 'removed':
+        return 'bg-gray-100 text-gray-700 border border-gray-400';
+      default:
+        return 'bg-gray-100 text-gray-700 border border-gray-400';
+    }
+  };
+
   return (
     <div className="overflow-x-auto border rounded-lg max-w-full shadow-sm">
     <table className="min-w-full bg-white border border-gray-200 text-sm">
       <thead>
         <tr className="bg-gray-100">
+          <th className="py-2 px-4 border-b whitespace-nowrap">S.No.</th>
           <th className="py-2 px-4 border-b whitespace-nowrap">Asset Code</th>
           <th className="py-2 px-4 border-b whitespace-nowrap">Asset Name</th>
           <th className="py-2 px-4 border-b whitespace-nowrap">Brand</th>
@@ -34,7 +52,8 @@ const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading
             </td>
           </tr>
         ) : assets.length ? (
-         assets.map(asset => {
+         assets.map((asset, index) => {
+        const sNo = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
         const lastAllocation = asset.allocations?.length
           ? asset.allocations[asset.allocations.length - 1]
           : null;
@@ -45,7 +64,8 @@ const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading
             : '-';
 
         return (
-          <tr key={asset._id} className="hover:bg-gray-50">
+          <tr key={asset._id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/assets/edit/${asset._id}`)} >
+            <td className="py-2 px-4 border-b text-center whitespace-nowrap">{sNo}</td>
             <td className="py-2 px-4 border-b text-center whitespace-nowrap">{asset.assetCode || '-'}</td>
             <td className="py-2 px-4 border-b text-center whitespace-nowrap">{asset.assetName || '-'}</td>
             <td className="py-2 px-4 border-b text-center whitespace-nowrap">{asset.brandName || '-'}</td>
@@ -65,7 +85,13 @@ const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading
               {allocatedName}
             </td>
 
-            <td className="py-2 px-4 border-b text-center whitespace-nowrap">{asset.status}</td>
+            <td className="py-2 px-4 border-b text-center whitespace-nowrap">
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold inline-block ${getStatusColor(asset.status)}`}
+            >
+              {asset.status ? asset.status.charAt(0).toUpperCase() + asset.status.slice(1) : '-'}
+            </span>
+           </td>
             <td className="py-2 px-4 border-b text-center whitespace-nowrap">{asset.remarks || '-'}</td>
             <td className="py-2 px-4 border-b whitespace-nowrap">
               <AssetActions
@@ -73,6 +99,8 @@ const AssetList = ({ assets, setModalData, fetchAssets, selectedFilters, loading
                 setModalData={setModalData}
                 fetchAssets={fetchAssets}
                 selectedFilters={selectedFilters}
+                currentPage={currentPage}
+                ITEMS_PER_PAGE={ITEMS_PER_PAGE}
               />
             </td>
           </tr>

@@ -30,7 +30,11 @@ export const updateUser = createAsyncThunk('marketingUser/update',
         method: "PATCH",
         credentials: 'include',
         headers: { 'Content-type': 'application/json' },
-        body: JSON.stringify({email: user.email, phone: user.phone, company: user.company})
+        body: JSON.stringify({
+          email: user.email,
+          phone: user.phone,
+          name: user.name
+        })
       })
       const responseData = await response.json()
       if (!response.ok) {

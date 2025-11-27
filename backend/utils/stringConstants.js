@@ -50,3 +50,4 @@ exports.ASSET_TYPE_FIELDS_REQUIRED = "There are missing fields required to creat
 exports.ASSET_TYPE_CREATE_SUCCESS = "Asset Type created successfully.";
 
 exports.TRANSACTION_DB_NAME = "internal"; // transaction Database name
+exports.FETCH_CLIENT_LIST_LIMIT = 100; // Route optimization controller fetchClientList

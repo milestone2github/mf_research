@@ -10,6 +10,7 @@ const {
 	fetchFEDetails,
 	fetchFEList,
 	fetchClientList,
+	searchAddresses,
 	fetchUnassignedClientsToday,
 	fetchUnassignedClientsAllTime,
 	fetchOnHoldClients,
@@ -18,6 +19,7 @@ const {
 	createFE,
 	assignClientsToFE,
 	trackFEAndClient,
+	getCoordinatesFromAddress,
 } = require("../controllers/routeOptimizationController");
 const { verifyJWT } = require("../middlewares/verifyToken");
 const router = express.Router();
@@ -53,6 +55,10 @@ router.get("/fe/:id/track", trackFEAndClient);
 
 // GET Clients list
 router.get("/clients/list", fetchClientList);
+
+// Get address suggestions by posting search string
+router.post("/client/searchAddress", searchAddresses);
+router.get("/client/getCoordinatesFromAddress", getCoordinatesFromAddress);
 
 // POST the New Client's details
 router.post("/clients/create", createClient);

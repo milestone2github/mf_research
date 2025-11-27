@@ -148,7 +148,7 @@ function formatDate(date) {
   const day = String(d.getDate()).padStart(2, "0");
   const month = d.toLocaleString("en-US", { month: "short" }); // e.g. Sep
   const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
+  return `${day} ${month} ${year}`;
 }
 
 
@@ -271,7 +271,7 @@ async function saveJoineeDetails(req, res) {
       toAddress: personalEmail,
       ccAddress: "hr@niveshonline.com",
       attachments: [
-        { filename: "Offer Letter-Mr Vipul Kumar.pdf", content: pdfBuffer },
+        { filename: `Offer Letter-${name}.pdf`, content: pdfBuffer },
       ],
     });
 
