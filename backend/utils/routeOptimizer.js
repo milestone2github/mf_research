@@ -61,7 +61,7 @@ async function optimizeFERoute(feId, currentLocation = null) {
 		const optimizedOrder = response.data.routes?.[0]?.waypoint_order;
 		if (!optimizedOrder) return;
 
-    console.log(`Optimized Order for FE = ${feId} generated ==> ${optimizedOrder}`); // debug
+    // console.log(`Optimized Order for FE = ${feId} generated ==> ${optimizedOrder}`); // debug
 
 		// 6. Update order field
 		for (let i = 0; i < optimizedOrder.length; i++) {
@@ -69,7 +69,7 @@ async function optimizeFERoute(feId, currentLocation = null) {
 			await ClientMeeting.findByIdAndUpdate(meeting._id, { order: i + 1 });
 		}
 
-		console.log(`Optimized route for FE: ${feId}`);
+		// console.log(`Optimized route for FE: ${feId}`);
 	} catch (err) {
 		console.error("Route optimization failed:", err.message);
 	}

@@ -23,8 +23,12 @@ export const AddVisit = () => {
 	const [loading, setLoading] = useState(false);
 	const [addressSuggestions, setAddressSuggestions] = useState([]);
 	const [showSuggestions, setShowSuggestions] = useState(false);
+	const [isTemporary, setIsTemporary] = useState(false);
+	const [showTemporary, setShowTemporary] = useState(false);
+
 	const navigate = useNavigate();
 	const baseUrl = process.env.REACT_APP_API_BASE_URL;
+	const firstRun = useRef(true);
 	const typingTimeoutRef = useRef(null);
 	const searchTimeoutRef = useRef(null);
 
@@ -52,11 +56,39 @@ export const AddVisit = () => {
 		}));
 	};
 
+	useEffect(() => {
+		if (firstRun.current) {
+			firstRun.current = false;
+			return; 
+		}
+		fetchClients(searchTerm);
+	}, [showTemporary]);
+
+	// CLEAR ALL FIELDS except start/end time on toggle temporary clients
+	useEffect(() => {
+		if (firstRun.current) return;
+
+		setFormData(prev => ({
+			...prev,
+			clientId: "",
+			visitingAddress: "",
+			locationCoordinates: "",
+			purposeOfVisit: "",
+			visitType: "",
+			priority: "",
+			availabilityStart: prev.availabilityStart,
+			availabilityEnd: prev.availabilityEnd,
+		}));
+
+		setSearchTerm("");
+		setDropdownOpen(false);
+	}, [showTemporary]);
+
 	const fetchClients = async (search = "") => {
 		try {
 			setLoadingClients(true);
 			const res = await axios.get(`${baseUrl}/api/route-plan/clients/list`, {
-				params: { search },
+				params: { search, temporary: showTemporary },   // SINGLE PARAMS OBJECT
 			});
 			setClients(res.data.clientList || []);
 		} catch (err) {
@@ -94,6 +126,18 @@ export const AddVisit = () => {
 		const selectedClient = clients.find((c) => c.clientId === clientId);
 		if (!selectedClient) return;
 
+		// For temporary clients: auto-fill all fields
+		if (isTemporary) {
+			setFormData((prev) => ({
+				...prev,
+				visitingAddress: selectedClient.address || "",
+				locationCoordinates: "",
+				purposeOfVisit: prev.purposeOfVisit,
+			}));
+
+			return;
+		}
+		// For regular clients
 		if (selectedClient.address) {
 			setFormData((prev) => ({
 				...prev,
@@ -102,9 +146,9 @@ export const AddVisit = () => {
 			}));
 
 			try {
-				const coordRes = await axios.get(`${baseUrl}/api/route-plan/client/getCoordinatesFromAddress`, {
-					params: { address: selectedClient.address },
-				});
+				const coordRes = await axios.get(`${baseUrl}/api/route-plan/client/getCoordinatesFromAddress`,
+					{ params: { address: selectedClient.address } }
+				);
 				if (coordRes.data.coordinates) {
 					setFormData((prev) => ({
 						...prev,
@@ -193,9 +237,8 @@ export const AddVisit = () => {
 			};
 
 			const res = await axios.post(`${baseUrl}/api/route-plan/clients/add-visit`, payload);
-
 			toast.success(res.data.message || "Visit added successfully!", {
-				position: "bottom-center",
+				position: "top-right",
 				autoClose: 3000,
 			});
 
@@ -213,7 +256,7 @@ export const AddVisit = () => {
 		} catch (err) {
 			console.error(err);
 			toast.error(err.response?.data?.message || "Failed to add visit", {
-				position: "bottom-center",
+				position: "top-right",
 				autoClose: 3000,
 			});
 		} finally {
@@ -222,7 +265,7 @@ export const AddVisit = () => {
 	};
 
 	return (
-		<div className="max-w-3xl mx-auto  p-6 bg-white shadow-lg  border border-gray-200 rounded-2xl relative">
+		<div className="max-w-3xl mx-auto  p-6 bg-white shadow-lg border border-gray-200 rounded-2xl relative">
 			{/* Back Button */}
 			<button
 				type="button"
@@ -261,6 +304,15 @@ export const AddVisit = () => {
 			</h2>
 
 			<form onSubmit={handleSubmit} className="space-y-5">
+				<label className="flex items-center gap-2 text-sm">
+					<input
+						type="checkbox"
+						checked={showTemporary}
+						onChange={() => setShowTemporary(prev => !prev)}
+					/>
+					Show Temporary Clients
+				</label>
+
 				{/* Select Client */}
 				<div className="relative">
 					<label className="text-black block font-medium mb-1">Select Client</label>
@@ -290,16 +342,24 @@ export const AddVisit = () => {
 							) : clients.length > 0 ? (
 
 								clients.map((c) => {
-									const raw = c.mobile || "";
-									const formatted =
-										raw.startsWith("+91") ? raw : raw.startsWith("91") ? `+${raw}` : `+91${raw}`;
+									const phone = c.mobile || c.phone || "";
+									const formatted = phone.startsWith("+91")
+										? phone
+										: phone.startsWith("91")
+											? `+${phone}`
+											: `+91${phone}`;
+
 									return (
 										<div
 											key={c.clientId}
 											onClick={() => handleClientSelect(c.clientId)}
 											className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0"
 										>
-											<strong>{c.name}</strong> ({formatted})
+											<strong>{String(c.name || "").toUpperCase()}</strong>
+											<div className="text-gray-600 text-xs">{formatted}</div>
+											{isTemporary && (
+												<div className="text-gray-500 text-xs">{c.email}</div>
+											)}
 										</div>
 									);
 								})

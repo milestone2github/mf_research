@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const axios = require("axios");
-const { FE, FERoute, Client, ClientMeeting } = require("../models/RouteOptimization");
+const { FE, FERoute, Client, ClientMeeting, TempClient } = require("../models/RouteOptimization");
 const { baseLocation } = require("../utils/constants");
 const { getLocationCoordinates } = require("../utils/getLocationCoordinates");
 const { optimizeFERoute } = require("../utils/routeOptimizer");
@@ -386,13 +386,9 @@ const getCombinedList = async (req, res) => {
 
 		// Helper functions to parse start/end dates in UTC
 		const parseStart = (d) =>
-			new Date(
-				Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
-			);
+			new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0));
 		const parseEnd = (d) =>
-			new Date(
-				Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
-			);
+			new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999));
 
 		const today = new Date();
 		let startFilter, endFilter;
@@ -411,11 +407,10 @@ const getCombinedList = async (req, res) => {
 			startFilter = parseStart(today);
 			endFilter = parseEnd(today);
 		}
-
 		// console.log("Start and End date in UTC ==> ", startFilter, endFilter); // debug
 
 		// /*
-		// Fetch FERoute documents within date range and populate client, visit, and FE info
+		// Fetch FERoute documents with day-range filtering
 		const combinedRes = await FERoute.find({
 			bookedSlots: {
 				$elemMatch: { start: { $gte: startFilter }, end: { $lte: endFilter } },
@@ -433,7 +428,7 @@ const getCombinedList = async (req, res) => {
 				{
 					path: "bookedSlots.visit",
 					select:
-						"_id visitingAddress assignedFE purposeOfVisit priority isCompleted onHold status feComments",
+						"_id visitingAddress assignedFE purposeOfVisit priority isCompleted onHold status feComments clientType clientId",
 				}
 			])
 			.lean();
@@ -450,53 +445,94 @@ const getCombinedList = async (req, res) => {
 			}, {})
 		);
 
-		// Apply optional filters
-		const filteredList = groupByFE
-			.filter((fe) => {
-				if (feName && !new RegExp(feName, "i").test(fe.feId.name)) return false;
-				if (employeeId && fe.feId.employeeId !== employeeId) return false;
-				return true;
-			})
-			.map((fe) => {
-				const slots = fe.bookedSlots.filter((slot) => {
-					if (clientName && !new RegExp(clientName, "i").test(slot.client.NAME))
-						return false;
-					if (status && slot.visit.status !== status) return false;
-					if (startFilter && slot.start < startFilter) return false;
-					if (endFilter && slot.end > endFilter) return false;
+		// Apply optional filters // Transform each FE
+		const filteredList = await Promise.all(
+			groupByFE
+				.filter((fe) => {
+					if (feName && !new RegExp(feName, "i").test(fe.feId.name)) return false;
+					if (employeeId && fe.feId.employeeId !== employeeId) return false;
 					return true;
 				})
-				.map((slot) => {
-						const c = slot.client;
+				.map(async (fe) => {
+					const slots = await Promise.all(
+						fe.bookedSlots
+							.filter((slot) => {
+								if (clientName && slot.client && !new RegExp(clientName, "i").test(slot.client.NAME))
+									return false;
+								if (status && slot.visit.status !== status) return false;
+								if (startFilter && slot.start < startFilter) return false;
+								if (endFilter && slot.end > endFilter) return false;
+								return true;
+							})
+							.map(async (slot) => {
+								let client = null;
+								let clientType = slot.visit.clientType || "mint"; // default permanent
 
-						// Transform Mint client format → Frontend format
-						const clientMapped = c
-							? {
-									_id: c._id,
-									name: c.NAME || "",
-									contactNumber: c.MOBILE || "",
-									address: [
-										c.ADDRESS1,
-										c.ADDRESS2,
-										c.ADDRESS3,
-										c.CITY,
-										c.PIN,
-									]
-										.filter(Boolean)
-										.join(", "),
-							  }
-							: null;
+								if (clientType === "mint") {
+									const c = slot.client;
+									if (c) {
+										client = {
+											_id: c._id,
+											name: c.NAME || "",
+											contactNumber: c.MOBILE || "",
+											address: [
+												c.ADDRESS1,
+												c.ADDRESS2,
+												c.ADDRESS3,
+												c.CITY,
+												c.PIN,
+											]
+												.filter(Boolean)
+												.join(", "),
+										};
+									}
+								}
 
-						return {
-							...slot,
-							client: clientMapped,
-						};
-					});
-				return { feId: fe.feId, bookedSlots: slots };
-			})
-			.filter((fe) => fe.bookedSlots.length > 0);
-		// */
-		return res.json({ success: true, data: filteredList });
+								// TEMPORARY CLIENT
+								if (clientType === "temporary") {
+									const temp = await TempClient.findById(slot.visit.clientId)
+										.select("name mobile address1 address2 address3 city pin")
+										.lean();
+
+									if (temp) {
+										client = {
+											_id: temp._id,
+											name: temp.name,
+											contactNumber: temp.mobile || "-",
+											address: [
+												temp.address1,
+												temp.address2,
+												temp.address3,
+												temp.city,
+												temp.pin,
+											]
+												.filter(Boolean)
+												.join(", "),
+										};
+									}
+								}
+
+								// FALLBACK → If no client found
+								if (!client) {
+									client = {
+										_id: null,
+										name: "Unknown Client",
+										contactNumber: "-",
+										address: slot.visit.visitingAddress || "-",
+									};
+								}
+
+								return {
+									...slot,
+									client,
+								};
+							}));
+					return { feId: fe.feId, bookedSlots: slots };
+				})
+		);
+		// Filter out FE with zero slots
+		const finalOutput = filteredList.filter((fe) => fe.bookedSlots.length > 0);
+		return res.json({ success: true, data: finalOutput });
 	} catch (err) {
 		console.error(err);
 		return res.status(500).json({ success: false, error: "Server Error" });
@@ -613,43 +649,78 @@ const trackFEAndClient = async (req, res) => {
 // Fetch Client's List
 // controller/routePlanController.js
 const fetchClientList = async (req, res) => {
-  try {
-    const search = req.query.search?.trim() || "";
-    const query = {};
+	try {
+		const search = req.query.search?.trim() || "";
+		const isTemporary = req.query.temporary === "true";
+		let clients = [];
+		// FETCH TEMPORARY CLIENTS -------------------------------
+		if (isTemporary) {
+			const query = {};
 
-    if (search) {
-      // Search by name or mobile/contact number (partial match)
-      query.$or = [
-        { NAME: { $regex: search, $options: "i" } },
-        { MOBILE: { $regex: search, $options: "i" } },
-        { CONTACTNUMBER: { $regex: search, $options: "i" } },
-      ];
-    }
+			if (search) {
+				// Search by name or mobile/contact number (partial match)
+				query.$or = [
+					{ name: { $regex: search, $options: "i" } },
+					{ mobile: { $regex: search, $options: "i" } },
+					{ email: { $regex: search, $options: "i" } },
+				];
+			}
 
-    const clients = await Client.find(query)
-      .select("NAME EMAIL MOBILE CONTACTNUMBER ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
-      .limit(FETCH_CLIENT_LIST_LIMIT)
-      .lean();
+			const tempClients = await TempClient.find(query)
+				.select("name email mobile address1 address2 city pin")
+				.lean();
 
-    const clientList = clients.map((c) => ({
-      clientId: c._id,
-      name: c.NAME || "",
-      email: c.EMAIL || "",
-      mobile: c.MOBILE || c.CONTACTNUMBER || "",
-      address: [c.ADDRESS1, c.ADDRESS2, c.ADDRESS3, c.PIN, c.CITY].filter(Boolean).join(", ") || "",
-    }));
+			clients = tempClients.map((c) => ({
+				clientId: c._id,
+				name: c.name || "",
+				email: c.email || "",
+				mobile: c.mobile || "",
+				address: [
+					c.address1,
+					c.address2,
+					c.city,
+					c.pin
+				].filter(Boolean).join(", "),
+				isTemporary: true,
+			}));
+		}
+		// FETCH PERMANENT CLIENTS
+		else {
+			const query = {};
+			if (search) {
+				query.$or = [
+					{ NAME: { $regex: search, $options: "i" } },
+					{ MOBILE: { $regex: search, $options: "i" } },
+					{ CONTACTNUMBER: { $regex: search, $options: "i" } },
+				];
+			}
 
-    res.status(200).json({
-      message: "Clients fetched successfully",
-      clientList,
-    });
-  } catch (err) {
-    console.error("Error fetching clients:", err);
-    res.status(500).json({
-      message: "Server error",
-      details: err.message,
-    });
-  }
+			const mintClients = await Client.find(query)
+				.select("NAME EMAIL MOBILE CONTACTNUMBER ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
+				.limit(FETCH_CLIENT_LIST_LIMIT)
+				.lean();
+
+			clients = mintClients.map((c) => ({
+				clientId: c._id,
+				name: c.NAME || "",
+				email: c.EMAIL || "",
+				mobile: c.MOBILE || c.CONTACTNUMBER || "",
+				address: [c.ADDRESS1, c.ADDRESS2, c.ADDRESS3, c.PIN, c.CITY].filter(Boolean).join(", ") || "",
+				isTemporary: false,
+			}));
+		}
+
+		res.status(200).json({
+			message: "Clients fetched successfully",
+			clientList: clients,
+		});
+	} catch (err) {
+		console.error("Error fetching clients:", err);
+		res.status(500).json({
+			message: "Server error",
+			details: err.message,
+		});
+	}
 };
 
 // Get address suggestions
@@ -714,39 +785,60 @@ const fetchUnassignedClientsToday = async (_req, res) => {
 			"availability.start": { $lte: endOfDay },
 			"availability.end": { $gte: startOfDay },
 			status: "pending",
-		})
-			.populate({
-				path: "clientId",
-				model: Client,
-				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+		}).select(
+			"_id clientId clientType priority visitingAddress availability purposeOfVisit"
+		);
+		const unassignedMeetings = await Promise.all(
+			meetings.map(async (m) => {
+				let client = null;
+				// Default to permanent (mint)
+				const clientType = m.clientType || "mint";
+
+				if (clientType === "mint") {
+					client = await Client.findById(m.clientId)
+						.select("NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
+						.lean();
+				} else if (clientType === "temporary") {
+					client = await TempClient.findById(m.clientId)
+						.select("name mobile address1 address2 address3 city pin")
+						.lean();
+				}
+                // Build client address cleanly
+				const clientAddress = client
+					? [
+						client.ADDRESS1 || client.address1,
+						client.ADDRESS2 || client.address2,
+						client.ADDRESS3 || client.address3,
+						client.CITY || client.city,
+						client.PIN || client.pin,
+					]
+						.filter(Boolean)
+						.join(", ")
+					: "";
+
+				return {
+					_id: m._id,
+					priority: m.priority,
+					visitingAddress: m.visitingAddress,
+					purposeOfVisit: m.purposeOfVisit,
+					availability: m.availability,
+					clientType,
+					clientId: client
+						? {
+							_id: client._id,
+							name: client.NAME || client.name || "Unknown Client",
+							contactNumber: client.MOBILE || client.mobile || "-",
+							address: clientAddress || m.visitingAddress || "-",
+						}
+						: {
+							_id: null,
+							name: "Unknown Client",
+							contactNumber: "-",
+							address: m.visitingAddress || "-",
+						},
+				};
 			})
-			.select("_id clientId priority visitingAddress availability purposeOfVisit");
-
-		// Normalize client fields (capitalize → lowercase)
-		const unassignedMeetings = meetings.map((m) => {
-			const client = m.clientId;
-
-			// Build client address cleanly
-			const clientAddress = client
-				? [client.ADDRESS1, client.ADDRESS2, client.ADDRESS3, client.CITY, client.PIN,].filter(Boolean) // removes null, undefined, empty string
-					.join(", ") : "";
-
-			return {
-				_id: m._id,
-				priority: m.priority,
-				visitingAddress: m.visitingAddress,
-				purposeOfVisit: m.purposeOfVisit,
-				availability: m.availability,
-				clientId: client
-					? {
-						_id: client._id,
-						name: client.NAME || "",
-						contactNumber: client.MOBILE || "",
-						address: clientAddress || "",
-					}
-					: null,
-			};
-		});
+		);
 		res.status(200).json({
 			message: "Unassigned clients for today fetched successfully",
 			unassignedMeetings,
@@ -759,46 +851,66 @@ const fetchUnassignedClientsToday = async (_req, res) => {
 
 // Unassigned Clients All-Time
 const fetchUnassignedClientsAllTime = async (_req, res) => {
-	try {
-		const meetings = await ClientMeeting.find({
-			isCompleted: false,
-			onHold: false,
-			assignedFE: { $exists: false },
-			status: "pending",
-		})
-			.populate({
-				path: "clientId",
-				model: Client,
-				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
-			})
-			.select(
-				"_id clientId priority visitingAddress availability purposeOfVisit"
-			);
+  try {
+    const meetings = await ClientMeeting.find({
+      isCompleted: false,
+      onHold: false,
+      assignedFE: { $exists: false },
+      status: "pending",
+    }).select(
+      "_id clientId clientType priority visitingAddress availability purposeOfVisit"
+    );
 
-		// Transform client fields (NAME → name, MOBILE → mobile) so frontend get correct format
-		const unassignedMeetings = meetings.map((m) => {
-			const client = m.clientId;
-			// Safely build client address
-			const clientAddress = client
-				? [client.ADDRESS1, client.ADDRESS2, client.ADDRESS3, client.CITY, client.PIN,].filter(Boolean) // removes null, undefined, empty string
-					.join(", ") : "";
+    const unassignedMeetings = await Promise.all(
+      meetings.map(async (m) => {
+        let client = null;
+        let clientType = m.clientType || "mint"; // default to permanent
 
-			return {
-				_id: m._id,
-				priority: m.priority,
-				visitingAddress: m.visitingAddress,
-				purposeOfVisit: m.purposeOfVisit,
-				availability: m.availability,
-				clientId: client
-					? {
-						_id: client._id,
-						name: client.NAME || "",
-						contactNumber: client.MOBILE || "",
-						address: clientAddress || "",
-					}
-					: null,
-			};
-		});
+        if (clientType === "mint") {
+          client = await Client.findById(m.clientId)
+            .select("NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
+            .lean();
+        } else if (clientType === "temporary") {
+          client = await TempClient.findById(m.clientId)
+            .select("name mobile address1 address2 address3 city pin")
+            .lean();
+        }
+
+        const clientAddress = client
+          ? [
+              client.ADDRESS1 || client.address1,
+              client.ADDRESS2 || client.address2,
+              client.ADDRESS3 || client.address3 || "",
+              client.CITY || client.city,
+              client.PIN || client.pin,
+            ]
+              .filter(Boolean)
+              .join(", ")
+          : "";
+
+        return {
+          _id: m._id,
+          priority: m.priority,
+          visitingAddress: m.visitingAddress,
+          purposeOfVisit: m.purposeOfVisit,
+          availability: m.availability,
+          clientType,
+          clientId: client
+            ? {
+                _id: client._id,
+                name: client.NAME || client.name || "Unknown Client",
+                contactNumber: client.MOBILE || client.mobile || "-",
+                address: clientAddress || m.visitingAddress || "-",
+              }
+            : {
+                _id: null,
+                name: "Unknown Client",
+                contactNumber: "-",
+                address: m.visitingAddress || "-",
+              },
+        };
+      })
+    );
 
 		res.status(200).json({
 			message: "Unassigned clients for all time fetched successfully",
@@ -812,77 +924,108 @@ const fetchUnassignedClientsAllTime = async (_req, res) => {
 
 // Fetch On-Hold/Cancelled clients
 const fetchOnHoldClients = async (req, res) => {
-	try {
-		const { scope } = req.query;
-		let filter = { onHold: true, status: "cancelled" };
+  try {
+    const { scope } = req.query;
 
-		if (scope === "today") {
-			const startOfDayUTC = new Date(
-				Date.UTC(
-					new Date().getUTCFullYear(),
-					new Date().getUTCMonth(),
-					new Date().getUTCDate()
-				)
-			);
-			const endOfDayUTC = new Date(
-				Date.UTC(
-					new Date().getUTCFullYear(),
-					new Date().getUTCMonth(),
-					new Date().getUTCDate(),
-					23,
-					59,
-					59,
-					999
-				)
-			);
-			filter["availability.start"] = { $lte: endOfDayUTC };
-			filter["availability.end"] = { $gte: startOfDayUTC };
-		}
-		// Populate client from Mint DB
-		const onHoldMeetingsRaw = await ClientMeeting.find(filter)
-			.populate({
-				path: "clientId",
-				model: Client,
-				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
-			})
-			.select(
-				"_id clientId priority visitingAddress availability assignedFE isCompleted onHold purposeOfVisit status"
-			);
+    let filter = { onHold: true, status: "cancelled" };
 
-		// Transform it into frontend-friendly format
-		const onHoldMeetings = onHoldMeetingsRaw.map((m) => {
-			const client = m.clientId;
+    if (scope === "today") {
+      const now = new Date();
+      const startOfDayUTC = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
+      const endOfDayUTC = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          23,
+          59,
+          59,
+          999
+        )
+      );
 
-			const clientAddress = client
-				? [client.ADDRESS1, client.ADDRESS2, client.ADDRESS3, client.CITY, client.PIN,].filter(Boolean)       // removes null, undefined, empty string
-					.join(", ") : "";
+      filter["availability.start"] = { $lte: endOfDayUTC };
+      filter["availability.end"] = { $gte: startOfDayUTC };
+    }
 
-			return {
-				_id: m._id,
-				priority: m.priority,
-				visitingAddress: m.visitingAddress,
-				purposeOfVisit: m.purposeOfVisit,
-				availability: m.availability,
-				status: m.status,
-				onHold: m.onHold,
-				assignedFE: m.assignedFE || null,
-				isCompleted: m.isCompleted || false,
+    // Fetch raw meetings
+    const meetings = await ClientMeeting.find(filter).select(
+      "_id clientId clientType priority visitingAddress availability assignedFE isCompleted onHold purposeOfVisit status"
+    );
 
-				clientId: client
-					? {
-						_id: client._id,
-						name: client.NAME || "",
-						contactNumber: client.MOBILE || "",
-						address: clientAddress || "",
-					}
-					: null,
-			};
-		});
-		res.json(onHoldMeetings);
-	} catch (err) {
-		console.error("Error fetching on-hold client meetings:", err);
-		res.status(500).json({ message: "Server error", details: err.message });
-	}
+    const onHoldMeetings = await Promise.all(
+      meetings.map(async (m) => {
+        let clientData = null;
+        const clientType = m.clientType || "mint"; // default permanent
+
+        // Fetch from correct collection
+        if (clientType === "mint") {
+          clientData = await Client.findById(m.clientId)
+            .select("NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
+            .lean();
+        } else if (clientType === "temporary") {
+          clientData = await TempClient.findById(m.clientId)
+            .select("name mobile address1 address2 address3 city pin")
+            .lean();
+        }
+
+        // Build Address Safely
+        const clientAddress = clientData
+          ? [
+              clientData.ADDRESS1 || clientData.address1,
+              clientData.ADDRESS2 || clientData.address2,
+              clientData.ADDRESS3 || clientData.address3,
+              clientData.CITY || clientData.city,
+              clientData.PIN || clientData.pin,
+            ]
+              .filter(Boolean)
+              .join(", ")
+          : "";
+
+        return {
+          _id: m._id,
+          priority: m.priority,
+          visitingAddress: m.visitingAddress,
+          purposeOfVisit: m.purposeOfVisit,
+          availability: m.availability,
+          status: m.status,
+          onHold: m.onHold,
+          assignedFE: m.assignedFE || null,
+          isCompleted: m.isCompleted || false,
+          clientType,
+
+          clientId: clientData
+            ? {
+                _id: clientData._id,
+                name:
+                  clientData.NAME ||
+                  clientData.name ||
+                  "Unknown Client",
+                contactNumber:
+                  clientData.MOBILE ||
+                  clientData.mobile ||
+                  "-",
+                address: clientAddress || m.visitingAddress || "-",
+              }
+            : {
+                _id: null,
+                name: "Unknown Client",
+                contactNumber: "-",
+                address: m.visitingAddress || "-",
+              },
+        };
+      })
+    );
+
+    res.status(200).json(onHoldMeetings);
+  } catch (err) {
+    console.error("Error fetching on-hold client meetings:", err);
+    res
+      .status(500)
+      .json({ message: "Server error", details: err.message });
+  }
 };
 
 // Create New Client
@@ -969,6 +1112,78 @@ const createClient = async (req, res) => {
 	}
 };
 
+const createTemporaryClient = async (req, res) => {
+	try {
+		const {
+			name,
+			email,
+			mobile,
+			address1,
+			address2,
+			city,
+			pin
+		} = req.body;
+
+		// Required fields
+		if (!name || !address1 || !address2 || !city || !pin) {
+			return res.status(400).json({
+				message: "Missing required fields for temporary client"
+			});
+		}
+
+		// Normalize mobile number → always store with "91"
+		let normalizedMobile = "";
+
+		if (mobile) {
+			const cleaned = mobile.replace(/\D/g, ""); // remove non-numeric
+
+			if (cleaned.length === 10) {
+				normalizedMobile = "91" + cleaned;        // add prefix
+			} else if (cleaned.startsWith("91") && cleaned.length === 12) {
+				normalizedMobile = cleaned;              // already correct
+			} else {
+				return res.status(400).json({
+					message: "Invalid mobile number format"
+				});
+			}
+		}
+
+		// Check duplicate (based on mobile)
+		if (mobile) {
+			const existing = await TempClient.findOne({ normalizedMobile });
+			if (existing) {
+				return res.status(400).json({
+					message: "Temporary client with this mobile number already exists"
+				});
+			}
+		}
+
+		const tempClient = new TempClient({
+			name,
+			email,
+			mobile: normalizedMobile,
+			address1,
+			address2,
+			city,
+			pin,
+		});
+
+		await tempClient.save();
+
+		return res.status(201).json({
+			message: "Temporary Client created successfully",
+			tempClient
+		});
+
+	} catch (err) {
+		console.error("Error creating Temporary Client:", err);
+		res.status(500).json({
+			message: "Server error",
+			details: err.message
+		});
+	}
+};
+
 // Set new meeting for existing clients
 const addVisitForExistingClient = async (req, res) => {
 	try {
@@ -997,15 +1212,24 @@ const addVisitForExistingClient = async (req, res) => {
 		}
 
 		// Verify client exists
-		const client = await Client.findById(clientId);
-		if (!client) return res.status(404).json({ message: "Client not found" });
+		// 🔥 Support both permanent + temporary clients
+        // ---------------------------------------------
+		let client = await Client.findById(clientId);
+    let clientType = "mint";
 
+    if (!client) {
+      client = await TempClient.findById(clientId);
+      clientType = "temporary";
+    }
+
+    if (!client) {
+      return res.status(404).json({ message: "Client not found" });
+    }
 		const startDay = new Date(availabilityStart);
 		const endDay = new Date(availabilityEnd);
-
 		// Check for overlapping visit in ClientMeeting collection
 		const overlappingVisit = await ClientMeeting.findOne({
-			clientId,
+			clientId, 
 			$or: [
 				{
 					"availability.start": { $lt: endDay, $gte: startDay },
@@ -1040,6 +1264,7 @@ const addVisitForExistingClient = async (req, res) => {
 		// Create new ClientMeeting entry
 		const newVisit = new ClientMeeting({
 			clientId,
+			clientType, 
 			visitingAddress,
 			availability: { start: startDay, end: endDay },
 			location: {
@@ -1276,6 +1501,7 @@ module.exports = {
 	fetchUnassignedClientsAllTime,
 	fetchOnHoldClients,
 	createClient,
+	createTemporaryClient,
 	addVisitForExistingClient,
 	createFE,
 	assignClientsToFE,

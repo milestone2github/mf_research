@@ -39,6 +39,7 @@ const feCommentSchema = new Schema({
 // Handle multiple recurring visits/meetings with same client
 const clientMeetingSchema = new Schema({
 	clientId: { type: Schema.Types.ObjectId, ref: "Client", required: true },
+	clientType: { type: String, enum: ["mint", "temporary"], default: "mint" },
 	visitingAddress: { type: String, required: true },
 	availability: {
 		start: { type: Date, required: true },
@@ -160,11 +161,27 @@ fieldExecutiveRouteSchema.index({
 // 	next();
 // });
 
+// -------------------- Temporary Client --------------------
+const temporaryClientSchema = new Schema(
+	{
+		name: { type: String, required: true },
+		email: { type: String },
+		mobile: { type: String },
+		address1: { type: String, required: true },
+		address2: { type: String, required: true },
+		city: { type: String, required: true },
+		pin: { type: String, required: true },
+		type: { type: String, default: "temporary" }
+	},
+	{ timestamps: true }
+);
+
 // -------------------- Models --------------------
 const Client = mintConnection.model("Client", clientSchema);
 const ClientMeeting = model("ClientMeeting", clientMeetingSchema);
 const FE = model("FE", fieldExecutiveSchema);
 const FERoute = model("FERoute", fieldExecutiveRouteSchema);
+const TempClient = model("TemporaryClient", temporaryClientSchema);
 // const RouteOptimization = model("RouteOptimization", routeOptimizationSchema);
 
-module.exports = { Client, ClientMeeting, FE, FERoute };
+module.exports = { Client, ClientMeeting, FE, FERoute, TempClient };

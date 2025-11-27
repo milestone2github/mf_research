@@ -9,8 +9,8 @@ export const ViewOnHoldClients = () => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [scope, setScope] = useState("today"); // today or all-time
-	const [copiedClient, setCopiedClient] = useState(false);
-	const [copiedVisit, setCopiedVisit] = useState(false);
+	const [copiedClientId, setCopiedClientId] = useState(null);
+const [copiedVisitId, setCopiedVisitId] = useState(null);
 	const baseUrl = process.env.REACT_APP_API_BASE_URL;
 	const navigate = useNavigate();
 
@@ -34,18 +34,34 @@ export const ViewOnHoldClients = () => {
 		fetchClients(scope);
 	}, [scope]);
 
+	// const formatDateTime = (utcDate) => {
+	// 	if (!utcDate) return "-";
+	// 	const date = new Date(utcDate);
+	// 	return date.toLocaleString();
+	// };
+
 	const formatDateTime = (utcDate) => {
-		if (!utcDate) return "-";
-		const date = new Date(utcDate);
-		return date.toLocaleString();
-	};
+    if (!utcDate) return "-";
+    const d = new Date(utcDate);
+
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12; // convert 0 → 12
+
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+};
 
 	// Copy to clipboard helper
-	const copyText = async (text, setter) => {
+	const copyText = async (text, setState, id) => {
 		try {
 			await navigator.clipboard.writeText(text);
-			setter(true);
-			setTimeout(() => setter(false), 2000);
+			setState(id);
+			setTimeout(() => setState(null), 2000);
 		} catch (err) {
 			console.error("Copy failed:", err);
 		}
@@ -154,7 +170,7 @@ export const ViewOnHoldClients = () => {
 											<td className="p-2 border font-medium">
 												<div className="flex flex-col">
 													<span className="text-gray-900 font-medium">
-														{c.clientId?.name || "-"}
+														{c.clientId?.name ? c.clientId?.name.toUpperCase() : "-"}
 													</span>
 
 													<span className="text-blue-700 text-xs mt-1 whitespace-nowrap">
@@ -171,15 +187,15 @@ export const ViewOnHoldClients = () => {
 
 													<button
 														onClick={() =>
-															copyText(c.clientId?.address || "-", setCopiedClient)
+															copyText(c.clientId?.address || "-", setCopiedClientId, c._id)
 														}
 														className="text-blue-600 hover:text-blue-800"
-														title="Copy address"
+	title="Copy address"
 													>
 														<MdContentCopy size={18} />
 													</button>
 
-													{copiedClient && (
+													{copiedClientId === c._id && (
 														<span className="text-green-600 text-xs">Copied!</span>
 													)}
 												</div>
@@ -194,15 +210,15 @@ export const ViewOnHoldClients = () => {
 
 													<button
 														onClick={() =>
-															copyText(c.visitingAddress || "-", setCopiedVisit)
+															copyText(c.visitingAddress || "-", setCopiedVisitId, c._id)
 														}
 														className="text-blue-600 hover:text-blue-800"
-														title="Copy address"
+	title="Copy address"
 													>
 														<MdContentCopy size={18} />
 													</button>
 
-													{copiedVisit && (
+													{copiedVisitId === c._id && (
 														<span className="text-green-600 text-xs">Copied!</span>
 													)}
 												</div>
