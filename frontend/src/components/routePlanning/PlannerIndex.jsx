@@ -111,6 +111,21 @@ const cards = [
     footerLeft: 'Click to create',
     footerRight: 'Details ›',
     variant: 'default',
+  },
+  {
+    id: 'create-temp-client',
+    to: 'client/tempAdd',
+    title: 'Create Temporary Client',
+    description:
+      'Add Temporary clients, define coverage regions and manage their activity status.',
+    label: 'Setup',
+    icon: FiUser,
+    gradientFrom: 'from-sky-100/70',
+    badgeBg: 'bg-sky-50',
+    badgeText: 'text-sky-700',
+    footerLeft: 'Click to create',
+    footerRight: 'Details ›',
+    variant: 'default',
   }
 ];
 

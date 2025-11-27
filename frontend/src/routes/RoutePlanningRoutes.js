@@ -7,11 +7,13 @@ import { ViewUnassignedClients } from "../components/routePlanning/ViewUnassigne
 import { ViewOnHoldClients } from "../components/routePlanning/ViewOnHoldClients";
 import { AssignClients } from "../components/routePlanning/AssignClients";
 import { TrackFERoute } from "../components/routePlanning/TrackFERoute";
+import { CreateTemporaryClient } from "../components/routePlanning/CreateTempClient";
 
 export const RoutePlanningRoutes = [
 	{ to: "", element: <PlannerIndex /> },
 	{ to: "fe/add", element: <CreateFE /> },
 	// { to: "client/add", element: <CreateClient /> },
+	{ to: "client/tempAdd", element: <CreateTemporaryClient /> },
 	{ to: "client/add/visit", element: <AddVisit /> },
 	{ to: "client/view/unassigned", element: <ViewUnassignedClients /> },
 	{ to: "client/view/onhold", element: <ViewOnHoldClients /> },

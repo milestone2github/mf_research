@@ -20,6 +20,7 @@ const {
 	assignClientsToFE,
 	trackFEAndClient,
 	getCoordinatesFromAddress,
+	createTemporaryClient,
 } = require("../controllers/routeOptimizationController");
 const { verifyJWT } = require("../middlewares/verifyToken");
 const router = express.Router();
@@ -60,8 +61,11 @@ router.get("/clients/list", fetchClientList);
 router.post("/client/searchAddress", searchAddresses);
 router.get("/client/getCoordinatesFromAddress", getCoordinatesFromAddress);
 
-// POST the New Client's details
-router.post("/clients/create", createClient);
+// // POST the New Client's details
+// router.post("/clients/create", createClient);
+
+// POST Create New Temporary Client
+router.post("/clients/create", createTemporaryClient);
 
 // POST the New Client's details
 router.post("/clients/add-visit", addVisitForExistingClient);

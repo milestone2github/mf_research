@@ -18,7 +18,7 @@ export const ViewPlanner = () => {
 	});
 	const [loading, setLoading] = useState(false);
 	const [message, setMessage] = useState("");
-	const [copiedVisitAddr, setCopiedVisitAddr] = useState(false);
+	const [copiedRow, setCopiedRow] = useState(null);
 
 	const fetchPlanner = async () => {
 		setLoading(true);
@@ -72,17 +72,32 @@ export const ViewPlanner = () => {
 		if (e.key === "Enter") fetchPlanner();
 	};
 
-	const utcToLocal = (utc) => new Date(utc).toLocaleString();
+	const utcToLocal = (utcDate) => {
+    if (!utcDate) return "-";
+    const d = new Date(utcDate);
 
-	const copyText = async (text, setter) => {
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12; // convert 0 → 12
+
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+};
+
+	const copyText = async (text, rowId) => {
 		try {
 			await navigator.clipboard.writeText(text);
-			setter(true);
-			setTimeout(() => setter(false), 2000);
+			setCopiedRow(rowId);
+			setTimeout(() => setCopiedRow(null), 2000);
 		} catch (err) {
 			console.error("Copy failed:", err);
 		}
 	};
+
 	const truncate = (str) => {
 		if (!str) return "-";
 		return str.length > 70 ? str.slice(0, 70) + "..." : str;
@@ -232,7 +247,7 @@ export const ViewPlanner = () => {
 													<td className="p-2 border font-medium">
 														<div className="flex flex-col">
 															<span className="text-gray-900 font-mdedium">
-																{slot.client?.name || "-"}
+																{slot.client?.name ? slot.client?.name.toUpperCase() : "-"}
 															</span>
 															<span className="text-blue-700 text-xs mt-1 whitespace-nowrap">
 																{formatContactNumber(slot.client?.contactNumber)}
@@ -246,18 +261,17 @@ export const ViewPlanner = () => {
 															</span>
 
 															<button
-																onClick={() =>
-																	copyText(slot.visit?.visitingAddress || "-", setCopiedVisitAddr)
-																}
+																onClick={() => copyText(slot.visit?.visitingAddress || "-", slot._id)}
 																className="text-blue-600 hover:text-blue-800"
 																title="Copy address"
 															>
 																<MdContentCopy size={18} />
 															</button>
 
-															{copiedVisitAddr && (
+															{copiedRow === slot._id && (
 																<span className="text-green-600 text-xs">Copied!</span>
 															)}
+
 														</div>
 													</td>
 													<td className="px-4 py-2 border text-xs">
