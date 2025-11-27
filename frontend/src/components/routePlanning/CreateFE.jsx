@@ -35,7 +35,7 @@ export const CreateFE = () => {
 			toast.success(
 				res.data.message || "Field Executive created successfully!",
 				{
-					position: "bottom-center",
+					position: "top-right",
 					autoClose: 3000,
 				}
 			);
@@ -50,7 +50,7 @@ export const CreateFE = () => {
 			toast.error(
 				err.response?.data?.message || "Failed to create Field Executive.",
 				{
-					position: "bottom-center",
+					position: "top-right",
 					autoClose: 3000,
 				}
 			);

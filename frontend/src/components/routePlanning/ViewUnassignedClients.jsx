@@ -9,8 +9,8 @@ export const ViewUnassignedClients = () => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [scope, setScope] = useState("today"); // today or all-time
-	const [copiedClient, setCopiedClient] = useState(false);
-	const [copiedVisit, setCopiedVisit] = useState(false);
+	const [copiedClientId, setCopiedClientId] = useState(null);
+	const [copiedVisitId, setCopiedVisitId] = useState(null);
 	const navigate = useNavigate();
 	const baseUrl = process.env.REACT_APP_API_BASE_URL;
 
@@ -37,21 +37,37 @@ export const ViewUnassignedClients = () => {
 		fetchClients(scope);
 	}, [scope]);
 
-	const formatDateTime = (utcDate) => {
-		if (!utcDate) return "-";
-		const date = new Date(utcDate);
-		return date.toLocaleString(); // converts UTC to local time
-	};
+	// const formatDateTime = (utcDate) => {
+	// 	if (!utcDate) return "-";
+	// 	const date = new Date(utcDate);
+	// 	return date.toLocaleString(); // converts UTC to local time
+	// };
 
-	const copyText = async (text, setter) => {
-		try {
-			await navigator.clipboard.writeText(text);
-			setter(true);
-			setTimeout(() => setter(false), 2000);
-		} catch (err) {
-			console.error("Copy failed:", err);
-		}
-	};
+	const formatDateTime = (utcDate) => {
+    if (!utcDate) return "-";
+    const d = new Date(utcDate);
+
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12; // convert 0 → 12
+
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+};
+
+	const copyText = async (text, setter, id) => {
+	try {
+		await navigator.clipboard.writeText(text);
+		setter(id); // store the ID of the copied row
+		setTimeout(() => setter(null), 2000);
+	} catch (err) {
+		console.error("Copy failed:", err);
+	}
+};
 
 	const truncate = (str) => {
 		if (!str) return "-";
@@ -142,7 +158,8 @@ export const ViewUnassignedClients = () => {
 											<td className="p-2 border font-medium">
 												<div className="flex flex-col">
 													<span className="text-gray-900 font-medium">
-														{client.name || "-"}
+														{client?.name ? client.name.toUpperCase() : "-"}
+
 													</span>
 													<span className="text-blue-700 text-xs mt-1 whitespace-nowrap">
 														{formatContactNumber(client.contactNumber)}
@@ -156,14 +173,17 @@ export const ViewUnassignedClients = () => {
 													</span>
 													{/* Copy Button */}
 													<button
-														onClick={() => copyText(client.address || "-", setCopiedClient)}
-														className="text-blue-600 hover:text-blue-800"
-														title="Copy address"
-													>
-														<MdContentCopy size={18} />
-													</button>
+	onClick={() => copyText(client.address || "-", setCopiedClientId, meeting._id)}
+	className="text-blue-600 hover:text-blue-800"
+	title="Copy address"
+>
+	<MdContentCopy size={18} />
+</button>
 
-													{copiedClient && <span className="text-green-600 text-xs">Copied!</span>}
+{copiedClientId === meeting._id && (
+	<span className="text-green-600 text-xs">Copied!</span>
+)}
+
 												</div>
 											</td>
 
@@ -173,13 +193,17 @@ export const ViewUnassignedClients = () => {
 														{truncate(visit.visitingAddress)}
 													</span>
 													<button
-														onClick={() => copyText(visit.visitingAddress || "-", setCopiedVisit)}
-														className="text-blue-600 hover:text-blue-800"
-														title="Copy address"
-													>
-														<MdContentCopy size={18} />
-													</button>
-													{copiedVisit && <span className="text-green-600 text-xs">Copied!</span>}
+	onClick={() => copyText(visit.visitingAddress || "-", setCopiedVisitId, meeting._id)}
+	className="text-blue-600 hover:text-blue-800"
+	title="Copy address"
+>
+	<MdContentCopy size={18} />
+</button>
+
+{copiedVisitId === meeting._id && (
+	<span className="text-green-600 text-xs">Copied!</span>
+)}
+
 												</div>
 											</td>
 											<td className="p-2 border text-xs">

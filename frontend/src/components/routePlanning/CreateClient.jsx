@@ -51,7 +51,7 @@ export const CreateClient = () => {
 			);
 
 			toast.success(res.data.message || "Client created successfully!", {
-				position: "bottom-center",
+				position: "top-right",
 				autoClose: 3000,
 			});
 
@@ -73,7 +73,7 @@ export const CreateClient = () => {
 			// }, 5000);
 		} catch (err) {
 			toast.error(err.response?.data?.message || "Failed to create client.", {
-				position: "bottom-center",
+				position: "top-right",
 				autoClose: 3000,
 			});
 		} finally {
