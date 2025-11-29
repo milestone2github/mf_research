@@ -179,48 +179,57 @@ const [copiedVisitId, setCopiedVisitId] = useState(null);
 												</div>
 											</td>
 
-											<td className="p-2 border text-xs">
-												<div className="flex items-center gap-1">
-													<span title={c.clientId?.address || "-"}>
+											{/* Client Address */}
+											<td className="p-2 border relative">
+												<div className="flex items-center justify-between w-full text-xs">
+													<span className="max-w-[240px]" title={c.clientId?.address || "-"} >
 														{truncate(c.clientId?.address)}
 													</span>
+													<div className="relative w-[22px] h-[22px] flex-shrink-0 flex items-center justify-center ml-1">
 
-													<button
-														onClick={() =>
-															copyText(c.clientId?.address || "-", setCopiedClientId, c._id)
-														}
-														className="text-blue-600 hover:text-blue-800"
-	title="Copy address"
-													>
-														<MdContentCopy size={18} />
-													</button>
+														<button
+															onClick={() =>
+																copyText(c.clientId?.address || "-", setCopiedClientId, c._id)
+															}
+															className="text-blue-600 hover:text-blue-800 absolute inset-0 flex items-center justify-center"
+															title="Copy address"
+														>
+															<MdContentCopy size={18} />
+														</button>
 
-													{copiedClientId === c._id && (
-														<span className="text-green-600 text-xs">Copied!</span>
-													)}
+														{copiedClientId === c._id && (
+															<span className="absolute inset-0 flex items-center justify-center text-green-600 text-[10px] bg-white">
+																Copied!
+															</span>
+														)}
+													</div>
 												</div>
 											</td>
 
-											{/* Visit Address with copy */}
-											<td className="p-2 border text-xs">
-												<div className="flex items-center gap-1">
-													<span title={c.visitingAddress || "-"}>
+											{/* Visit Address */}
+											<td className="p-2 border relative">
+												<div className="flex items-center justify-between w-full text-xs">
+
+													<span className="max-w-[240px]" title={c.visitingAddress || "-"} >
 														{truncate(c.visitingAddress)}
 													</span>
+													<div className="relative w-[22px] h-[22px] flex-shrink-0 flex items-center justify-center ml-1">
+														<button
+															onClick={() =>
+																copyText(c.visitingAddress || "-", setCopiedVisitId, c._id)
+															}
+															className="text-blue-600 hover:text-blue-800 absolute inset-0 flex items-center justify-center"
+															title="Copy address"
+														>
+															<MdContentCopy size={18} />
+														</button>
 
-													<button
-														onClick={() =>
-															copyText(c.visitingAddress || "-", setCopiedVisitId, c._id)
-														}
-														className="text-blue-600 hover:text-blue-800"
-	title="Copy address"
-													>
-														<MdContentCopy size={18} />
-													</button>
-
-													{copiedVisitId === c._id && (
-														<span className="text-green-600 text-xs">Copied!</span>
-													)}
+														{copiedVisitId === c._id && (
+															<span className="absolute inset-0 flex items-center justify-center text-green-600 text-[10px] bg-white">
+																Copied!
+															</span>
+														)}
+													</div>
 												</div>
 											</td>
 											<td className="p-2 border text-xs">

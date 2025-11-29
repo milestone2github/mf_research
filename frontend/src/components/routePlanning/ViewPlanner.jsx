@@ -256,21 +256,28 @@ export const ViewPlanner = () => {
 													</td>
 													<td className="px-4 py-2 border">
 														<div className="text-xs flex items-center gap-1">
-															<span title={slot.visit?.visitingAddress || "-"}>
+															<span
+																className="max-w-[200px]"
+																title={slot.visit?.visitingAddress || "-"}
+															>
 																{truncate(slot.visit?.visitingAddress)}
 															</span>
+															<div className="relative w-[22px] h-[22px] flex items-center justify-center flex-shrink-0">
 
-															<button
-																onClick={() => copyText(slot.visit?.visitingAddress || "-", slot._id)}
-																className="text-blue-600 hover:text-blue-800"
-																title="Copy address"
-															>
-																<MdContentCopy size={18} />
-															</button>
+																<button
+																	onClick={() => copyText(slot.visit?.visitingAddress || "-", slot._id)}
+																	className="text-blue-600 hover:text-blue-800 absolute inset-0 flex items-center justify-center"
+																	title="Copy address"
+																>
+																	<MdContentCopy size={18} />
+																</button>
 
-															{copiedRow === slot._id && (
-																<span className="text-green-600 text-xs">Copied!</span>
-															)}
+																{copiedRow === slot._id && (
+																	<span className="absolute inset-0 flex items-center justify-center text-green-600 text-[10px] bg-white">
+																		Copied!
+																	</span>
+																)}
+															</div>
 
 														</div>
 													</td>
