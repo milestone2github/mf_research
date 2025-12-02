@@ -3,10 +3,10 @@
 const axios = require("axios");
 const { ClientMeeting, FERoute } = require("../models/RouteOptimization");
 
-async function optimizeFERoute(feId, currentLocation = null) {
+async function optimizeFERoute(feId, currentLocation = null, docDate) {
 	try {
 		// 1. Get FE route info
-		const feRoute = await FERoute.findOne({ feId }).lean();
+		const feRoute = await FERoute.findOne({ feId, docDate }).lean();
 		if (!feRoute) throw new Error("FE route not found");
 
 		// Use current location if provided, else fallback to baseLocation

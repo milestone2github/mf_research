@@ -25,9 +25,14 @@ const updateUserLocation = async (req, res) => {
 
 		const batteryLog = { timestamps: new Date(), batteryPercentage, };
 
+        const date = new Date();
+        const docDate = new Date(
+            Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+        );
+
 		// Update currentLocation in FE Route schema
-    await FERoute.findOneAndUpdate(
-			{ feId }, // filter by FE id
+		let feRoute = await FERoute.findOneAndUpdate(
+			{ feId, docDate }, // filter by FE id
 			{
 				$set: {
 					currentLocation: {
@@ -47,6 +52,23 @@ const updateUserLocation = async (req, res) => {
 			},
 			{ new: true, upsert: true }
 		);
+
+		// If today’s FE route does NOT exist → create it
+		if (!feRoute) {
+			feRoute = await FERoute.create({
+				feId,
+				docDate,
+				baseLocation: {
+					type: "Point",
+					coordinates: [long, lat],
+				},
+				currentLocation: {
+					type: "Point",
+					coordinates: [long, lat],
+				},
+				battery: [batteryLog],
+			});
+		}
 
 		return res.status(200).json({ message: "Current Location updated successfully" });
 	} catch (err) {
@@ -175,6 +197,20 @@ const markCompleted = async (req, res) => {
 		if (!visit.actualVisitStart) visit.actualVisitStart = new Date();
 		visit.actualVisitEnd = new Date();
 
+		if (!visit?.availability?.start) {
+			return res.status(400).json({
+				error: "Visit availability.start date missing – cannot determine docDate",
+			});
+		}
+		const extractedDate = new Date(visit.availability.start);
+		const docDate = new Date(
+			Date.UTC(
+				extractedDate.getUTCFullYear(),
+				extractedDate.getUTCMonth(),
+				extractedDate.getUTCDate()
+			)
+		);
+
 		// 3. Add FE comment if provided
 		if (remarksByFE) {
 			const fe = await FE.findById(feId).select("name");
@@ -201,7 +237,7 @@ const markCompleted = async (req, res) => {
 
 		// 4. Optimize FE route after completion
 		const currentLocation = markCommentLocation?.coordinates || null;
-		await optimizeFERoute(feId, currentLocation);
+		await optimizeFERoute(feId, currentLocation, docDate);
 
 		// 5. Determine next client for today only
 		const startOfDay = new Date();
@@ -231,7 +267,7 @@ const markCompleted = async (req, res) => {
 			};
 		}
 
-		await FERoute.findOneAndUpdate({ feId }, updatePayload);
+		await FERoute.findOneAndUpdate({ feId, docDate }, updatePayload);
 
 		return res.json({
 			message: "Client visit marked as completed",
@@ -273,6 +309,20 @@ const addComments = async (req, res) => {
 		if (!visit) return res.status(404).json({ error: "Visit not found" });
 		
 		// console.log("Visit details ==> ", visit) // debug
+		if (!visit?.availability?.start) {
+			return res.status(400).json({
+				error: "Visit availability.start date missing – cannot determine docDate",
+			});
+		}
+
+		const extractedDate = new Date(visit.availability.start);
+		const docDate = new Date(
+			Date.UTC(
+				extractedDate.getUTCFullYear(),
+				extractedDate.getUTCMonth(),
+				extractedDate.getUTCDate()
+			)
+		);
 		// 2. Get FE name (denormalization)
 		const fe = await FE.findById(feId).select("name");
 		const feName = fe ? fe.name : "Unknown FE";
@@ -301,7 +351,7 @@ const addComments = async (req, res) => {
 
 		// 5. Recalculate route for remaining assigned clients
 		const currentLocation = markCommentLocation?.coordinates || null;
-		await optimizeFERoute(feId, currentLocation);
+		await optimizeFERoute(feId, currentLocation, docDate);
 		// console.log("Current Location Updated: ", currentLocation); // debug
 		return res.json({
 			message: "Comment posted successfully, visit put on hold",
@@ -421,14 +471,12 @@ const getCombinedList = async (req, res) => {
 		}
 		// console.log("Start and End date in UTC ==> ", startFilter, endFilter); // debug
 
-		// /*
-		// Fetch FERoute documents with day-range filtering
+		// DAILY-DOCUMENT UPDATE —
+		// Fetch FERoute docs based on docDate, not bookedSlots timestamps
 		const combinedRes = await FERoute.find({
-			bookedSlots: {
-				$elemMatch: { start: { $gte: startFilter }, end: { $lte: endFilter } },
-			},
+			docDate: { $gte: startFilter, $lte: endFilter },
 		})
-			.select("feId bookedSlots")
+			.select("feId bookedSlots docDate")
 			.populate([
 				{ path: "feId", select: "name employeeId contactNumber" },
 				{
@@ -470,8 +518,8 @@ const getCombinedList = async (req, res) => {
 							if (!new RegExp(clientName, "i").test(n)) return false;
 						}
 						if (status && slot.visit.status !== status) return false;
-						if (startFilter && slot.start < startFilter) return false;
-						if (endFilter && slot.end > endFilter) return false;
+						// if (startFilter && slot.start < startFilter) return false;
+						// if (endFilter && slot.end > endFilter) return false;
 						return true;
 					})
 					.map((slot) => {
@@ -526,8 +574,28 @@ const fetchFEDetails = async (req, res) => {
 			return res.status(400).json({ message: "Invalid FE ID" });
 		}
 
+		let { date } = req.query; //to be send from frontend in YYYY-MM-DD format
+		let docDate;
+
+		if (date) {
+            // If frontend sends date use it
+			const parsed = new Date(date);
+
+			if (isNaN(parsed)) {
+				return res.status(400).json({ message: "Invalid date format" });
+			}
+
+            // Normalize WITHOUT timezone shifting
+            docDate = new Date(
+                parsed.getFullYear(),
+                parsed.getMonth(),
+                parsed.getDate(),
+                0, 0, 0, 0
+            )
+		}
+
 		// Fetch FERoute for this FE
-		const feRoute = await FERoute.findOne({ feId: feId })
+		const feRoute = await FERoute.findOne({ feId: feId, docDate })
 			.select("feId availability bookedSlots currentClient")
 			.lean();
 
@@ -570,7 +638,12 @@ const trackFEAndClient = async (req, res) => {
 		}
 
 		// Fetch FE route info
-		const feRoute = await FERoute.findOne({ feId })
+		const currentDate = new Date();
+		const docDate = new Date(
+			Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate())
+		);
+
+		const feRoute = await FERoute.findOne({ feId, docDate })
 			.select("currentLocation currentClient battery")
 			.lean();
 
@@ -837,7 +910,7 @@ const fetchUnassignedClientsAllTime = async (_req, res) => {
 			}).select(
 				"_id clientId clientType priority visitingAddress availability purposeOfVisit"
 			);
-		console.log("meetings:ALL TIME--> ", meetings);
+		// console.log("meetings:ALL TIME--> ", meetings);
 		// Transform client fields (NAME → name, MOBILE → mobile) so frontend get correct format
 		const unassignedMeetings = meetings.map((m) => {
 			const client = m.clientId;
@@ -1329,11 +1402,21 @@ const assignClientsToFE = async (req, res) => {
 		if (!fe)
 			return res.status(404).json({ message: "Field Executive not found" });
 
+		const slot = new Date(slotStart);
+		
+		const docDate = new Date(Date.UTC(
+			slot.getFullYear(),
+			slot.getMonth(),
+			slot.getDate()
+		));
+		
 		// 3. Fetch or create FERoute
-		let feRoute = await FERoute.findOne({ feId });
+		let feRoute = await FERoute.findOne({ feId, docDate });
+
 		if (!feRoute) {
 			feRoute = new FERoute({
 				feId,
+				docDate,
 				baseLocation: { type: "Point", coordinates: baseLocation },
 				currentLocation: {
 					type: "Point",
@@ -1414,7 +1497,7 @@ const assignClientsToFE = async (req, res) => {
 				? { coordinates: feRoute.currentLocation.coordinates }
 				: null;
 
-			await optimizeFERoute(feId, currentLocationObj);
+			await optimizeFERoute(feId, currentLocationObj, docDate);
 		}
 
 		res.status(200).json({ message: "Client assigned to FE successfully" });

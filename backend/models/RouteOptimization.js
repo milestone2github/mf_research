@@ -84,6 +84,7 @@ const fieldExecutiveSchema = new Schema(
 const fieldExecutiveRouteSchema = new Schema(
 	{
 		feId: { type: Schema.Types.ObjectId, ref: "FE", required: true },
+		docDate: { type: Date, required: true }, // New field: date of this route
 		baseLocation: {
 			type: { type: String, enum: ["Point"], default: "Point" },
 			coordinates: { type: [Number], required: true }, // [LONGITUDE, LATITUDE]
@@ -119,7 +120,7 @@ const fieldExecutiveRouteSchema = new Schema(
 fieldExecutiveRouteSchema.index({
 	baseLocation: "2dsphere",
 	currentLocation: "2dsphere",
-});
+},{ feId: 1, docDate: 1 }, { unique: true });
 
 // -------------------- Route --------------------
 // const routeSchema = new Schema(
