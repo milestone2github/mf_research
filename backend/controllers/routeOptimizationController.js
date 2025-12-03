@@ -783,39 +783,95 @@ const searchAddresses = async (req, res) => {
 		if (!searchedAddress || searchedAddress.trim().length < 3) {
 			return res.status(400).json({ message: "Enter at least 3 characters" });
 		}
-
-		const url = "https://places.googleapis.com/v1/places:searchText";
-
-		const response = await axios.post(
-			url,
-			{
-				textQuery: searchedAddress,
-				// maxResultCount: 10,
+		// 1. Google Autocomplete API
+		const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json`;
+		const autoRes = await axios.get(autocompleteUrl, {
+			params: {
+				input: searchedAddress,
+				key: process.env.GOOGLE_MAPS_API_KEY,
+				types: "establishment|geocode",
+				components: "country:in",
 			},
-			{
-				headers: {
-					"Content-Type": "application/json",
-					"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-					"X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location",
-				},
-			}
+		});
+
+		const predictions = autoRes.data?.predictions || [];
+		if (!predictions.length) return res.json({ suggestions: [] });
+
+		const topPredictions = predictions.slice(0, 5);
+
+		// Fetch place details for each prediction to get coordinates + full address
+		const suggestions = await Promise.all(
+			topPredictions.map(async (p) => {
+				const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json`;
+				const detailsRes = await axios.get(detailsUrl, {
+					params: {
+						place_id: p.place_id,
+						key: process.env.GOOGLE_MAPS_API_KEY,
+						fields: "name,formatted_address,geometry",
+					},
+				});
+
+				const d = detailsRes.data?.result;
+
+				return {
+					name: d?.name || p.description,
+					address: `${d?.name || ""}, ${d?.formatted_address || p.description}`,
+					coordinates: d?.geometry?.location
+						? [d.geometry.location.lng, d.geometry.location.lat]
+						: null,
+				};
+			})
 		);
 
-		const results = response.data?.places?.map((p) => ({
-			name: p.displayName?.text || "",
-			address: p.formattedAddress,
-			coordinates: p.location
-				? [p.location.longitude, p.location.latitude]
-				: null,
-		}));
-		// console.log("results", results); // debug
-
-		res.json({ suggestions: results || [] });
+		res.json({ suggestions });
 	} catch (error) {
 		console.error("Error fetching address suggestions:", error.message);
 		res.status(500).json({ message: "Failed to fetch address suggestions" });
 	}
 };
+
+// OLD - Get address suggestions using GOOGLE Places API (v1)
+// const searchAddresses = async (req, res) => {
+// 	try {
+// 		const { searchedAddress } = req.body;
+
+// 		if (!searchedAddress || searchedAddress.trim().length < 3) {
+// 			return res.status(400).json({ message: "Enter at least 3 characters" });
+// 		}
+
+// 		const url = "https://places.googleapis.com/v1/places:searchText";
+
+// 		const response = await axios.post(
+// 			url,
+// 			{
+// 				textQuery: searchedAddress,
+// 				maxResultCount: 10,
+// 			},
+// 			{
+// 				headers: {
+// 					"Content-Type": "application/json",
+// 					"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+// 					"X-Goog-FieldMask":
+// 						"places.displayName,places.formattedAddress,places.location",
+// 				},
+// 			}
+// 		);
+
+// 		const results = response.data?.places?.map((p) => ({
+// 			name: p.displayName?.text || "",
+// 			address: `${p.displayName?.text || ""}, ${p.formattedAddress || ""}`,
+// 			coordinates: p.location
+// 				? [p.location.longitude, p.location.latitude]
+// 				: null,
+// 		}));
+// 		// console.log("results", results); // debug
+
+// 		res.json({ suggestions: results || [] });
+// 	} catch (error) {
+// 		console.error("Error fetching address suggestions:", error.message);
+// 		res.status(500).json({ message: "Failed to fetch address suggestions" });
+// 	}
+// };
 
 // Fetch unassigned clients for today
 const fetchUnassignedClientsToday = async (_req, res) => {
