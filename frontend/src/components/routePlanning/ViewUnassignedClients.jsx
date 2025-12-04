@@ -166,44 +166,56 @@ export const ViewUnassignedClients = () => {
 													</span>
 												</div>
 											</td>
-											<td className="p-2 border">
-												<div className="flex items-center gap-1 text-xs">
-													<span title={client.address || "-"}>
+											{/* Client Address */}
+											<td className="p-2 border relative">
+												<div className="flex items-center justify-between w-full text-xs">
+													<span className="max-w-[250px]" title={client.address || "-"}>
 														{truncate(client.address)}
 													</span>
-													{/* Copy Button */}
-													<button
-	onClick={() => copyText(client.address || "-", setCopiedClientId, meeting._id)}
-	className="text-blue-600 hover:text-blue-800"
-	title="Copy address"
->
-	<MdContentCopy size={18} />
-</button>
+													<div className="relative w-[22px] h-[22px] flex items-center justify-center ml-1 flex-shrink-0">
 
-{copiedClientId === meeting._id && (
-	<span className="text-green-600 text-xs">Copied!</span>
-)}
+														<button
+															onClick={() =>
+																copyText(client.address || "-", setCopiedClientId, meeting._id)
+															}
+															className="text-blue-600 hover:text-blue-800 absolute inset-0 flex items-center justify-center"
+															title="Copy address"
+														>
+															<MdContentCopy size={18} />
+														</button>
 
+														{copiedClientId === meeting._id && (
+															<span className="absolute inset-0 flex items-center justify-center text-green-600 text-[10px] bg-white">
+																Copied!
+															</span>
+														)}
+													</div>
 												</div>
 											</td>
 
-											<td className="p-2 border text-xs">
-												<div className="flex items-center gap-1">
-													<span title={visit.visitingAddress || "-"}>
+											{/* Visting Address */}
+											<td className="p-2 border relative">
+												<div className="flex items-center justify-between w-full text-xs">
+													<span className="max-w-[250px]" title={visit.visitingAddress || "-"}>
 														{truncate(visit.visitingAddress)}
 													</span>
-													<button
-	onClick={() => copyText(visit.visitingAddress || "-", setCopiedVisitId, meeting._id)}
-	className="text-blue-600 hover:text-blue-800"
-	title="Copy address"
->
-	<MdContentCopy size={18} />
-</button>
+													<div className="relative w-[22px] h-[22px] flex items-center justify-center ml-1 flex-shrink-0">
+														<button
+															onClick={() =>
+																copyText(visit.visitingAddress || "-", setCopiedVisitId, meeting._id)
+															}
+															className="text-blue-600 hover:text-blue-800 absolute inset-0 flex items-center justify-center"
+															title="Copy address"
+														>
+															<MdContentCopy size={18} />
+														</button>
 
-{copiedVisitId === meeting._id && (
-	<span className="text-green-600 text-xs">Copied!</span>
-)}
-
+														{copiedVisitId === meeting._id && (
+															<span className="absolute inset-0 flex items-center justify-center text-green-600 text-[10px] bg-white">
+																Copied!
+															</span>
+														)}
+													</div>
 												</div>
 											</td>
 											<td className="p-2 border text-xs">

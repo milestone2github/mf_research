@@ -25,9 +25,14 @@ const updateUserLocation = async (req, res) => {
 
 		const batteryLog = { timestamps: new Date(), batteryPercentage, };
 
+        const date = new Date();
+        const docDate = new Date(
+            Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+        );
+
 		// Update currentLocation in FE Route schema
-    await FERoute.findOneAndUpdate(
-			{ feId }, // filter by FE id
+		let feRoute = await FERoute.findOneAndUpdate(
+			{ feId, docDate }, // filter by FE id
 			{
 				$set: {
 					currentLocation: {
@@ -47,6 +52,23 @@ const updateUserLocation = async (req, res) => {
 			},
 			{ new: true, upsert: true }
 		);
+
+		// If today’s FE route does NOT exist → create it
+		if (!feRoute) {
+			feRoute = await FERoute.create({
+				feId,
+				docDate,
+				baseLocation: {
+					type: "Point",
+					coordinates: [long, lat],
+				},
+				currentLocation: {
+					type: "Point",
+					coordinates: [long, lat],
+				},
+				battery: [batteryLog],
+			});
+		}
 
 		return res.status(200).json({ message: "Current Location updated successfully" });
 	} catch (err) {
@@ -85,11 +107,10 @@ const getTasks = async (req, res) => {
 			"availability.end": { $gte: startOfDay },
 			isCompleted: false,
 			onHold: false,
-		})
-			.populate({
+		}).populate({
 				path: "clientId",
-				model: Client,
-				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+                model: [Client, TempClient],
+                select: "name mobile address1 address2 address3 city pin NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
 			})
 			.populate("assignedFE", "name contactNumber employeeId")
 			.select(
@@ -102,31 +123,38 @@ const getTasks = async (req, res) => {
 
 		const formatted = tasks.map((t) => {
 			const c = t.clientId;
+            const clientType = c?.NAME ? "mint" : c?.name ? "temporary" : "unknown";
 
-			const clientAddress = c
-				? [c.ADDRESS1, c.ADDRESS2, c.ADDRESS3, c.CITY, c.PIN,
+            const clientAddress = c
+                ? [
+                      c.ADDRESS1 || c.address1,
+                      c.ADDRESS2 || c.address2,
+                      c.ADDRESS3 || c.address3,
+                      c.CITY || c.city,
+                      c.PIN || c.pin,
 				].filter(Boolean).join(", ")
 				: "";
-				
-				return {
-					visitId: t._id,
-					clientId: c?._id,
-					clientName: c?.NAME || "",
-				clientContact: c?.MOBILE || "",
-				clientAddress: clientAddress || "",
-				visitingAddress: t.visitingAddress,
-				availability: t.availability,
-				priority: t.priority,
-				isCompleted: t.isCompleted,
-				onHold: t.onHold,
-				order: t.order,
-				status: t.status,
-				actualVisitStart: t.actualVisitStart,
-				actualVisitEnd: t.actualVisitEnd,
-				feId: t.assignedFE?._id,
-				feName: t.assignedFE?.name,
-				purposeOfVisit: t.purposeOfVisit,
-				locationString: t.location.urlString,
+
+            return {
+                visitId: t._id,
+                clientId: c?._id,
+                clientName: c?.NAME || c?.name || "Unknown Client",
+                clientContact: c?.MOBILE || c?.mobile || "-",
+                clientAddress: clientAddress || t.visitingAddress || "-",
+                visitingAddress: t.visitingAddress,
+                availability: t.availability,
+                priority: t.priority,
+                isCompleted: t.isCompleted,
+                onHold: t.onHold,
+                order: t.order,
+                status: t.status,
+                actualVisitStart: t.actualVisitStart,
+                actualVisitEnd: t.actualVisitEnd,
+                feId: t.assignedFE?._id,
+                feName: t.assignedFE?.name,
+                purposeOfVisit: t.purposeOfVisit,
+                locationString: t.location?.urlString || "",
+                clientType
 			};
 		});
 		// console.log("Tasks details:--> ", formatted); // debug
@@ -169,6 +197,20 @@ const markCompleted = async (req, res) => {
 		if (!visit.actualVisitStart) visit.actualVisitStart = new Date();
 		visit.actualVisitEnd = new Date();
 
+		if (!visit?.availability?.start) {
+			return res.status(400).json({
+				error: "Visit availability.start date missing – cannot determine docDate",
+			});
+		}
+		const extractedDate = new Date(visit.availability.start);
+		const docDate = new Date(
+			Date.UTC(
+				extractedDate.getUTCFullYear(),
+				extractedDate.getUTCMonth(),
+				extractedDate.getUTCDate()
+			)
+		);
+
 		// 3. Add FE comment if provided
 		if (remarksByFE) {
 			const fe = await FE.findById(feId).select("name");
@@ -195,7 +237,7 @@ const markCompleted = async (req, res) => {
 
 		// 4. Optimize FE route after completion
 		const currentLocation = markCommentLocation?.coordinates || null;
-		await optimizeFERoute(feId, currentLocation);
+		await optimizeFERoute(feId, currentLocation, docDate);
 
 		// 5. Determine next client for today only
 		const startOfDay = new Date();
@@ -225,7 +267,7 @@ const markCompleted = async (req, res) => {
 			};
 		}
 
-		await FERoute.findOneAndUpdate({ feId }, updatePayload);
+		await FERoute.findOneAndUpdate({ feId, docDate }, updatePayload);
 
 		return res.json({
 			message: "Client visit marked as completed",
@@ -267,6 +309,20 @@ const addComments = async (req, res) => {
 		if (!visit) return res.status(404).json({ error: "Visit not found" });
 		
 		// console.log("Visit details ==> ", visit) // debug
+		if (!visit?.availability?.start) {
+			return res.status(400).json({
+				error: "Visit availability.start date missing – cannot determine docDate",
+			});
+		}
+
+		const extractedDate = new Date(visit.availability.start);
+		const docDate = new Date(
+			Date.UTC(
+				extractedDate.getUTCFullYear(),
+				extractedDate.getUTCMonth(),
+				extractedDate.getUTCDate()
+			)
+		);
 		// 2. Get FE name (denormalization)
 		const fe = await FE.findById(feId).select("name");
 		const feName = fe ? fe.name : "Unknown FE";
@@ -295,7 +351,7 @@ const addComments = async (req, res) => {
 
 		// 5. Recalculate route for remaining assigned clients
 		const currentLocation = markCommentLocation?.coordinates || null;
-		await optimizeFERoute(feId, currentLocation);
+		await optimizeFERoute(feId, currentLocation, docDate);
 		// console.log("Current Location Updated: ", currentLocation); // debug
 		return res.json({
 			message: "Comment posted successfully, visit put on hold",
@@ -339,25 +395,31 @@ const getAllCoordinates = async (req, res) => {
 		})
 			.populate({
 				path: "clientId",
-				model: Client,
-				select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN"
+				model: [Client, TempClient],
+				select: "name mobile address1 address2 address3 city pin NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN"
 			})
-			.select("clientId location visitingAddress priority order")
+			.select("clientId location visitingAddress priority order clientType")
 			.sort({ order: 1 });
 
 		const data = meetings.map((m) => {
-			const c = m.clientId;
-
-			const clientAddress = c
-				? [c.ADDRESS1, c.ADDRESS2, c.ADDRESS3, c.CITY, c.PIN,
+			const client = m.clientId;
+			const clientType = client?.NAME ? "mint" : client?.name ? "temporary" : "unknown";			
+			const clientAddress = client
+				? [
+					client.ADDRESS1 || client.address1,
+					client.ADDRESS2 || client.address2,
+					client.ADDRESS3 || client.address3,
+					client.CITY || client.city,
+					client.PIN || client.pin,
 				].filter(Boolean).join(", ")
 				: "";
 
 			return {
-				clientId: c?._id,
-				clientName: c?.NAME || "",
-				clientContact: c?.MOBILE || "",
-				clientAddress: clientAddress || "",
+				clientId: client?._id || null,
+				clientType,
+				clientName:client?.NAME || client?.name || "Unknown Client",
+				clientContact: client?.MOBILE || client?.mobile || "-",
+				clientAddress: clientAddress || m.visitingAddress || "-",
 				coordinates: m.location?.coordinates || [],
 				visitingAddress: m.visitingAddress,
 				order: m.order,
@@ -409,21 +471,18 @@ const getCombinedList = async (req, res) => {
 		}
 		// console.log("Start and End date in UTC ==> ", startFilter, endFilter); // debug
 
-		// /*
-		// Fetch FERoute documents with day-range filtering
+		// DAILY-DOCUMENT UPDATE —
+		// Fetch FERoute docs based on docDate, not bookedSlots timestamps
 		const combinedRes = await FERoute.find({
-			bookedSlots: {
-				$elemMatch: { start: { $gte: startFilter }, end: { $lte: endFilter } },
-			},
+			docDate: { $gte: startFilter, $lte: endFilter },
 		})
-			.select("feId bookedSlots")
+			.select("feId bookedSlots docDate")
 			.populate([
 				{ path: "feId", select: "name employeeId contactNumber" },
-				// { path: "bookedSlots.client", select: "_id name contactNumber" },
 				{
 					path: "bookedSlots.client",
-					model: Client,
-					select: "NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+					model: [Client, TempClient],
+					select:"name mobile address1 address2 address3 city pin NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
 				},
 				{
 					path: "bookedSlots.visit",
@@ -445,94 +504,62 @@ const getCombinedList = async (req, res) => {
 			}, {})
 		);
 
-		// Apply optional filters // Transform each FE
-		const filteredList = await Promise.all(
-			groupByFE
-				.filter((fe) => {
-					if (feName && !new RegExp(feName, "i").test(fe.feId.name)) return false;
-					if (employeeId && fe.feId.employeeId !== employeeId) return false;
-					return true;
-				})
-				.map(async (fe) => {
-					const slots = await Promise.all(
-						fe.bookedSlots
-							.filter((slot) => {
-								if (clientName && slot.client && !new RegExp(clientName, "i").test(slot.client.NAME))
-									return false;
-								if (status && slot.visit.status !== status) return false;
-								if (startFilter && slot.start < startFilter) return false;
-								if (endFilter && slot.end > endFilter) return false;
-								return true;
-							})
-							.map(async (slot) => {
-								let client = null;
-								let clientType = slot.visit.clientType || "mint"; // default permanent
+		const finalList = groupByFE
+			.filter((fe) => {
+				if (feName && !new RegExp(feName, "i").test(fe.feId.name)) return false;
+				if (employeeId && fe.feId.employeeId !== employeeId) return false;
+				return true;
+			})
+			.map((fe) => {
+				const slots = fe.bookedSlots
+					.filter((slot) => {
+						if (clientName && slot.client) {
+							const n = slot.client.NAME || slot.client.name;
+							if (!new RegExp(clientName, "i").test(n)) return false;
+						}
+						if (status && slot.visit.status !== status) return false;
+						// if (startFilter && slot.start < startFilter) return false;
+						// if (endFilter && slot.end > endFilter) return false;
+						return true;
+					})
+					.map((slot) => {
+						const c = slot.client;
+						const clientType = c?.NAME ? "mint" : c?.name ? "temporary" : "unknown";
+						const clientAddress = c
+							? [
+								c.ADDRESS1 || c.address1,
+								c.ADDRESS2 || c.address2,
+								c.ADDRESS3 || c.address3,
+								c.CITY || c.city,
+								c.PIN || c.pin,
+							].filter(Boolean)
+								.join(", ")
+							: slot.visit.visitingAddress || "-";
 
-								if (clientType === "mint") {
-									const c = slot.client;
-									if (c) {
-										client = {
-											_id: c._id,
-											name: c.NAME || "",
-											contactNumber: c.MOBILE || "",
-											address: [
-												c.ADDRESS1,
-												c.ADDRESS2,
-												c.ADDRESS3,
-												c.CITY,
-												c.PIN,
-											]
-												.filter(Boolean)
-												.join(", "),
-										};
-									}
-								}
+						const clientMapped = c
+							? {
+								_id: c._id,
+								name: c.NAME || c.name || "Unknown Client",
+								contactNumber: c.MOBILE || c.mobile || "-",
+								address: clientAddress,
+							}
+							: {
+								_id: null,
+								name: "Unknown Client",
+								contactNumber: "-",
+								address: slot.visit.visitingAddress || "-",
+							};
 
-								// TEMPORARY CLIENT
-								if (clientType === "temporary") {
-									const temp = await TempClient.findById(slot.visit.clientId)
-										.select("name mobile address1 address2 address3 city pin")
-										.lean();
-
-									if (temp) {
-										client = {
-											_id: temp._id,
-											name: temp.name,
-											contactNumber: temp.mobile || "-",
-											address: [
-												temp.address1,
-												temp.address2,
-												temp.address3,
-												temp.city,
-												temp.pin,
-											]
-												.filter(Boolean)
-												.join(", "),
-										};
-									}
-								}
-
-								// FALLBACK → If no client found
-								if (!client) {
-									client = {
-										_id: null,
-										name: "Unknown Client",
-										contactNumber: "-",
-										address: slot.visit.visitingAddress || "-",
-									};
-								}
-
-								return {
-									...slot,
-									client,
-								};
-							}));
-					return { feId: fe.feId, bookedSlots: slots };
-				})
-		);
-		// Filter out FE with zero slots
-		const finalOutput = filteredList.filter((fe) => fe.bookedSlots.length > 0);
-		return res.json({ success: true, data: finalOutput });
+						return {
+							...slot,
+							clientType,
+							client: clientMapped,
+						};
+					})
+				return { feId: fe.feId, bookedSlots: slots };
+			})
+			.filter((fe) => fe.bookedSlots.length > 0);
+		return res.json({ success: true, data: finalList });
 	} catch (err) {
 		console.error(err);
 		return res.status(500).json({ success: false, error: "Server Error" });
@@ -547,8 +574,28 @@ const fetchFEDetails = async (req, res) => {
 			return res.status(400).json({ message: "Invalid FE ID" });
 		}
 
+		let { date } = req.query; //to be send from frontend in YYYY-MM-DD format
+		let docDate;
+
+		if (date) {
+            // If frontend sends date use it
+			const parsed = new Date(date);
+
+			if (isNaN(parsed)) {
+				return res.status(400).json({ message: "Invalid date format" });
+			}
+
+            // Normalize WITHOUT timezone shifting
+            docDate = new Date(
+                parsed.getFullYear(),
+                parsed.getMonth(),
+                parsed.getDate(),
+                0, 0, 0, 0
+            )
+		}
+
 		// Fetch FERoute for this FE
-		const feRoute = await FERoute.findOne({ feId: feId })
+		const feRoute = await FERoute.findOne({ feId: feId, docDate })
 			.select("feId availability bookedSlots currentClient")
 			.lean();
 
@@ -591,7 +638,12 @@ const trackFEAndClient = async (req, res) => {
 		}
 
 		// Fetch FE route info
-		const feRoute = await FERoute.findOne({ feId })
+		const currentDate = new Date();
+		const docDate = new Date(
+			Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate())
+		);
+
+		const feRoute = await FERoute.findOne({ feId, docDate })
 			.select("currentLocation currentClient battery")
 			.lean();
 
@@ -731,39 +783,95 @@ const searchAddresses = async (req, res) => {
 		if (!searchedAddress || searchedAddress.trim().length < 3) {
 			return res.status(400).json({ message: "Enter at least 3 characters" });
 		}
-
-		const url = "https://places.googleapis.com/v1/places:searchText";
-
-		const response = await axios.post(
-			url,
-			{
-				textQuery: searchedAddress,
-				// maxResultCount: 10,
+		// 1. Google Autocomplete API
+		const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json`;
+		const autoRes = await axios.get(autocompleteUrl, {
+			params: {
+				input: searchedAddress,
+				key: process.env.GOOGLE_MAPS_API_KEY,
+				types: "establishment|geocode",
+				components: "country:in",
 			},
-			{
-				headers: {
-					"Content-Type": "application/json",
-					"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-					"X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location",
-				},
-			}
+		});
+
+		const predictions = autoRes.data?.predictions || [];
+		if (!predictions.length) return res.json({ suggestions: [] });
+
+		const topPredictions = predictions.slice(0, 5);
+
+		// Fetch place details for each prediction to get coordinates + full address
+		const suggestions = await Promise.all(
+			topPredictions.map(async (p) => {
+				const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json`;
+				const detailsRes = await axios.get(detailsUrl, {
+					params: {
+						place_id: p.place_id,
+						key: process.env.GOOGLE_MAPS_API_KEY,
+						fields: "name,formatted_address,geometry",
+					},
+				});
+
+				const d = detailsRes.data?.result;
+
+				return {
+					name: d?.name || p.description,
+					address: `${d?.name || ""}, ${d?.formatted_address || p.description}`,
+					coordinates: d?.geometry?.location
+						? [d.geometry.location.lng, d.geometry.location.lat]
+						: null,
+				};
+			})
 		);
 
-		const results = response.data?.places?.map((p) => ({
-			name: p.displayName?.text || "",
-			address: p.formattedAddress,
-			coordinates: p.location
-				? [p.location.longitude, p.location.latitude]
-				: null,
-		}));
-		// console.log("results", results); // debug
-
-		res.json({ suggestions: results || [] });
+		res.json({ suggestions });
 	} catch (error) {
 		console.error("Error fetching address suggestions:", error.message);
 		res.status(500).json({ message: "Failed to fetch address suggestions" });
 	}
 };
+
+// OLD - Get address suggestions using GOOGLE Places API (v1)
+// const searchAddresses = async (req, res) => {
+// 	try {
+// 		const { searchedAddress } = req.body;
+
+// 		if (!searchedAddress || searchedAddress.trim().length < 3) {
+// 			return res.status(400).json({ message: "Enter at least 3 characters" });
+// 		}
+
+// 		const url = "https://places.googleapis.com/v1/places:searchText";
+
+// 		const response = await axios.post(
+// 			url,
+// 			{
+// 				textQuery: searchedAddress,
+// 				maxResultCount: 10,
+// 			},
+// 			{
+// 				headers: {
+// 					"Content-Type": "application/json",
+// 					"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+// 					"X-Goog-FieldMask":
+// 						"places.displayName,places.formattedAddress,places.location",
+// 				},
+// 			}
+// 		);
+
+// 		const results = response.data?.places?.map((p) => ({
+// 			name: p.displayName?.text || "",
+// 			address: `${p.displayName?.text || ""}, ${p.formattedAddress || ""}`,
+// 			coordinates: p.location
+// 				? [p.location.longitude, p.location.latitude]
+// 				: null,
+// 		}));
+// 		// console.log("results", results); // debug
+
+// 		res.json({ suggestions: results || [] });
+// 	} catch (error) {
+// 		console.error("Error fetching address suggestions:", error.message);
+// 		res.status(500).json({ message: "Failed to fetch address suggestions" });
+// 	}
+// };
 
 // Fetch unassigned clients for today
 const fetchUnassignedClientsToday = async (_req, res) => {
@@ -785,25 +893,19 @@ const fetchUnassignedClientsToday = async (_req, res) => {
 			"availability.start": { $lte: endOfDay },
 			"availability.end": { $gte: startOfDay },
 			status: "pending",
-		}).select(
-			"_id clientId clientType priority visitingAddress availability purposeOfVisit"
-		);
-		const unassignedMeetings = await Promise.all(
-			meetings.map(async (m) => {
-				let client = null;
-				// Default to permanent (mint)
-				const clientType = m.clientType || "mint";
+		}).populate({
+				path: "clientId",
+				model: [Client, TempClient],
+				select: "name mobile address1 address2 address3 city pin NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+			})
+			.select("_id clientId priority visitingAddress availability purposeOfVisit");
 
-				if (clientType === "mint") {
-					client = await Client.findById(m.clientId)
-						.select("NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
-						.lean();
-				} else if (clientType === "temporary") {
-					client = await TempClient.findById(m.clientId)
-						.select("name mobile address1 address2 address3 city pin")
-						.lean();
-				}
-                // Build client address cleanly
+		// Normalize data
+		const unassignedMeetings = meetings.map((m) => {
+			const client = m.clientId;
+			const clientType = client?.NAME ? "mint" : client?.name ? "temporary" : "unknown";
+
+			// Build client address cleanly
 				const clientAddress = client
 					? [
 						client.ADDRESS1 || client.address1,
@@ -838,7 +940,7 @@ const fetchUnassignedClientsToday = async (_req, res) => {
 						},
 				};
 			})
-		);
+
 		res.status(200).json({
 			message: "Unassigned clients for today fetched successfully",
 			unassignedMeetings,
@@ -851,67 +953,59 @@ const fetchUnassignedClientsToday = async (_req, res) => {
 
 // Unassigned Clients All-Time
 const fetchUnassignedClientsAllTime = async (_req, res) => {
-  try {
-    const meetings = await ClientMeeting.find({
-      isCompleted: false,
-      onHold: false,
-      assignedFE: { $exists: false },
-      status: "pending",
-    }).select(
-      "_id clientId clientType priority visitingAddress availability purposeOfVisit"
-    );
+	try {
+		const meetings = await ClientMeeting.find({
+			isCompleted: false,
+			onHold: false,
+			assignedFE: { $exists: false },
+			status: "pending",
+		}).populate({
+				path: "clientId",
+				model: [Client, TempClient],
+				select: "name mobile address1 address2 address3 city pin NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+			}).select(
+				"_id clientId clientType priority visitingAddress availability purposeOfVisit"
+			);
+		// console.log("meetings:ALL TIME--> ", meetings);
+		// Transform client fields (NAME → name, MOBILE → mobile) so frontend get correct format
+		const unassignedMeetings = meetings.map((m) => {
+			const client = m.clientId;
+			const clientType = client?.NAME ? "mint" : client?.name ? "temporary" : "unknown";
 
-    const unassignedMeetings = await Promise.all(
-      meetings.map(async (m) => {
-        let client = null;
-        let clientType = m.clientType || "mint"; // default to permanent
+			const clientAddress = client
+				? [
+					client.ADDRESS1 || client.address1,
+					client.ADDRESS2 || client.address2,
+					client.ADDRESS3 || client.address3 || "",
+					client.CITY || client.city,
+					client.PIN || client.pin,
+				]
+					.filter(Boolean)
+					.join(", ")
+				: "";
 
-        if (clientType === "mint") {
-          client = await Client.findById(m.clientId)
-            .select("NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
-            .lean();
-        } else if (clientType === "temporary") {
-          client = await TempClient.findById(m.clientId)
-            .select("name mobile address1 address2 address3 city pin")
-            .lean();
-        }
-
-        const clientAddress = client
-          ? [
-              client.ADDRESS1 || client.address1,
-              client.ADDRESS2 || client.address2,
-              client.ADDRESS3 || client.address3 || "",
-              client.CITY || client.city,
-              client.PIN || client.pin,
-            ]
-              .filter(Boolean)
-              .join(", ")
-          : "";
-
-        return {
-          _id: m._id,
-          priority: m.priority,
-          visitingAddress: m.visitingAddress,
-          purposeOfVisit: m.purposeOfVisit,
-          availability: m.availability,
-          clientType,
-          clientId: client
-            ? {
-                _id: client._id,
-                name: client.NAME || client.name || "Unknown Client",
-                contactNumber: client.MOBILE || client.mobile || "-",
-                address: clientAddress || m.visitingAddress || "-",
-              }
-            : {
-                _id: null,
-                name: "Unknown Client",
-                contactNumber: "-",
-                address: m.visitingAddress || "-",
-              },
-        };
-      })
-    );
-
+			return {
+				_id: m._id,
+				priority: m.priority,
+				visitingAddress: m.visitingAddress,
+				purposeOfVisit: m.purposeOfVisit,
+				availability: m.availability,
+				clientType,
+				clientId: client
+					? {
+						_id: client._id,
+						name: client.NAME || client.name || "Unknown Client",
+						contactNumber: client.MOBILE || client.mobile || "-",
+						address: clientAddress || m.visitingAddress || "-",
+					}
+					: {
+						_id: null,
+						name: "Unknown Client",
+						contactNumber: "-",
+						address: m.visitingAddress || "-",
+					},
+			};
+		})
 		res.status(200).json({
 			message: "Unassigned clients for all time fetched successfully",
 			unassignedMeetings,
@@ -951,25 +1045,20 @@ const fetchOnHoldClients = async (req, res) => {
     }
 
     // Fetch raw meetings
-    const meetings = await ClientMeeting.find(filter).select(
-      "_id clientId clientType priority visitingAddress availability assignedFE isCompleted onHold purposeOfVisit status"
-    );
+		const meetings = await ClientMeeting.find(filter)
+			.populate({
+				path: "clientId",
+				 model: [Client, TempClient],
+                select: "name mobile address1 address2 address3 city pin NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN",
+			})
+			.select(
+				"_id clientId priority visitingAddress availability assignedFE isCompleted onHold purposeOfVisit status"
+			);
 
-    const onHoldMeetings = await Promise.all(
-      meetings.map(async (m) => {
-        let clientData = null;
-        const clientType = m.clientType || "mint"; // default permanent
-
-        // Fetch from correct collection
-        if (clientType === "mint") {
-          clientData = await Client.findById(m.clientId)
-            .select("NAME MOBILE ADDRESS1 ADDRESS2 ADDRESS3 CITY PIN")
-            .lean();
-        } else if (clientType === "temporary") {
-          clientData = await TempClient.findById(m.clientId)
-            .select("name mobile address1 address2 address3 city pin")
-            .lean();
-        }
+		// Transform it into frontend-friendly format
+		const onHoldMeetings = meetings.map((m) => {
+			const clientData = m.clientId;
+			            const clientType = clientData?.NAME ? "mint" : clientData?.name ? "temporary" : "unknown";
 
         // Build Address Safely
         const clientAddress = clientData
@@ -1017,7 +1106,6 @@ const fetchOnHoldClients = async (req, res) => {
               },
         };
       })
-    );
 
     res.status(200).json(onHoldMeetings);
   } catch (err) {
@@ -1370,11 +1458,21 @@ const assignClientsToFE = async (req, res) => {
 		if (!fe)
 			return res.status(404).json({ message: "Field Executive not found" });
 
+		const slot = new Date(slotStart);
+		
+		const docDate = new Date(Date.UTC(
+			slot.getFullYear(),
+			slot.getMonth(),
+			slot.getDate()
+		));
+		
 		// 3. Fetch or create FERoute
-		let feRoute = await FERoute.findOne({ feId });
+		let feRoute = await FERoute.findOne({ feId, docDate });
+
 		if (!feRoute) {
 			feRoute = new FERoute({
 				feId,
+				docDate,
 				baseLocation: { type: "Point", coordinates: baseLocation },
 				currentLocation: {
 					type: "Point",
@@ -1393,7 +1491,7 @@ const assignClientsToFE = async (req, res) => {
 		const visitIds = feRoute.bookedSlots.map((s) => s.visit).filter(Boolean);
 		const meetings = await ClientMeeting.find(
 			{ _id: { $in: visitIds } },
-			{ _id: 1, actualVisitStart: 1, actualVisitEnd: 1 }
+			{ _id: 1, actualVisitStart: 1, actualVisitEnd: 1, status: 1 }
 		).lean();
 
 		const meetingMap = new Map(
@@ -1404,8 +1502,12 @@ const assignClientsToFE = async (req, res) => {
 			const m = meetingMap.get(slot.visit?.toString());
 			const slotStart = m?.actualVisitStart || slot.start;
 			const slotEnd = m?.actualVisitEnd || slot.end;
+			const status = m?.status || "pending";
+			
+			const isOverlapping = startUTC < slotEnd && endUTC > slotStart;
+			const isBlockingStatus = !["completed", "cancelled"].includes(status);
 
-			return startUTC < slotEnd && endUTC > slotStart;
+			return isOverlapping && isBlockingStatus;
 		});
 
 		if (hasConflict) return res.status(400).json({ message: "FE is not available in this slot" });
@@ -1451,7 +1553,7 @@ const assignClientsToFE = async (req, res) => {
 				? { coordinates: feRoute.currentLocation.coordinates }
 				: null;
 
-			await optimizeFERoute(feId, currentLocationObj);
+			await optimizeFERoute(feId, currentLocationObj, docDate);
 		}
 
 		res.status(200).json({ message: "Client assigned to FE successfully" });
