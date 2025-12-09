@@ -2,6 +2,221 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CgSpinner } from "react-icons/cg";
 import { Link } from 'react-router-dom';
+import jsPDF from "jspdf";
+import HeaderImage from '../../assets/Header1.png';
+import SignatureImage from '../../assets/SirSign.png';
+
+
+
+function formatLongDate(dateInput) {
+  const d = new Date(dateInput);
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+} 
+
+
+function formatShortDate(dateInput) {
+  const d = new Date(dateInput);
+  return d.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function generateOfferLetterPDF(formData) {
+  const doc = new jsPDF("p", "pt", "a4");
+
+  // Insert header image
+  const pageWidth = doc.internal.pageSize.getWidth();
+  doc.addImage(HeaderImage, "PNG", 20, 20, pageWidth - 40, 110);
+
+  const marginLeft = 40;
+  const marginRight = 40;
+  const textWidth = doc.internal.pageSize.getWidth() - marginLeft - marginRight;
+  const lineHeight = 16;
+  const paraGap = 22;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomMargin = 72;
+
+  let y = 150;
+
+  const todayFormatted = formatLongDate(new Date());
+  const dojShort = formatShortDate(formData.doj);
+
+  const salutation = formData.gender === "female" ? "Ms." : "Mr.";
+  const firstName = (formData.name || "").split(" ")[0];
+  const roleText = formData.letterRole || formData.role;
+
+  const annualCtcNumber = Number(formData.annualCtc || 0);
+  const baseSalaryNumber = Number(formData.baseSalary || 0);
+
+  const annualCtcFormatted = annualCtcNumber.toLocaleString("en-IN");
+  const baseSalaryFormatted = baseSalaryNumber.toLocaleString("en-IN");
+  const ctcLakhs = (annualCtcNumber / 100000 || 0).toFixed(2);
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(12);
+
+  const ensurePageSpace = (extra = 0) => {
+    if (y + extra > pageHeight - bottomMargin) {
+      doc.addPage();
+      y = 72;
+    }
+  };
+
+  const addParagraph = (text, extraGap = paraGap) => {
+    ensurePageSpace(lineHeight * 3);
+    const lines = doc.splitTextToSize(text, textWidth);
+    doc.text(lines, marginLeft, y);
+    y += lines.length * lineHeight + extraGap;
+  };
+
+  const addRichParagraph = (segments, extraGap = paraGap) => {
+    ensurePageSpace(lineHeight * 3);
+    let x = marginLeft;
+
+    segments.forEach((seg) => {
+      const words = seg.text.split(" ");
+      doc.setFont("times", seg.bold ? "bold" : "normal");
+
+      words.forEach((word, i) => {
+        if (!word) return;
+        const token = i === words.length - 1 ? word : word + " ";
+        const w = doc.getTextWidth(token);
+
+        if (x + w > marginLeft + textWidth) {
+          x = marginLeft;
+          y += lineHeight;
+          ensurePageSpace();
+        }
+
+        doc.text(token, x, y);
+        x += w;
+      });
+    });
+
+    y += extraGap;
+    doc.setFont("times", "normal");
+  };
+
+  // ---------- HEADER ----------
+  doc.text(todayFormatted, marginLeft, y);
+  y += 40;
+
+  doc.text(`${salutation} ${formData.name}`, marginLeft, y);
+  y += 18;
+
+  doc.text(formData.city, marginLeft, y);
+  y += 40;
+
+  doc.text(`Dear ${firstName},`, marginLeft, y);
+  y += 34;
+
+  // Paragraphs
+  addRichParagraph([
+    {
+      text:
+        "I would like to congratulate you on-behalf of Milestone Global Moneymart Private Limited alongside welcoming you to our family. We are excited to offer you a position in our organisation for ",
+      bold: false,
+    },
+    { text: roleText, bold: true },
+    { text: ".", bold: false },
+  ]);
+
+  addRichParagraph([
+    {
+      text:
+        "This offer letter will be valid for 2 working days for you to accept the job from the date of receipt. The date of joining as set by the terms of the offer letter will be ",
+      bold: false,
+    },
+    { text: dojShort, bold: true },
+    { text: " with option for extension of 1 week available on request.", bold: false },
+  ]);
+
+  addParagraph(
+    "As per our discussion done during the interview are stated as followed to prevent any miscommunication on either part -",
+    4
+  );
+
+  // ---------- BULLET LIST (UPDATED) ----------
+  const bullets = [
+    `Your annual compensation will be ${annualCtcFormatted} INR subject to tax and other statutory deductions. EPF deductions will be mandatory and set at 12% of basic pay or 1800 INR per month with equal contribution from employer, if opted. Making your net-inhand compensation ${baseSalaryFormatted} INR per month. Your CTC (Cost to Company) will be ${ctcLakhs} Lakhs annually approximately.`,
+    "For the first three months from the joining date, you'll be appointed as probationary officer, where the notice period in case of resignation or termination will be 07 days from either side or in-lieu 07 days of pay to waive notice period or any combination thereof. Your probation period can be extended on discretion of Milestone.",
+    `You'll be reporting to our ${formData.reportingLocation} office.`,
+    "NISM VA qualification will be mandatory within probationary period, if you're appointed in Mutual Fund Sales.",
+    "After the probation period, you'll be regarded as a permanent employee on the payroll of the organisation where you'll be eligible for the following -",
+    "Corporate Health Insurance for the employee for which the premium will be borne by the organisation.",
+    "Corporate Personal Accidental Policy for the employee for which the premium will be borne by the organisation.",
+    "You'll be eligible for the Gratuity Scheme as per the government issued guidelines, where the 15 days of your basic pay will be accumulated annually and paid to you in case of cessation of employment from either side.",
+    "On date of joining, we expect you to be present physically at our Rohini, Delhi office for onboarding where you'll also be provided with SIM card for official Number, Laptop ( Owned by Milestone Global Moneymart (P) Ltd. and maintained by employee ).",
+    "From date of joining, you'll abide by HR policies as issued by the organisation. The policy will supersede any or all terms and conditions as stated under the offer letter.",
+    "Your notice period will be set as 1 month from either side or in-lieu same days of pay or a combination of both.",
+    "You'll be eligible for the incentive structure from the end of your probation period.",
+  ];
+
+  const bulletIndent = marginLeft + 14;
+  const bulletDotX = marginLeft + 4;
+
+  bullets.forEach((text) => {
+    const lines = doc.splitTextToSize(text, textWidth - 32);
+    const requiredHeight = lines.length * lineHeight + 10;
+
+    if (y + requiredHeight > pageHeight - bottomMargin) {
+      doc.addPage();
+      y = 72;
+    }
+
+    doc.circle(bulletDotX, y - 4, 2.5, "F"); // BULLET SIZE 2.5
+
+    doc.setFontSize(13);
+    doc.text(lines, bulletIndent, y);
+    doc.setFontSize(12);
+
+    // LINE GAP BELOW EACH BULLET
+    y += lines.length * lineHeight + 10;
+  });
+
+  // Extra gap after bullet section
+  y += 20;
+
+  // ---------- FINAL PARAGRAPHS ----------
+  addParagraph(
+    "Before your date of joining, you will receive an email from Spring Verify to complete pre-employment verification. You will be deemed unfit until you have completed that verification form.",
+    26
+  );
+
+  addParagraph(
+    "For any information, clarification you may contact the undersigned at +91 9910076952 or jobs@niveshonline.com.",
+    42
+  );
+
+  doc.text("Regards,", marginLeft, y);
+  y += 50;
+
+  doc.addImage(SignatureImage, "PNG", marginLeft, y, 140, 60, undefined, "NONE");
+  y += 70;
+
+  doc.text("Vilakshan Bhutani", marginLeft, y);
+  y += 18;
+  doc.text("Executive Director", marginLeft, y);
+  y += 18;
+  doc.text("Milestone Global Moneymart Private Limited", marginLeft, y);
+  y += 35;
+
+  addParagraph(
+    "I have read all terms and conditions and will abide by them in all scenarios.",
+    30
+  );
+
+  doc.text(`${salutation} ${formData.name}`, marginLeft, y);
+
+   return doc.output("blob");
+}
 
 
 const LOCAL_API_BASE = `${process.env.REACT_APP_API_BASE_URL}/api/onboarding`;
@@ -96,17 +311,37 @@ const [roleOtherText, setRoleOtherText] = useState("");
     e.preventDefault();
     setLoading(true);
     try {
-    // Map final department/role values
-    const payload = {
+    
+    const finalData = {
       ...formData,
-      department: departmentIsOther ? (departmentOtherText || '').trim() : formData.department,
-      role: (roleIsOther || departmentIsOther) ? (roleOtherText || '').trim() : formData.role,
+      department: departmentIsOther ? departmentOtherText.trim() : formData.department,
+      role: (roleIsOther || departmentIsOther) ? roleOtherText.trim() : formData.role,
     };
 
+    let letterRole = roleOtherText.trim();
+    if (!departmentIsOther && !roleIsOther) {
+      const selectedRole = roles.find(r => r._id === formData.role);
+      letterRole = selectedRole?.name || formData.role;
+    }
+
+    // Generate PDF as Blob
+    const pdfBlob = generateOfferLetterPDF({
+      ...finalData,
+      letterRole,
+    });
+
+    // Create FormData for binary upload
+    const formDataToSend = new FormData();
+
+    Object.entries(finalData).forEach(([key, value]) => {
+      formDataToSend.append(key, value);
+    });
+
+    formDataToSend.append("offerLetterPdf", pdfBlob, `OfferLetter-${finalData.name}.pdf`);
+
       const response = await fetch(`${LOCAL_API_BASE}/onboarding-form`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+       method: 'POST',
+       body: formDataToSend,      
       });
 
       const data = await response.json();

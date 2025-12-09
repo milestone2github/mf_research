@@ -11,6 +11,8 @@ const {
   updateAssetAllocationStatus,
    deleteJoinee,
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
+const multer = require("multer");
+const upload = multer();
 
 const verifyUser = require('../middlewares/VerifyUser');
 const { verifyToken } = require('../middlewares/verifyToken');
@@ -25,7 +27,7 @@ const { embeddedsigning, ndaSignStatusDbUpdate } = require('../utils/ndaUrlWorkF
 const router = require('express').Router(); 
 
 
-router.post('/onboarding-form', saveJoineeDetails);
+router.post('/onboarding-form', upload.single("offerLetterPdf"), saveJoineeDetails);
 router.get('/onboarding-status', statusDetailsAllJoinee);
 router.get('/onboarding-details', statusDetails);
 router.get('/onboarding-details/:id', statusDetailsById);

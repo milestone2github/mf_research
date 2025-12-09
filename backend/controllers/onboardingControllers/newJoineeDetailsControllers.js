@@ -245,19 +245,24 @@ async function saveJoineeDetails(req, res) {
     }
     const salutation = gender === 'female' ? 'Ms.' : 'Mr.';
 
-    const mergeData = {
-      "Name_Salutation": salutation,
-      "Name_First": name.split(" ")[0],
-      "Name_Last": name.split(" ").slice(1).join(" "),
-      "SingleLine": city,
-      "Dropdown": roleName,                // ✅ designation: ID name or free text
-      "Date": formatDate(doj),
-      "Number": annualCtc,
-      "Number1": baseSalary,
-      "Dropdown1": reportingLocation
-    };
-  // 2. Generate Offer Letter PDF
-  const pdfBuffer = await mergeOfferLetter(mergeData);
+    // const mergeData = {
+    //   "Name_Salutation": salutation,
+    //   "Name_First": name.split(" ")[0],
+    //   "Name_Last": name.split(" ").slice(1).join(" "),
+    //   "SingleLine": city,
+    //   "Dropdown": roleName,                // ✅ designation: ID name or free text
+    //   "Date": formatDate(doj),
+    //   "Number": annualCtc,
+    //   "Number1": baseSalary,
+    //   "Dropdown1": reportingLocation
+    // };
+  // 2. Use PDF sent from frontend 
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "PDF not uploaded" });
+    }
+
+    const pdfBuffer = req.file.buffer;
+
   // console.log("Offer Letter PDF generated");
     const { subject, body } = getOfferLetterEmailTemplate({
       name,
