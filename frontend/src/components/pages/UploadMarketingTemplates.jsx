@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { CiCalendarDate } from "react-icons/ci";
-import { BiTrash, BiUpload } from "react-icons/bi";
-import { IoMdClose } from "react-icons/io";
+import { BiEdit, BiTrash, BiUpload } from "react-icons/bi";
+import { IoIosArrowBack, IoIosArrowForward, IoMdClose } from "react-icons/io";
+import { toast, Slide } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import DeleteConfirmationModal from "../../centralRbac/src/components/common/DeleteConfirmationModal";
 const { formatDateDDShortMonthNameYY } = require("../../utils/formatDate");
 
@@ -19,16 +21,27 @@ const UploadMarketingTemplates = () => {
   });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const PAGE_SIZE = 10;
+
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState({
+    title: "",
+    description: "",
+    publishDate: "",
+  });
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
 
   // Fetch templates (with optional publishDate filter)
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (page = 1) => {
     try {
       setFetching(true);
-      const params = {};
+      const params = { page, limit: PAGE_SIZE };
 
       if (filterMinDate || filterMaxDate) {
         params.minDate = filterMinDate || new Date().toISOString().split("T")[0];
@@ -40,8 +53,22 @@ const UploadMarketingTemplates = () => {
       } else {
         setTemplates([]);
       }
+      const pagination = res.data?.pagination;
+      if (pagination) {
+        setCurrentPage(pagination.currentPage || 1);
+        setTotalPages(pagination.totalPages || 1);
+      } else {
+        setCurrentPage(page);
+        setTotalPages(1);
+      }
     } catch (err) {
-      console.error(" Error fetching templates:", err);
+      console.error("Error fetching templates:", err.response?.data?.message || err.message);
+      toast.error(err.response?.data?.message || 'Error fetching templates. Please try again later.', {
+        autoClose: 3000,
+        transition: Slide,
+      });
+      setCurrentPage(1);
+      setTotalPages(1);
     } finally {
       setFetching(false);
     }
@@ -53,10 +80,103 @@ const UploadMarketingTemplates = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${id}`);
-      fetchTemplates();
+      const response = await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${id}`);
+      const nextPage = templates.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+      const deletedTitle = response.data?.data?.title || 'Template';
+      toast.success(`${deletedTitle} deleted successfully!`, {
+        autoClose: 2000,
+        transition: Slide,
+        hideProgressBar: true,
+      });
+      fetchTemplates(nextPage);
     } catch (err) {
       console.error("Error deleting template:", err);
+      toast.error(err.response?.data?.message || err.message || 'Error deleting template. Please try again later.', {
+        autoClose: 3000,
+        transition: Slide,
+      });
+    }
+  };
+  const handlePageChange = (page) => {
+    if (page < 1 || page > totalPages || fetching) return;
+    fetchTemplates(page);
+  };
+
+  const openEditModal = (tpl) => {
+    setEditingTemplate(tpl);
+    setEditData({
+      title: tpl.title || "",
+      description: tpl.description || "",
+      publishDate: tpl.publishDate
+        ? new Date(tpl.publishDate).toISOString().split("T")[0]
+        : "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingTemplate(null);
+    setEditData({ title: "", description: "", publishDate: "" });
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    if (!editingTemplate?._id) return;
+    try {
+      const editDate = new Date(editData.publishDate);
+      const templateDate = new Date(editingTemplate.publishDate);
+      
+      // Extract YYYY-MM-DD from both
+      const formatDate = (d) => d.toISOString().split("T")[0];
+      
+      // check if anything updated
+      if (
+        editData.title === editingTemplate.title &&
+        editData.description === editingTemplate.description &&
+        formatDate(editDate) === formatDate(templateDate)
+      ) {
+        toast.info("No changes made to the template.", {
+          autoClose: 2000,
+          transition: Slide,
+          hideProgressBar: true,
+        });
+        closeEditModal();
+        return;
+      }
+
+      setLoading(true);
+      const payload = {
+        title: editData.title,
+        description: editData.description,
+        publishDate: editData.publishDate,
+      };
+
+      const response = await axios.patch(
+        `${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${editingTemplate._id}`,
+        payload
+      );
+
+      const updatedTemplate = response.data?.data;
+
+      setTemplates((prevTemplates) =>
+        prevTemplates.map((tpl) =>
+          tpl._id === updatedTemplate._id ? { ...tpl, ...updatedTemplate } : tpl
+        )
+      );
+      closeEditModal();
+      toast.success("Template updated successfully!", {
+        autoClose: 2000,
+        transition: Slide,
+        hideProgressBar: true,
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Something went wrong, please try again later', {
+        autoClose: 3000,
+        transition: Slide,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -246,17 +366,24 @@ const UploadMarketingTemplates = () => {
                   </div>
 
 
-                  <div className="flex justify-center mt-2">
+                  <div className="flex justify-center mt-2 gap-2">
 
                     <button
                       onClick={() => {
                         setDeleteTarget({ id: tpl._id, title: tpl.title });
                         setDeleteModalOpen(true);
                       }}
-                      className="text-red-600 flex items-center gap-1 text-xs font-semibold hover:text-red-700 bg-red-50 hover:border border-red-400 rounded-xl px-3 py-2"
+                      className="text-red-600 flex items-center gap-1 text-xs font-semibold hover:text-red-700 bg-red-50 border border-red-50 hover:border-red-400 rounded-xl px-3 py-2"
                     >
                       <BiTrash />
                       Delete
+                    </button>
+                    <button
+                      onClick={() => openEditModal(tpl)}
+                      className="text-blue-600 flex items-center gap-1 text-xs font-semibold hover:text-blue-700 bg-blue-50 border border-blue-50 hover:border-blue-400 rounded-xl px-3 py-2"
+                    >
+                      <BiEdit />
+                      Edit
                     </button>
 
                   </div>
@@ -269,6 +396,38 @@ const UploadMarketingTemplates = () => {
             </p>
           )}
         </section>
+      )}
+
+      {!fetching && templates.length > 0 && (
+        <div className="flex items-center justify-center mt-6 gap-4">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1 || fetching}
+            className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
+              currentPage === 1 || fetching
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-gray-100"
+            }`}
+          >
+            <IoIosArrowBack /> Prev
+          </button>
+
+          <span className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm">
+            {currentPage} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || fetching}
+            className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
+              currentPage === totalPages || fetching
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-gray-100"
+            }`}
+          >
+            Next <IoIosArrowForward />
+          </button>
+        </div>
       )}
 
       {/* Upload Modal */}
@@ -409,6 +568,92 @@ const UploadMarketingTemplates = () => {
             message="This action cannot be undone."
           />
         </>
+      )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex justify-center items-center px-4 mt-6">
+          <div className="bg-white w-full max-w-2xl rounded-lg p-6 relative shadow-xl">
+            <button
+              onClick={closeEditModal}
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-900 transition"
+            >
+              <IoMdClose size={22} />
+            </button>
+
+            <h4 className="text-2xl font-semibold text-gray-800 mb-4">
+              Edit Template
+            </h4>
+
+            <form onSubmit={handleEditSave} className="flex flex-col gap-6">
+              <div className="flex gap-3 publishDate">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={editData.title}
+                    onChange={(e) =>
+                      setEditData({ ...editData, title: e.target.value })
+                    }
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Publish Date *
+                  </label>
+                  <input
+                    type="date"
+                    name="publishDate"
+                    value={editData.publishDate}
+                    onChange={(e) =>
+                      setEditData({ ...editData, publishDate: e.target.value })
+                    }
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="publishDate">
+                <label className="block text-sm font-medium text-gray-600 publishDate">
+                  Description
+                </label>
+                <textarea
+                  rows="2"
+                  name="description"
+                  value={editData.description}
+                  onChange={(e) =>
+                    setEditData({ ...editData, description: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md p-1 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end gap-3 publishDate -mt-2">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="border border-gray-300 rounded-md px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 text-sm flex items-center gap-2 transition"
+                >
+                  {loading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
 

@@ -54,7 +54,7 @@ const getUserTemplates = async (req, res) => {
 // ADMIN ROUTE — Get all templates (optionally filter by publishDate range)
 const getAllTemplates = async (req, res) => {
   try {
-    const { minDate, maxDate } = req.query;
+    const { minDate, maxDate, page = 1, limit = 12 } = req.query;
     let filter = {};
 
     if (minDate || maxDate) {
@@ -65,14 +65,33 @@ const getAllTemplates = async (req, res) => {
       end.setHours(23, 59, 59, 999);
       filter.publishDate = { $gte: start, $lte: end };
     }
+    const currentPage = Math.max(parseInt(page, 10) || 1, 1);
+    const perPage = Math.max(parseInt(limit, 10) || 10, 1);
+
+    const totalCount = await MarketingTemplate.countDocuments(filter);
+    const totalPages = Math.max(Math.ceil(totalCount / perPage), 1);
+    const safePage = Math.min(currentPage, totalPages);
+    const skip = (safePage - 1) * perPage;
+
     const templates = await MarketingTemplate.find(filter)
       .sort({ publishDate: -1 })
+      .skip(skip)
+      .limit(perPage)
       .lean();
 
-    res.status(200).json({ success: true, data: templates });
+    res.status(200).json({
+      success: true,
+      data: templates,
+      pagination: {
+        currentPage: safePage,
+        totalPages,
+        totalItems: totalCount,
+        limit: perPage,
+      },
+    });
   } catch (error) {
     console.error(" Error fetching admin templates:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: error.message || 'Server error while fetching templates'});
   }
 };
 
@@ -107,6 +126,53 @@ const createTemplate = async (req, res) => {
   } catch (error) {
     console.error(' Error creating template:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// ADMIN ROUTE — update a template [titel, desc, publish date] by ID
+const updateTemplate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, publishDate } = req.body;
+
+    // field validations 
+    if (!title && !description && !publishDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nothing to update. Provide at least one field: title, description, or publishDate.',
+      });
+    }
+
+    // create update object
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (description) updateData.description = description;
+    if (publishDate) updateData.publishDate = publishDate;
+
+    // find the doc and update
+    const updatedTemplate = await MarketingTemplate.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    // check if found
+    if (!updatedTemplate) {
+      return res.status(404).json({ success: false, message: 'Template not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Template updated successfully.',
+      data: updatedTemplate,
+    });
+
+  } catch (error) {
+    console.error('Error updating template:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Server error while updating template' 
+    });
   }
 };
 
@@ -149,12 +215,13 @@ const deleteTemplate = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Template deleted successfully from database and Azure.'
+      message: 'Template deleted successfully',
+      data: {_id: deletedTemplate._id, title: deletedTemplate.title},
     });
 
   } catch (error) {
     console.error(' Error deleting template:', error);
-    res.status(500).json({ success: false, message: 'Server error while deleting template' });
+    res.status(500).json({ success: false, message: error.message || 'Server error while deleting template' });
   }
 };
 
@@ -164,5 +231,6 @@ module.exports = {
   getAllTemplates,
   createTemplate,
   deleteTemplate,
+  updateTemplate,
   proxyImageUrl
 }

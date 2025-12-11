@@ -100,9 +100,9 @@ function MarketingTemplates() {
       const footerTop = mainImg.naturalHeight;
 
       // Now exact Y positions for each line
-      const nameY = footerTop + footerHeight * 0.44;
-      const emailY = footerTop + footerHeight * 0.63;
-      const phoneY = footerTop + footerHeight * 0.81;
+      const nameY = footerTop + footerHeight * 0.204;
+      const emailY = footerTop + footerHeight * 0.398;
+      const phoneY = footerTop + footerHeight * 0.576;
 
       ctx.fillText(user?.name || "", textX, nameY);
       ctx.fillText(user?.email || "", textX, emailY);
@@ -288,13 +288,11 @@ function MarketingTemplates() {
                   {/* Overlay text */}
                   <div
                     id={`brand-container-${tpl._doc._id}`}
-                    className="absolute left-[56%] top-[40%] flex flex-col text-[6px] sm:text-[7px] font-bold leading-tight text-gray-600"
+                    className="absolute left-[56%] top-[18.5%] flex flex-col text-[6px] sm:text-[7px] font-bold leading-tight text-gray-600"
                   >
-
-                    <div className="flex items-center mt-[2px]">{user?.name}</div>
-                    <div className="flex items-center mt-[5px]">{user?.email}</div>
-                    <div className="flex items-center mt-[4px]">+91 {user?.phone}</div>
-
+                    <div className="mt-[0px]">{user?.name}</div>
+                    <div className="mt-[5px]">{user?.email}</div>
+                    <div className="mt-[4.5px]">+91 {user?.phone}</div>
                   </div>
                 </div>
 
