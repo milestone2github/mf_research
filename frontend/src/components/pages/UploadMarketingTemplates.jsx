@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { CiCalendarDate } from "react-icons/ci";
 import { BiEdit, BiTrash, BiUpload } from "react-icons/bi";
-import { IoMdClose } from "react-icons/io";
+import { IoIosArrowBack, IoIosArrowForward, IoMdClose } from "react-icons/io";
 import { toast, Slide } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import DeleteConfirmationModal from "../../centralRbac/src/components/common/DeleteConfirmationModal";
@@ -21,6 +21,9 @@ const UploadMarketingTemplates = () => {
   });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const PAGE_SIZE = 10;
 
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -35,10 +38,10 @@ const UploadMarketingTemplates = () => {
 
 
   // Fetch templates (with optional publishDate filter)
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (page = 1) => {
     try {
       setFetching(true);
-      const params = {};
+      const params = { page, limit: PAGE_SIZE };
 
       if (filterMinDate || filterMaxDate) {
         params.minDate = filterMinDate || new Date().toISOString().split("T")[0];
@@ -50,12 +53,22 @@ const UploadMarketingTemplates = () => {
       } else {
         setTemplates([]);
       }
+      const pagination = res.data?.pagination;
+      if (pagination) {
+        setCurrentPage(pagination.currentPage || 1);
+        setTotalPages(pagination.totalPages || 1);
+      } else {
+        setCurrentPage(page);
+        setTotalPages(1);
+      }
     } catch (err) {
       console.error("Error fetching templates:", err.response?.data?.message || err.message);
       toast.error(err.response?.data?.message || 'Error fetching templates. Please try again later.', {
         autoClose: 3000,
         transition: Slide,
       });
+      setCurrentPage(1);
+      setTotalPages(1);
     } finally {
       setFetching(false);
     }
@@ -67,11 +80,26 @@ const UploadMarketingTemplates = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${id}`);
-      fetchTemplates();
+      const response = await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${id}`);
+      const nextPage = templates.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+      const deletedTitle = response.data?.data?.title || 'Template';
+      toast.success(`${deletedTitle} deleted successfully!`, {
+        autoClose: 2000,
+        transition: Slide,
+        hideProgressBar: true,
+      });
+      fetchTemplates(nextPage);
     } catch (err) {
       console.error("Error deleting template:", err);
+      toast.error(err.response?.data?.message || err.message || 'Error deleting template. Please try again later.', {
+        autoClose: 3000,
+        transition: Slide,
+      });
     }
+  };
+  const handlePageChange = (page) => {
+    if (page < 1 || page > totalPages || fetching) return;
+    fetchTemplates(page);
   };
 
   const openEditModal = (tpl) => {
@@ -144,7 +172,6 @@ const UploadMarketingTemplates = () => {
       });
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Something went wrong, please try again later', {
-        position: "top-right",
         autoClose: 3000,
         transition: Slide,
       });
@@ -369,6 +396,38 @@ const UploadMarketingTemplates = () => {
             </p>
           )}
         </section>
+      )}
+
+      {!fetching && templates.length > 0 && (
+        <div className="flex items-center justify-center mt-6 gap-4">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1 || fetching}
+            className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
+              currentPage === 1 || fetching
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-gray-100"
+            }`}
+          >
+            <IoIosArrowBack /> Prev
+          </button>
+
+          <span className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm">
+            {currentPage} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || fetching}
+            className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
+              currentPage === totalPages || fetching
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-gray-100"
+            }`}
+          >
+            Next <IoIosArrowForward />
+          </button>
+        </div>
       )}
 
       {/* Upload Modal */}
