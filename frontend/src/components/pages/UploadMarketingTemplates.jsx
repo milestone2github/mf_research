@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { CiCalendarDate } from "react-icons/ci";
-import { BiTrash, BiUpload } from "react-icons/bi";
+import { BiEdit, BiTrash, BiUpload } from "react-icons/bi";
 import { IoMdClose } from "react-icons/io";
+import { toast, Slide } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import DeleteConfirmationModal from "../../centralRbac/src/components/common/DeleteConfirmationModal";
 const { formatDateDDShortMonthNameYY } = require("../../utils/formatDate");
 
@@ -19,6 +21,14 @@ const UploadMarketingTemplates = () => {
   });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
+
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState({
+    title: "",
+    description: "",
+    publishDate: "",
+  });
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -41,7 +51,11 @@ const UploadMarketingTemplates = () => {
         setTemplates([]);
       }
     } catch (err) {
-      console.error(" Error fetching templates:", err);
+      console.error("Error fetching templates:", err.response?.data?.message || err.message);
+      toast.error(err.response?.data?.message || 'Error fetching templates. Please try again later.', {
+        autoClose: 3000,
+        transition: Slide,
+      });
     } finally {
       setFetching(false);
     }
@@ -57,6 +71,85 @@ const UploadMarketingTemplates = () => {
       fetchTemplates();
     } catch (err) {
       console.error("Error deleting template:", err);
+    }
+  };
+
+  const openEditModal = (tpl) => {
+    setEditingTemplate(tpl);
+    setEditData({
+      title: tpl.title || "",
+      description: tpl.description || "",
+      publishDate: tpl.publishDate
+        ? new Date(tpl.publishDate).toISOString().split("T")[0]
+        : "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingTemplate(null);
+    setEditData({ title: "", description: "", publishDate: "" });
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    if (!editingTemplate?._id) return;
+    try {
+      const editDate = new Date(editData.publishDate);
+      const templateDate = new Date(editingTemplate.publishDate);
+      
+      // Extract YYYY-MM-DD from both
+      const formatDate = (d) => d.toISOString().split("T")[0];
+      
+      // check if anything updated
+      if (
+        editData.title === editingTemplate.title &&
+        editData.description === editingTemplate.description &&
+        formatDate(editDate) === formatDate(templateDate)
+      ) {
+        toast.info("No changes made to the template.", {
+          autoClose: 2000,
+          transition: Slide,
+          hideProgressBar: true,
+        });
+        closeEditModal();
+        return;
+      }
+
+      setLoading(true);
+      const payload = {
+        title: editData.title,
+        description: editData.description,
+        publishDate: editData.publishDate,
+      };
+
+      const response = await axios.patch(
+        `${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${editingTemplate._id}`,
+        payload
+      );
+
+      const updatedTemplate = response.data?.data;
+
+      setTemplates((prevTemplates) =>
+        prevTemplates.map((tpl) =>
+          tpl._id === updatedTemplate._id ? { ...tpl, ...updatedTemplate } : tpl
+        )
+      );
+      closeEditModal();
+      toast.success("Template updated successfully!", {
+        autoClose: 2000,
+        transition: Slide,
+        hideProgressBar: true,
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Something went wrong, please try again later', {
+        position: "top-right",
+        autoClose: 3000,
+        transition: Slide,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -246,17 +339,24 @@ const UploadMarketingTemplates = () => {
                   </div>
 
 
-                  <div className="flex justify-center mt-2">
+                  <div className="flex justify-center mt-2 gap-2">
 
                     <button
                       onClick={() => {
                         setDeleteTarget({ id: tpl._id, title: tpl.title });
                         setDeleteModalOpen(true);
                       }}
-                      className="text-red-600 flex items-center gap-1 text-xs font-semibold hover:text-red-700 bg-red-50 hover:border border-red-400 rounded-xl px-3 py-2"
+                      className="text-red-600 flex items-center gap-1 text-xs font-semibold hover:text-red-700 bg-red-50 border border-red-50 hover:border-red-400 rounded-xl px-3 py-2"
                     >
                       <BiTrash />
                       Delete
+                    </button>
+                    <button
+                      onClick={() => openEditModal(tpl)}
+                      className="text-blue-600 flex items-center gap-1 text-xs font-semibold hover:text-blue-700 bg-blue-50 border border-blue-50 hover:border-blue-400 rounded-xl px-3 py-2"
+                    >
+                      <BiEdit />
+                      Edit
                     </button>
 
                   </div>
@@ -409,6 +509,92 @@ const UploadMarketingTemplates = () => {
             message="This action cannot be undone."
           />
         </>
+      )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex justify-center items-center px-4 mt-6">
+          <div className="bg-white w-full max-w-2xl rounded-lg p-6 relative shadow-xl">
+            <button
+              onClick={closeEditModal}
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-900 transition"
+            >
+              <IoMdClose size={22} />
+            </button>
+
+            <h4 className="text-2xl font-semibold text-gray-800 mb-4">
+              Edit Template
+            </h4>
+
+            <form onSubmit={handleEditSave} className="flex flex-col gap-6">
+              <div className="flex gap-3 publishDate">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={editData.title}
+                    onChange={(e) =>
+                      setEditData({ ...editData, title: e.target.value })
+                    }
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Publish Date *
+                  </label>
+                  <input
+                    type="date"
+                    name="publishDate"
+                    value={editData.publishDate}
+                    onChange={(e) =>
+                      setEditData({ ...editData, publishDate: e.target.value })
+                    }
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="publishDate">
+                <label className="block text-sm font-medium text-gray-600 publishDate">
+                  Description
+                </label>
+                <textarea
+                  rows="2"
+                  name="description"
+                  value={editData.description}
+                  onChange={(e) =>
+                    setEditData({ ...editData, description: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md p-1 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end gap-3 publishDate -mt-2">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="border border-gray-300 rounded-md px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 text-sm flex items-center gap-2 transition"
+                >
+                  {loading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
 

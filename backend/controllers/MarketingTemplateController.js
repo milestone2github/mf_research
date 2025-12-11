@@ -72,7 +72,7 @@ const getAllTemplates = async (req, res) => {
     res.status(200).json({ success: true, data: templates });
   } catch (error) {
     console.error(" Error fetching admin templates:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: error.message || 'Server error while fetching templates'});
   }
 };
 
@@ -107,6 +107,53 @@ const createTemplate = async (req, res) => {
   } catch (error) {
     console.error(' Error creating template:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// ADMIN ROUTE — update a template [titel, desc, publish date] by ID
+const updateTemplate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, publishDate } = req.body;
+
+    // field validations 
+    if (!title && !description && !publishDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nothing to update. Provide at least one field: title, description, or publishDate.',
+      });
+    }
+
+    // create update object
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (description) updateData.description = description;
+    if (publishDate) updateData.publishDate = publishDate;
+
+    // find the doc and update
+    const updatedTemplate = await MarketingTemplate.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    // check if found
+    if (!updatedTemplate) {
+      return res.status(404).json({ success: false, message: 'Template not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Template updated successfully.',
+      data: updatedTemplate,
+    });
+
+  } catch (error) {
+    console.error('Error updating template:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Server error while updating template' 
+    });
   }
 };
 
@@ -164,5 +211,6 @@ module.exports = {
   getAllTemplates,
   createTemplate,
   deleteTemplate,
+  updateTemplate,
   proxyImageUrl
 }
