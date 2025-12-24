@@ -14,6 +14,7 @@ const RouteOptimization = require('./RouteOptimization');
 const LeaderboardRoutes = require('./LeaderboardRoutes');
 const marketingTemplateRoutes = require('./MarketingTemplateRoutes');
 const InsuranceForm = require('../controllers/InsuranceForm');
+const insuranceLeadsRoutes = require('../routes/insuranceLead');
 
 router.use("/assets", assetRoutes);
 router.use('/users', userRoutes);
@@ -29,5 +30,5 @@ router.use('/route-plan', RouteOptimization);
 router.use("/leaderboard", LeaderboardRoutes);
 router.use("/insurance-form", InsuranceForm);
 router.use("/marketing-template", marketingTemplateRoutes);
-
+router.use("/insurance-leads", insuranceLeadsRoutes);
 module.exports = router;
