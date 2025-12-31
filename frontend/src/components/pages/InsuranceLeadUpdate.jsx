@@ -13,7 +13,7 @@ const FILE_TYPES = [
   { label: "Brokerage", value: "brokerage" },
 ];
 
-// ✅ Frontend delay helper
+// Frontend delay helper
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // CSV helpers (send selected rows to SAME /ingest route as file)
@@ -111,7 +111,7 @@ function InsuranceLeadUpdate() {
     if (inputRef.current) inputRef.current.value = "";
   };
 
-  // ✅ Fire-and-forget submit: DO NOT wait for API response
+  // Fire-and-forget submit: DO NOT wait for API response
   const fireAndForgetSubmit = async (submitFn, delayMs = 300) => {
     setLoading(true);
 
