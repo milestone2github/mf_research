@@ -1,15 +1,9 @@
-// backend/routes/insuranceLeads.js
-const express = require("express");
-const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
 const InsuranceRecoFile = require("../models/InsuranceRecoFile");
 const sendEmail = require("../utils/sendEmail");
-const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
-// POST /api/insurance-leads/ingest
-router.post("/ingest", upload.single("file"), async (req, res) => {
+async function ingestInsuranceLeads(req, res) {
   try {
     const { company, fileType, reupload } = req.body;
     const file = req.file;
@@ -91,10 +85,10 @@ router.post("/ingest", upload.single("file"), async (req, res) => {
     // Return clean error to frontend
     return res.status(status).json({ message: "failed to upload the file", detail: data });
   }
-});
+}
 
 // ---------------- New companies route ----------------
-router.get("/companies", async (req, res) => {
+async function getInsuranceCompanies(req, res) {
   try {
     // find or create single doc
     let doc = await InsuranceRecoFile.findOne();
@@ -107,6 +101,6 @@ router.get("/companies", async (req, res) => {
     console.error("[insurance-leads] companies error:", err);
     res.status(500).json({ message: "Failed to fetch companies" });
   }
-});
+}
 
-module.exports = router;
+module.exports = {ingestInsuranceLeads, getInsuranceCompanies};
