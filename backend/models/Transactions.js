@@ -71,7 +71,8 @@ const transactionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
       },
       validatedAt: Date,
-      status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'] }
+      status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'] },
+      changeLog: { type: String, trim: true }
     }],
     reconciliation: {
       reconciledBy: {
@@ -107,7 +108,8 @@ const transactionSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
     },
     validatedAt: Date,
-    status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'] }
+    status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'] },
+    changeLog: { type: String, trim: true }
   }],
   reconciliation: {
     reconciledBy: {
