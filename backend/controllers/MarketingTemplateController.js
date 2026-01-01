@@ -25,22 +25,20 @@ const proxyImageUrl = async (req, res) => {
 const getUserTemplates = async (req, res) => {
   try {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    today.setUTCHours(0, 0, 0, 0);
     const templates = await MarketingTemplate.find({
       $or: [
-        // ✅ Marketing collateral: never ends -> always show
+        // Marketing collateral: never ends -> always show
         { category: "MARKETING_COLLATERAL" },
 
-        // ✅ Marketing: show from publishDate to closeDate
+        // Marketing: show from publishDate to closeDate
         {
           category: { $ne: "MARKETING_COLLATERAL" }, // treat missing category as MARKETING
           publishDate: { $lte: today }, // already started
           $or: [
             { closeDate: null }, // no end date
             { closeDate: { $exists: false } }, // old records
-            { closeDate: { $gte: tomorrow } }, // still active
+            { closeDate: { $gte: today } }, // still active
           ],
         },
       ],
@@ -48,7 +46,7 @@ const getUserTemplates = async (req, res) => {
 
     const requestBase = `${req.protocol}://${req.get("host")}`;
 
-    // ✅ IMPORTANT: your proxy endpoint is /api/marketing-template/proxy
+    // IMPORTANT: your proxy endpoint is /api/marketing-template/proxy
     const processedTemplates = templates.map((tpl) => {
           const obj = tpl.toObject();
 
@@ -121,7 +119,7 @@ const createTemplate = async (req, res) => {
       publishDate,
       closeDate,
       category,
-      disclaimer, // ✅ now this will be disclaimerType like "MUTUAL_FUND"
+      disclaimer, // now this will be disclaimerType like "MUTUAL_FUND"
     } = req.body;
 
     const imageUrl = req.imageUrl;
@@ -135,7 +133,7 @@ const createTemplate = async (req, res) => {
 
     const finalCategory = category || "MARKETING";
 
-    // ✅ MARKETING => closeDate compulsory
+    // MARKETING => closeDate compulsory
     if (finalCategory === "MARKETING" && !closeDate) {
       return res.status(400).json({
         success: false,
@@ -143,7 +141,7 @@ const createTemplate = async (req, res) => {
       });
     }
 
-    // ✅ If collateral, force closeDate = null
+    // If collateral, force closeDate = null
     const finalCloseDate =
       finalCategory === "MARKETING_COLLATERAL" ? null : closeDate;
 
@@ -166,7 +164,7 @@ const createTemplate = async (req, res) => {
       }
     }
 
-    // ✅ optional: validate disclaimer type
+    // optional: validate disclaimer type
     const ALLOWED_DISCLAIMER_TYPES = ["MUTUAL_FUND", "INSURANCE", "STOCK_MARKET"];
     if (disclaimer && !ALLOWED_DISCLAIMER_TYPES.includes(disclaimer)) {
       return res.status(400).json({
@@ -182,7 +180,7 @@ const createTemplate = async (req, res) => {
       category: finalCategory,
       publishDate,
 
-      // ✅ store ONLY disclaimer TYPE in DB (field name `disclaimer` kept)
+      // store ONLY disclaimer TYPE in DB (field name `disclaimer` kept)
       disclaimer: disclaimer || null,
 
       closeDate: finalCloseDate,
@@ -216,12 +214,12 @@ const updateTemplate = async (req, res) => {
       publishDate,
       closeDate,
       category,
-      disclaimer, // ✅ disclaimer type: MUTUAL_FUND / INSURANCE / STOCK_MARKET
+      disclaimer, // disclaimer type: MUTUAL_FUND / INSURANCE / STOCK_MARKET
     } = req.body;
 
     const ALLOWED_DISCLAIMER_TYPES = ["MUTUAL_FUND", "INSURANCE", "STOCK_MARKET"];
 
-    // ✅ nothing provided
+    // nothing provided
     if (
       !title &&
       !description &&
@@ -237,16 +235,16 @@ const updateTemplate = async (req, res) => {
       });
     }
 
-    // ✅ get existing template (needed for validations)
+    // get existing template (needed for validations)
     const existing = await MarketingTemplate.findById(id).lean();
     if (!existing) {
       return res.status(404).json({ success: false, message: "Template not found" });
     }
 
-    // ✅ final category after update
+    // final category after update
     const finalCategory = category || existing.category || "MARKETING";
 
-    // ✅ disclaimer validation (if sent)
+    // disclaimer validation (if sent)
     if (disclaimer !== undefined) {
       if (!disclaimer) {
         return res.status(400).json({
@@ -262,7 +260,7 @@ const updateTemplate = async (req, res) => {
       }
     }
 
-    // ✅ build update object
+    // build update object
     const updateData = {};
     if (title) updateData.title = title;
     if (description) updateData.description = description;
@@ -271,7 +269,7 @@ const updateTemplate = async (req, res) => {
     if (disclaimer !== undefined) updateData.disclaimer = disclaimer;
 
     /**
-     * ✅ closeDate rules:
+     * closeDate rules:
      * - If category becomes COLLATERAL => force closeDate = null
      * - Else allow closeDate update / clear
      */
@@ -282,7 +280,7 @@ const updateTemplate = async (req, res) => {
       updateData.closeDate = closeDate ? closeDate : null;
     }
 
-    // ✅ final dates for validation
+    // final dates for validation
     const finalPublishDate = publishDate
       ? new Date(publishDate)
       : new Date(existing.publishDate);
@@ -298,7 +296,7 @@ const updateTemplate = async (req, res) => {
         ? new Date(existing.closeDate)
         : null;
 
-    // ✅ MARKETING => closeDate compulsory
+    // MARKETING => closeDate compulsory
     if (finalCategory === "MARKETING" && !finalCloseDate) {
       return res.status(400).json({
         success: false,
@@ -306,7 +304,7 @@ const updateTemplate = async (req, res) => {
       });
     }
 
-    // ✅ validate closeDate >= publishDate
+    // validate closeDate >= publishDate
     if (finalCloseDate) {
       if (isNaN(finalPublishDate) || isNaN(finalCloseDate)) {
         return res.status(400).json({
@@ -322,7 +320,7 @@ const updateTemplate = async (req, res) => {
       }
     }
 
-    // ✅ update
+    // update
     const updatedTemplate = await MarketingTemplate.findByIdAndUpdate(
       id,
       { $set: updateData },

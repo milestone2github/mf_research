@@ -5,7 +5,7 @@ const marketingTemplateSchema = new mongoose.Schema({
   description: { type: String, trim: true },
   imageUrl: { type: String, required: true, trim: true },
 
-  // ✅ store only type in same field
+  // store only type in same field
   disclaimer: {
     type: String,
     enum: ["MUTUAL_FUND", "INSURANCE", "STOCK_MARKET"],

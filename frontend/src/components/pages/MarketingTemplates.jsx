@@ -56,8 +56,8 @@ function MarketingTemplates() {
   const [hasCreatedMarketingUser, setHasCreatedMarketingUser] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [templates, setTemplates] = useState([]);
-  const [templatesLoading, setTemplatesLoading] = useState(true);   // NEW
-  const [imageLoaded, setImageLoaded] = useState({});              // NEW
+  const [templatesLoading, setTemplatesLoading] = useState(true);   
+  const [imageLoaded, setImageLoaded] = useState({});              
   const { userData } = useSelector((state) => state.user);
   const { user, status, error, fetchStatus } = useSelector((state) => state.marketingUser);
 
@@ -77,7 +77,7 @@ function MarketingTemplates() {
       const canvasWidth = mainImg.naturalWidth;
 
       // disclaimer height (make it clearly visible)
-      const disclaimerHeight = Math.max(10, Math.round(canvasWidth * 0.003)); // min 50px
+      const disclaimerHeight = Math.max(10, Math.round(canvasWidth * 0.003)); 
 
       // footer height scaled to main width
       const footerHeight = Math.round(
@@ -125,8 +125,8 @@ function MarketingTemplates() {
       ctx.fillStyle = "#111827";
 
       const textX = canvasWidth * 0.65; // right side
-      const nameY = footerY + footerHeight * 0.2;
-      const phoneY = footerY + footerHeight * 0.45;
+      const nameY = footerY + footerHeight * 0.24;
+      const phoneY = footerY + footerHeight * 0.48;
 
 
       ctx.fillText(user?.name || "", textX, nameY);
@@ -320,14 +320,17 @@ function MarketingTemplates() {
                     />
 
                     {/* ✅ Overlay text (NO EMAIL) */}
-                    <div
-                        className="absolute right-[16%] top-[22%] flex flex-col items-end
-                                  text-[6px] sm:text-[7px] font-normal leading-tight text-gray-700"
-                      >
+                  <div
+                    className="absolute right-[18%] top-[22%]
+                              flex flex-col items-start
+                              text-left
+                              text-[5px] sm:text-[7px]
+                              font-normal leading-tight text-gray-700"
+                  >
+                    <div className="mb-[6px]">{user?.name}</div>
+                    <div>+91 {user?.phone}</div>
+                  </div>
 
-                      <div>{user?.name}</div>
-                      <div className="mt-[4px]">+91 {user?.phone}</div>
-                    </div>
                   </div>
 
                   {/* Overlay + download button */}
