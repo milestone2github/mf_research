@@ -77,7 +77,7 @@ function MarketingTemplates() {
       const canvasWidth = mainImg.naturalWidth;
 
       // disclaimer height (make it clearly visible)
-      const disclaimerHeight = Math.max(10, Math.round(canvasWidth * 0.003)); 
+      const disclaimerHeight = Math.max(22, Math.round(canvasWidth * 0.015)); 
 
       // footer height scaled to main width
       const footerHeight = Math.round(
@@ -106,7 +106,7 @@ function MarketingTemplates() {
       const disclaimerText = `Disclaimer: ${getDisclaimerText(tpl)}`;
 
       ctx.fillStyle = "#111827";
-      ctx.font = `${Math.max(9, Math.round(canvasWidth * 0.013))}px Inter, sans-serif`;
+      ctx.font = `${Math.max(9.5, Math.round(canvasWidth * 0.013))}px Inter, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(disclaimerText, canvasWidth / 2, disclaimerY + disclaimerHeight / 2);
@@ -125,8 +125,8 @@ function MarketingTemplates() {
       ctx.fillStyle = "#111827";
 
       const textX = canvasWidth * 0.65; // right side
-      const nameY = footerY + footerHeight * 0.24;
-      const phoneY = footerY + footerHeight * 0.48;
+      const nameY = footerY + footerHeight * 0.06;
+      const phoneY = footerY + footerHeight * 0.36;
 
 
       ctx.fillText(user?.name || "", textX, nameY);
@@ -313,21 +313,21 @@ function MarketingTemplates() {
                       alt="footer"
                       style={{
                         width: "100%",
-                        height: "56px",
-                        objectFit: "cover",
+                        height: "auto",        
+                        objectFit: "contain",  
                         display: "block",
                       }}
                     />
 
                     {/* ✅ Overlay text (NO EMAIL) */}
                   <div
-                    className="absolute right-[18%] top-[22%]
+                    className="absolute right-[21%] top-[6%]
                               flex flex-col items-start
                               text-left
                               text-[5px] sm:text-[7px]
                               font-normal leading-tight text-gray-700"
                   >
-                    <div className="mb-[6px]">{user?.name}</div>
+                    <div className="mb-[2px]">{user?.name}</div>
                     <div>+91 {user?.phone}</div>
                   </div>
 
