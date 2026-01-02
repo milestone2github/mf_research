@@ -77,7 +77,7 @@ function MarketingTemplates() {
       const canvasWidth = mainImg.naturalWidth;
 
       // disclaimer height (make it clearly visible)
-      const disclaimerHeight = Math.max(22, Math.round(canvasWidth * 0.015)); 
+      const disclaimerHeight = Math.max(30, Math.round(canvasWidth * 0.030)); 
 
       // footer height scaled to main width
       const footerHeight = Math.round(
@@ -265,7 +265,7 @@ function MarketingTemplates() {
           </div>
         ) : (
           templates.map((tpl) => {
-            const id = tpl._id || tpl?._doc?._id; // ✅ FIX (no _doc crash)
+            const id = tpl._id || tpl?._doc?._id;
             const loaded = imageLoaded[id];
 
             return (
@@ -297,7 +297,7 @@ function MarketingTemplates() {
                     onError={() => setImageLoaded((prev) => ({ ...prev, [id]: true }))}
                   />
 
-                  {/* ✅ Disclaimer strip between main + footer (PREVIEW) */}
+                  {/*  Disclaimer strip between main + footer (PREVIEW) */}
                   <div className="w-full bg-white px-3 py-1">
                     <p className="text-[7px] sm:text-[6px] text-gray-800 text-center leading-snug">
                         Disclaimer: {getDisclaimerText(tpl)}
@@ -319,15 +319,15 @@ function MarketingTemplates() {
                       }}
                     />
 
-                    {/* ✅ Overlay text (NO EMAIL) */}
+                    {/* Overlay text (NO EMAIL) */}
                   <div
-                    className="absolute right-[21%] top-[6%]
+                    className="absolute right-[21%] top-[3%]
                               flex flex-col items-start
                               text-left
                               text-[5px] sm:text-[7px]
                               font-normal leading-tight text-gray-700"
                   >
-                    <div className="mb-[2px]">{user?.name}</div>
+                    <div className="mb-[3px]">{user?.name}</div>
                     <div>+91 {user?.phone}</div>
                   </div>
 
