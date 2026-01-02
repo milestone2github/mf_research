@@ -111,7 +111,7 @@ function InsuranceLeadUpdate() {
     if (inputRef.current) inputRef.current.value = "";
   };
 
-  // ✅ Fire-and-forget submit: DO NOT wait for API response
+  // Fire-and-forget submit: DO NOT wait for API response
   const fireAndForgetSubmit = async (submitFn, delayMs = 300) => {
     setLoading(true);
 
