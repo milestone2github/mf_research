@@ -10,7 +10,21 @@ import { createUser, getUser, updateUser } from '../../Actions/MarketingUserActi
 import axios from 'axios';
 import footerImgSrc from '../../assets/FooterMarketingTemplate.png';
 
-//  Image Loader Utility
+const DISCLAIMER_TEXT_BY_TYPE = {
+  MUTUAL_FUND:
+    "Mutual Fund investments are subject to market risks, read all scheme related documents carefully.",
+  INSURANCE:
+    "Insurance is a subject matter of solicitation. The information provided here cannot substitute for the advice of a licensed professional.",
+  STOCK_MARKET:
+    "Investments in the securities market are subject to market risks, read all the related documents carefully before investing.",
+};
+
+const getDisclaimerText = (tpl) => {
+  const type = tpl?.disclaimerType || tpl?.disclaimer; // your DB currently stores in `disclaimer`
+  return DISCLAIMER_TEXT_BY_TYPE[type] || DISCLAIMER_TEXT_BY_TYPE.MUTUAL_FUND;
+};
+
+// Image Loader Utility
 const loadImage = (src) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -42,15 +56,14 @@ function MarketingTemplates() {
   const [hasCreatedMarketingUser, setHasCreatedMarketingUser] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [templates, setTemplates] = useState([]);
-  const [templatesLoading, setTemplatesLoading] = useState(true);   // NEW
-  const [imageLoaded, setImageLoaded] = useState({});              // NEW
+  const [templatesLoading, setTemplatesLoading] = useState(true);   
+  const [imageLoaded, setImageLoaded] = useState({});              
   const { userData } = useSelector((state) => state.user);
-  const { user, status, error, fetchStatus } = useSelector(state => state.marketingUser);
+  const { user, status, error, fetchStatus } = useSelector((state) => state.marketingUser);
 
   const dispatch = useDispatch();
 
-
-  //  Full Image → Download Generator
+  // Full Image → Download Generator
   async function convertToImage(tpl, user) {
     try {
       setIsDownloading(true);
@@ -60,79 +73,87 @@ function MarketingTemplates() {
       // 2) Load footer background image
       const footerImg = await loadImage(footerImgSrc);
 
-      // Keep the footer aspect ratio but scale it to the width of the main image
+      // 2) Sizes
+      const canvasWidth = mainImg.naturalWidth;
+
+      // disclaimer height (make it clearly visible)
+      const disclaimerHeight = Math.max(10, Math.round(canvasWidth * 0.003)); 
+
+      // footer height scaled to main width
       const footerHeight = Math.round(
-        (footerImg.naturalHeight / footerImg.naturalWidth) * mainImg.naturalWidth
+        (footerImg.naturalHeight / footerImg.naturalWidth) * canvasWidth
       );
 
-      // 3) Prepare canvas using original image width
-      const canvas = document.createElement('canvas');
-      canvas.width = mainImg.naturalWidth;
-      canvas.height = mainImg.naturalHeight + footerHeight;
+      // 3) Canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasWidth;
+      const gapAboveDisclaimer = Math.round(canvasWidth * 0.005); // ~2% of width
+      canvas.height = mainImg.naturalHeight + gapAboveDisclaimer + disclaimerHeight + footerHeight;
 
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // 4) MAIN IMAGE
+      ctx.drawImage(mainImg, 0, 0, canvasWidth, mainImg.naturalHeight);
 
-      // 4) Draw the main template image
-      ctx.drawImage(mainImg, 0, 0, canvas.width, mainImg.naturalHeight);
+      // 5) DISCLAIMER STRIP (VISIBLE)
+      const disclaimerY = mainImg.naturalHeight + gapAboveDisclaimer;
 
-      // 5) Draw the footer background
-      ctx.drawImage(
-        footerImg,
-        0,
-        mainImg.naturalHeight,    // start drawing at the bottom of main image
-        canvas.width,
-        footerHeight
-      );
+      // white bg
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, disclaimerY, canvasWidth, disclaimerHeight);
 
-      // 6) Draw text (name, email, phone)
-      // Set font & color
-      const fontSize = Math.round(canvas.width * 0.018);
-      ctx.font = `600 ${fontSize}px Inter, sans-serif`;
-      ctx.fillStyle = "#374151";
+      const disclaimerText = `Disclaimer: ${getDisclaimerText(tpl)}`;
 
-      // Use TOP baseline for easier control
+      ctx.fillStyle = "#111827";
+      ctx.font = `${Math.max(9, Math.round(canvasWidth * 0.013))}px Inter, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(disclaimerText, canvasWidth / 2, disclaimerY + disclaimerHeight / 2);
+
+      // reset align
+      ctx.textAlign = "left";
       ctx.textBaseline = "top";
 
-      // Horizontal position (same as preview: left ~56%)
-      const textX = canvas.width * 0.56;
+      // 6) FOOTER IMAGE (below disclaimer)
+      const footerY = mainImg.naturalHeight + gapAboveDisclaimer + disclaimerHeight;
+      ctx.drawImage(footerImg, 0, footerY, canvasWidth, footerHeight);
 
-      // TOP of the footer area
-      const footerTop = mainImg.naturalHeight;
+      // 7) FOOTER TEXT (ONLY NAME + PHONE, NO EMAIL)
+      const fontSize = Math.max(14, Math.round(canvasWidth * 0.018));
+      ctx.font = `${fontSize}px Inter, sans-serif`;
+      ctx.fillStyle = "#111827";
 
-      // Now exact Y positions for each line
-      const nameY = footerTop + footerHeight * 0.204;
-      const emailY = footerTop + footerHeight * 0.398;
-      const phoneY = footerTop + footerHeight * 0.576;
+      const textX = canvasWidth * 0.65; // right side
+      const nameY = footerY + footerHeight * 0.24;
+      const phoneY = footerY + footerHeight * 0.48;
+
 
       ctx.fillText(user?.name || "", textX, nameY);
-      ctx.fillText(user?.email || "", textX, emailY);
       ctx.fillText(`+91 ${user?.phone || ""}`, textX, phoneY);
 
-
-      // 7) Export as PNG (max quality). Use JPEG if you really want smaller files.
+      // 8) EXPORT
       canvas.toBlob(
         (blob) => {
           if (!blob) return;
 
-          const link = document.createElement('a');
+          const link = document.createElement("a");
           link.href = URL.createObjectURL(blob);
-          // link.download = `${tpl._doc.title || 'template'}.png`;
-          link.download = `${tpl._doc.title || 'template'}.jpg`;
+          link.download = `${tpl.title || tpl?._doc?.title || "template"}.jpg`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(link.href);
         },
-        // 'image/png'
-        'image/jpeg', 0.92
+        "image/jpeg",
+        0.92
       );
     } catch (err) {
-      console.error('Error generating image:', err);
+      console.error("Error generating image:", err);
     } finally {
       setIsDownloading(false);
     }
   }
-
 
   const handleEditMarkting = () => setIsModalOpen(true);
   const handleCancelEdit = () => setIsModalOpen(false);
@@ -140,7 +161,7 @@ function MarketingTemplates() {
   //  Fetch User
   useEffect(() => {
     dispatch(getUser());
-  }, []);
+  }, [dispatch]);
 
 
   //  Fetch Templates
@@ -169,22 +190,34 @@ function MarketingTemplates() {
   }, []);
 
 
-  //  Auto-create Marketing User
+  const phone =
+    user?.phone ||
+    userData?.phone ||
+    user?.user?.onboarding?.hrFilledInfo?.phone ||
+    "";
+
   useEffect(() => {
     if (fetchStatus === 404 && !hasCreatedMarketingUser) {
       dispatch(createUser({
-        name: userData.name,
-        email: userData.email,
-        phone: user?.phone || userData?.phone || user?.user?.onboarding?.hrFilledInfo?.phone || ''
+        name: userData?.name,
+        email: userData?.email,
+        phone,
       }));
-
       setHasCreatedMarketingUser(true);
     }
 
     if (fetchStatus !== 404 && error) {
-      dispatch(updateToast({ type: 'error', message: error }));
+      dispatch(updateToast({ type: "error", message: error }));
     }
-  }, [fetchStatus, error]);
+  }, [
+    dispatch,
+    fetchStatus,
+    error,
+    hasCreatedMarketingUser,
+    userData?.name,
+    userData?.email,
+    phone,
+  ]);
 
 
   //  Loading UI for fetching user
@@ -198,7 +231,7 @@ function MarketingTemplates() {
 
 
 
- return (
+  return (
     <main className="relative overflow-x-hidden">
 
       <div className="mb-2 flex bg-gray-100 px-2 py-2 rounded-lg">
@@ -214,7 +247,6 @@ function MarketingTemplates() {
           </button>
         </div>
       </div>
-
 
       {/* TEMPLATES GRID + SKELETONS */}
       <section className="flex flex-wrap gap-6 sm:gap-8 justify-center mt-4">
@@ -233,7 +265,7 @@ function MarketingTemplates() {
           </div>
         ) : (
           templates.map((tpl) => {
-            const id = tpl._doc._id;
+            const id = tpl._id || tpl?._doc?._id; // ✅ FIX (no _doc crash)
             const loaded = imageLoaded[id];
 
             return (
@@ -241,7 +273,6 @@ function MarketingTemplates() {
                 key={id}
                 className="relative group w-[316px] sm:w-[395px] overflow-hidden shadow rounded"
               >
-
                 {/* CARD-LEVEL SKELETON */}
                 {!loaded && (
                   <div className="absolute inset-0 z-0">
@@ -260,62 +291,72 @@ function MarketingTemplates() {
                   {/* Main Image */}
                   <img
                     src={tpl.proxyImageUrl}
-                    alt={tpl._doc.title}
+                    alt={tpl.title || tpl?._doc?.title || "template"}
                     className="w-[316px] sm:w-[395px]"
-                    onLoad={() =>
-                      setImageLoaded((prev) => ({ ...prev, [id]: true }))
-                    }
-                    onError={() =>
-                      setImageLoaded((prev) => ({ ...prev, [id]: true }))
-                    }
+                    onLoad={() => setImageLoaded((prev) => ({ ...prev, [id]: true }))}
+                    onError={() => setImageLoaded((prev) => ({ ...prev, [id]: true }))}
                   />
 
-                  {/* footer  */}
-                  <div
-                  id={`top-container-${tpl._doc._id}`}
-                  className="relative w-full text-white"
-                >
-                  <img
-                    src={footerImgSrc}
-                    alt="footer"
-                    style={{
-                      width: '100%',
-                      height: '72px',
-                      objectFit: 'cover',
-                      display: 'block',
-                    }}
-                  />
-                  {/* Overlay text */}
-                  <div
-                    id={`brand-container-${tpl._doc._id}`}
-                    className="absolute left-[56%] top-[18.5%] flex flex-col text-[6px] sm:text-[7px] font-bold leading-tight text-gray-600"
-                  >
-                    <div className="mt-[0px]">{user?.name}</div>
-                    <div className="mt-[5px]">{user?.email}</div>
-                    <div className="mt-[4.5px]">+91 {user?.phone}</div>
+                  {/* ✅ Disclaimer strip between main + footer (PREVIEW) */}
+                  <div className="w-full bg-white px-3 py-1">
+                    <p className="text-[7px] sm:text-[6px] text-gray-800 text-center leading-snug">
+                        Disclaimer: {getDisclaimerText(tpl)}
+                      </p>
+
                   </div>
-                </div>
 
-                {/* Overlay + download button */}
-                <div className="absolute inset-0 flex items-end justify-center transition-all group-hover:bg-gradient-to-bl from-black/20 to-transparent bg-transparent duration-300 ease-out group-hover:bg-black/10">
+
+                  {/* Footer */}
+                  <div id={`top-container-${id}`} className="relative w-full">
+                    <img
+                      src={footerImgSrc}
+                      alt="footer"
+                      style={{
+                        width: "100%",
+                        height: "56px",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+
+                    {/* ✅ Overlay text (NO EMAIL) */}
+                  <div
+                    className="absolute right-[18%] top-[22%]
+                              flex flex-col items-start
+                              text-left
+                              text-[5px] sm:text-[7px]
+                              font-normal leading-tight text-gray-700"
+                  >
+                    <div className="mb-[6px]">{user?.name}</div>
+                    <div>+91 {user?.phone}</div>
+                  </div>
+
+                  </div>
+
+                  {/* Overlay + download button */}
+                  <div className="absolute inset-0 flex items-end justify-center transition-all group-hover:bg-gradient-to-bl from-black/20 to-transparent bg-transparent duration-300 ease-out group-hover:bg-black/10">
                     <button
                       onClick={() => convertToImage(tpl, user)}
-                      className="group hidden group-hover:flex justify-center absolute top-2 right-2 items-center gap-2 px-5 py-2.5 rounded-full bg-white/20 text-white font-medium backdrop-blur-sm  border border-white transition-all hover:bg-white/30 hover:shadow-xl cursor-pointer min-w-36"
+                      className="group hidden group-hover:flex justify-center absolute top-2 right-2 items-center gap-2 px-5 py-2.5 rounded-full bg-white/20 text-white font-medium backdrop-blur-sm border border-white transition-all hover:bg-white/30 hover:shadow-xl cursor-pointer min-w-36"
                     >
-                      {!isDownloading ? <><BsArrowDownCircle className="text-xl transition-transform duration-200 " />
-                      <span className="text-base tracking-wide">Download</span> </> :
-                      <span className="text-xl tracking-wide animate-spin"><CgSpinner /></span>}
+                      {!isDownloading ? (
+                        <>
+                          <BsArrowDownCircle className="text-xl transition-transform duration-200" />
+                          <span className="text-base tracking-wide">Download</span>
+                        </>
+                      ) : (
+                        <span className="text-xl tracking-wide animate-spin">
+                          <CgSpinner />
+                        </span>
+                      )}
                     </button>
-                </div>
-
+                  </div>
                 </figure>
               </div>
             );
           })
         )}
-
       </section>
-
 
       {/* SIDEBAR FORM + TOAST */}
       <UserForm isModalOpen={isModalOpen} handleClose={handleCancelEdit} />
@@ -340,65 +381,76 @@ const UserForm = ({ isModalOpen, handleClose }) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // When marketingUser changes in store, sync local form
     setMarketingUser({
       _id: user?._id,
-      name: user?.name || userData?.name || '',
-      email: user?.email || userData?.email || '',
-      phone: user?.phone || userData?.phone || user?.user?.onboarding?.hrFilledInfo?.phone || ''
+      name: user?.name || userData?.name || "",
+      email: user?.email || userData?.email || "",
+      phone: user?.phone || userData?.phone || user?.user?.onboarding?.hrFilledInfo?.phone || "",
     });
   }, [user, userData]);
 
   useEffect(() => {
-    if (updateStatus === 'completed') handleClose();
-  }, [updateStatus]);
+    if (updateStatus === "completed") handleClose();
+  }, [updateStatus, handleClose]);
 
   const handleBrandingChange = (e) => {
-    const { name, value } = e.target
-    setMarketingUser(prev => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setMarketingUser((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleUpdate = (e) => {
-    e.preventDefault()
-    dispatch(updateUser(marketingUser))
-  }
+    e.preventDefault();
+    dispatch(updateUser(marketingUser));
+  };
 
-  const handleCancel = (e) => {
+  const handleCancel = () => {
     setMarketingUser({
       _id: user?._id,
-      name: user?.name || userData?.name || '',
-      email: user?.email || userData?.email || '',
-      phone: user?.user?.onboarding?.hrFilledInfo?.phone || user?.phone || marketingUser.phone || ''
-    })
-    handleClose()
-  }
+      name: user?.name || userData?.name || "",
+      email: user?.email || userData?.email || "",
+      phone: user?.user?.onboarding?.hrFilledInfo?.phone || user?.phone || marketingUser.phone || "",
+    });
+    handleClose();
+  };
 
   return (
-    <section className={`fixed z-[1000] top-0 bottom-0 bg-slate-100 p-3 md:p-6 ${isModalOpen ? 'right-0' : '-right-full'} w-full h-screen md:w-[460px] transition-all border`}>
+    <section
+      className={`fixed z-[1000] top-0 bottom-0 bg-slate-100 p-3 md:p-6 ${
+        isModalOpen ? "right-0" : "-right-full"
+      } w-full h-screen md:w-[460px] transition-all border`}
+    >
       <button
         onClick={handleCancel}
         className="absolute right-full rounded-md bg-gray-200 top-0 p-2 text-gray-700 text-xl hover:text-gray-900 z-10"
       >
         <IoMdClose />
       </button>
-      <form onSubmit={handleUpdate} className='flex flex-col gap-y-6 h-full justify-center'>
-        <p className='text-gray-800 text-2xl font-bold'>Edit branding details</p>
-        <div className='flex flex-col gap-y-4'>
+
+      <form onSubmit={handleUpdate} className="flex flex-col gap-y-6 h-full justify-center">
+        <p className="text-gray-800 text-2xl font-bold">Edit branding details</p>
+
+        <div className="flex flex-col gap-y-4">
           <div className="flex flex-col gap-y-px">
-            <label htmlFor="name" className='text-sm text-gray-600'>Name</label>
+            <label htmlFor="name" className="text-sm text-gray-600">
+              Name
+            </label>
             <input
               type="text"
               name="name"
               id="name"
               required
-              autoComplete='off'
-              className='rounded-md p-2 w-full border border-gray-500 focus:outline-2 focus:outline-blue-500'
+              autoComplete="off"
+              className="rounded-md p-2 w-full border border-gray-500 focus:outline-2 focus:outline-blue-500"
               value={marketingUser.name}
               onChange={handleBrandingChange}
             />
           </div>
+
+          {/* keep email in form if you want to store it, but it is NOT shown in footer now */}
           <div className="flex flex-col gap-y-px">
-            <label htmlFor="email" className='text-sm text-gray-600'>Email</label>
+            <label htmlFor="email" className="text-sm text-gray-600">
+              Email
+            </label>
             <input
               type="email"
               name="email"
