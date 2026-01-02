@@ -13,7 +13,7 @@ const FILE_TYPES = [
   { label: "Brokerage", value: "brokerage" },
 ];
 
-// ✅ Frontend delay helper
+// Frontend delay helper
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // CSV helpers (send selected rows to SAME /ingest route as file)
