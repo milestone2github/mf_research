@@ -559,13 +559,70 @@ const getTransactionsFilterByFamilyHead = async (req, res) => {
 
 // add all fractions at once to a transaction (by trx id)
 const addAllFractions = async (req, res) => {
-  let { fractions } = req.body;
+  let { fractions, changes } = req.body;
   const userName = toTitleCase(req.user.name)
+  const userId = req.user._id;
 
   try {
     const existingTxn = await Transactions.findById(req.params.id);
     if (!existingTxn) return res.status(404).json({ error: 'Transaction not found' });
 
+    // CASE 1: PARTIAL UPDATE (inner fraction edit)
+    // If provided per-fraction partial changes, will apply without replacing whole array
+    if (Array.isArray(changes) && changes.length) {
+      const txFractions = existingTxn.transactionFractions || [];
+      // find fraction index by id
+      const findIndexById = (fid) => {
+        if (!fid) return -1;
+        return txFractions.findIndex(f => String(f._id) === String(fid));
+      };
+
+      changes.forEach((change) => {
+        const updates = change.updates || {};
+        let targetIdx = -1;
+        if (change.fractionId) {
+          targetIdx = findIndexById(change.fractionId);
+        }
+        if (targetIdx === -1 && typeof change.fractionIndex === 'number') {
+          if (change.fractionIndex >= 0 && change.fractionIndex < txFractions.length) {
+            targetIdx = change.fractionIndex;
+          }
+        }
+        if (targetIdx === -1) {
+          console.warn(`Could not locate fraction for change:`, change);
+          return;
+        }
+
+        const fraction = txFractions[targetIdx];
+
+        // ---- APPROVAL STATUS MAP PATCH ----
+        if (updates.approvalStatus) {
+          const mappedStatus = approvalStatusMap.get(updates.approvalStatus);
+          updates.status = mappedStatus;
+          fraction.status = mappedStatus;
+          fraction.approvalStatus = updates.approvalStatus;
+        }
+
+        Object.keys(updates).forEach(k => { fraction[k] = updates[k]; });
+
+        fraction.validations = fraction.validations || [];
+        fraction.validations.push({
+          validatedBy: userId,
+          validatedAt: new Date(),
+          status: updates.status || fraction.status || 'PENDING',
+          changeLog: change.changeLog?.trim() || 'Updated'
+        });
+      });
+
+      // Assign and persist only once
+      existingTxn.transactionFractions = txFractions;
+
+      await existingTxn.save();
+
+      return res.status(200).json({ message: 'Fractions updated (partial)', data: existingTxn });
+    }
+
+    // CASE 2: === fallback: if no partial changes then fll creation of fraction
     let trxFractions = []
     let linkStatus = 'unlocked'
     let hasFractions = false
@@ -574,14 +631,14 @@ const addAllFractions = async (req, res) => {
       trxFractions = fractions.map((item, idx) => {
         const oldFraction = existingTxn.transactionFractions[idx];
 
-        let status = item.status
+        let mappedStatus = item.status;
         if (item.approvalStatus) {
-          status = approvalStatusMap.get(item.approvalStatus)
+          mappedStatus = approvalStatusMap.get(item.approvalStatus);
         }
-        if (item.fractionAmount) {
+        if (item.fractionAmount || item.fractionAmount === 0) {
           return {
             fractionAmount: Number(item.fractionAmount),
-            status,
+            status: mappedStatus,
             addedBy: userName,
             linkStatus: item.linkStatus || 'initialized',
             folioNumber: item.folioNumber,
@@ -595,7 +652,9 @@ const addAllFractions = async (req, res) => {
             validations: oldFraction?.validations || [],
           }
         }
-      })
+        // If item doesn't have fractionAmount, return undefined (filter later)
+        return undefined;
+      }).filter(Boolean);
       linkStatus = 'locked'
       hasFractions = true
     }
@@ -640,7 +699,8 @@ const generateLink = async (req, res) => {
     let validations = {
       validatedBy: userId,
       validatedAt: Date.now(),
-      status: status
+      status: status,
+      changeLog: `Link | Pending | Approved`
     }
 
     let transaction;
@@ -688,28 +748,104 @@ const generateLink = async (req, res) => {
 
 // generate link (by trx id)
 const updateOrderId = async (req, res) => {
-  let { fractionId, orderId, platform } = req.body;
+  const { fractionId, orderId, platform } = req.body;
+  const userId = req.user?._id;
+
   if (!orderId) {
     return res.status(400).json({ error: 'Order ID is required!' })
   }
 
   try {
-    let transaction;
-    // Ensure the new fraction is provided
-    if (!fractionId) {
-      transaction = await Transactions.findByIdAndUpdate(req.params.id, { orderId, orderPlatform: platform }, { new: true })
+    // fetch old transaction first
+    const oldTrx = await Transactions.findById(req.params.id).lean();
+    if (!oldTrx) {
+      return res.status(404).json({ error: "Transaction not found" });
     }
+
+    let transaction;
+    const changes = [];
+
+    // Case 1: Main Transaction Level Update
+    if (!fractionId) {
+      if (oldTrx.orderId !== orderId) {
+        changes.push(`Order Id | ${oldTrx.orderId || ""} | ${orderId}`);
+      }
+
+      if (oldTrx.orderPlatform !== platform) {
+        changes.push(
+          `Order Platform | ${oldTrx.orderPlatform || ""} | ${platform || ""}`
+        );
+      }
+
+      transaction = await Transactions.findByIdAndUpdate(
+        req.params.id,
+        { orderId, orderPlatform: platform },
+        { new: true }
+      );
+
+      // validation entry at transaction level
+      if (changes.length > 0) {
+        const validationEntry = {
+          validatedBy: userId,
+          validatedAt: new Date(),
+          status: oldTrx.status,
+          changeLog: `${changes.join(" , ")}`
+        };
+
+        await Transactions.findByIdAndUpdate(req.params.id, {
+          $push: { validations: validationEntry }
+        });
+      }
+    }
+
+    // Case 2: Fraction Level Update
     else {
-      // Update the document by pushing the new fraction to the array
+      // Get old fraction first
+      const oldFraction = oldTrx.transactionFractions.find(
+        (f) => f._id.toString() === fractionId
+      );
+
+      if (!oldFraction) {
+        return res.status(404).json({ error: "Fraction not found" });
+      }
+
+      // detect changes
+      if (oldFraction.orderId !== orderId) {
+        changes.push( `Order Id | ${oldFraction.orderId || ""} | ${orderId}` );
+      }
+       if (oldFraction.orderPlatform !== platform) {
+        changes.push( `Order Platform | ${oldFraction.orderPlatform || ""} | ${platform || ""}` );
+      }
+
       transaction = await Transactions.findOneAndUpdate(
         { _id: req.params.id, 'transactionFractions._id': fractionId },
         {
           $set: {
             'transactionFractions.$.orderId': orderId,
+            'transactionFractions.$.orderPlatform': platform
           }
         },
         { new: true }
-      )
+      );
+
+      // validation entry *inside fraction* only
+      if (changes.length > 0) {
+        const validationEntry = {
+          validatedBy: userId,
+          validatedAt: new Date(),
+          status: oldFraction.status, // keep same status
+          changeLog: `${changes.join(" , ")}`
+        };
+
+        await Transactions.findOneAndUpdate(
+          { _id: req.params.id, "transactionFractions._id": fractionId },
+          {
+            $push: {
+              "transactionFractions.$.validations": validationEntry
+            }
+          }
+        );
+      }
     }
 
     if (!transaction) {
@@ -1469,8 +1605,7 @@ const filteredHistoryTransactions = async (req, res) => {
 // update approval status 
 const updateApprovalStatus = async (req, res) => {
   const transactionId = req.params.id
-  const approvalStatus = req.body.approvalStatus
-  const fractionId = req.body.fractionId
+  const { approvalStatus, fractionId } = req.body;
   const userId = req.user?._id;
 
   if (!transactionId) {
@@ -1482,17 +1617,23 @@ const updateApprovalStatus = async (req, res) => {
 
   const status = approvalStatusMap.get(approvalStatus)
   try {
-    let transaction;
+    // get old transaction first
+    const oldTrx = await Transactions.findById(transactionId).lean();
+    if (!oldTrx) throw new Error("Transaction not found");
 
-    let validations = {
-      validatedBy: userId,
-      validatedAt: Date.now(),
-      status: status
-    }
+    let transaction;
+    const changes = [];
 
     if (!fractionId) {
-      const update = { approvalStatus, status, $push: {validations} }
-      transaction = await Transactions.findByIdAndUpdate(transactionId, update, { new: true }).lean()
+      if (oldTrx.approvalStatus !== approvalStatus) {
+        changes.push(`Approval Status | ${oldTrx.approvalStatus || "-"} | ${approvalStatus}`);
+      }
+
+      transaction = await Transactions.findByIdAndUpdate(
+        transactionId,
+        { approvalStatus, status },
+        { new: true }
+      );
     }
 
     else {
@@ -1509,6 +1650,20 @@ const updateApprovalStatus = async (req, res) => {
       throw new Error("Transaction not found")
     }
 
+    // validation entry at main transaction level
+    if (changes.length > 0) {
+      const validationEntry = {
+        validatedBy: userId,
+        validatedAt: new Date(),
+        status: oldTrx.status, // keep original
+        changeLog: `${changes.join(" , ")}`
+      };
+
+      await Transactions.findByIdAndUpdate(transactionId, {
+        $push: { validations: validationEntry }
+      });
+    }
+
     res.status(200).json({ message: 'Status updated', data: transaction })
   } catch (error) {
     console.error('Error updating status: ', error.message)
@@ -1520,26 +1675,58 @@ const updateApprovalStatus = async (req, res) => {
 const updateTransaction = async (req, res) => {
   const transactionId = req.params.id
   const { transactionPreference, sipSwpStpDate } = req.body
+  const userId = req.user?._id;
 
   if (!transactionId) {
     return res.status(400).json({ error: 'Transaction Id is required' })
   }
-  let update = {}
-  if (transactionPreference) {
-    update.transactionPreference = transactionPreference
-  }
-  if (sipSwpStpDate) {
-    update.sipSwpStpDate = sipSwpStpDate
-  }
 
   try {
-    const transaction = await Transactions.findByIdAndUpdate(transactionId, update, { new: true }).lean()
+    // get old transaction first
+    const oldTrx = await Transactions.findById(transactionId);
+    if (!oldTrx) return res.status(404).json({ error: "Transaction not found" });
 
-    if (!transaction) {
-      throw new Error("Transaction not found")
+    let update = {};
+    let changes = [];
+
+    const formatDate = d => d ? new Date(d).toISOString().split('T')[0] : null;
+
+    if (transactionPreference && transactionPreference !== oldTrx.transactionPreference) {
+      update.transactionPreference = transactionPreference;
+      changes.push(
+        `Execution Date | ${formatDate(oldTrx.transactionPreference)} | ${transactionPreference} `
+      );
     }
 
-    res.status(200).json({ message: 'Transaction updated', data: transaction })
+    if (sipSwpStpDate && sipSwpStpDate !== oldTrx.sipSwpStpDate) {
+      update.sipSwpStpDate = sipSwpStpDate;
+      changes.push(
+        `SipStpSwp Date | ${formatDate(oldTrx.sipSwpStpDate)} | ${sipSwpStpDate}`
+      );
+    }
+
+    if (changes.length === 0) {
+      return res.status(200).json({ message: "No changes detected", data: oldTrx });
+    }
+
+    const validationEntry = {
+      validatedBy: userId,
+      validatedAt: new Date(),
+      status: oldTrx.status, // (reuse existing)
+      changeLog: `${changes.join(" , ")}`
+    };
+
+    // Update and attach validation
+    const updatedTransaction = await Transactions.findByIdAndUpdate(
+      transactionId,
+      {
+        $set: update,
+        $push: { validations: validationEntry }
+      },
+      { new: true }
+    ).lean();
+
+    res.status(200).json({ message: 'Transaction updated', data: updatedTransaction })
   } catch (error) {
     console.error('Error updating transaction: ', error.message)
     res.status(500).json({ error: error.message })

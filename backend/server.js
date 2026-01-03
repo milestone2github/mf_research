@@ -10,7 +10,6 @@ const port = process.env.PORT || 5000;
 const session = require("express-session");
 const { connectToMilestoneDB, connetToTransactionsDb } = require("./dbConfig/connection");
 const authRoutes = require('./routes/Auth');
-const insuranceLeadsRoutes = require("./routes/insuranceLeads");
 const { sendEmailController } = require("./controllers/MailController");
 const verifyUser = require("./middlewares/VerifyUser");
 const { pendingTransactionsNotification, springVerifyStatusCheck } = require("./utils/scheduledTasks");
@@ -90,7 +89,6 @@ function dbAccess(req, res, next) {
 
 app.use(dbAccess); // Use the middleware
 app.use('/auth', authRoutes);
-app.use("/api/insurance-leads", insuranceLeadsRoutes);
 app.post('/api/send-mail', verifyUser, sendEmailController);
 
 // Centralized Routes
