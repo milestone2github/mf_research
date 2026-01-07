@@ -249,114 +249,83 @@ function MarketingTemplates() {
       </div>
 
       {/* TEMPLATES GRID + SKELETONS */}
-      <section className="flex flex-wrap gap-6 sm:gap-8 justify-center mt-4">
+      {/* MASONRY WRAPPER */}
+      <section className="w-full px-2 sm:px-4 mt-4">
+        <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 sm:gap-8 [column-fill:_balance]">
+          {templatesLoading ? (
+            <>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="mb-6 sm:mb-8 break-inside-avoid">
+                  <TemplateSkeleton />
+                </div>
+              ))}
+            </>
+          ) : templates.length === 0 ? (
+            <div className="flex flex-col items-center py-10 mt-8 text-center w-full">
+              <h2 className="text-gray-700 font-medium text-lg">Nothing here yet.</h2>
+              <p className="text-gray-500 text-sm mt-1">
+                Templates will appear once they’re published.
+              </p>
+            </div>
+          ) : (
+            templates.map((tpl) => {
+              const id = tpl._id || tpl?._doc?._id;
+              const loaded = imageLoaded[id];
 
-        {/* PAGE-LEVEL SKELETONS */}
-        {templatesLoading ? (
-          <>
-            {Array.from({ length: 4 }).map((_, i) => <TemplateSkeleton key={i} />)}
-          </>
-        ) : templates.length === 0 ? (
-          <div className="flex flex-col items-center py-10 mt-8 text-center w-full">
-            <h2 className="text-gray-700 font-medium text-lg">Nothing here yet.</h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Templates will appear once they’re published.
-            </p>
-          </div>
-        ) : (
-          templates.map((tpl) => {
-            const id = tpl._id || tpl?._doc?._id;
-            const loaded = imageLoaded[id];
-
-            return (
-              <div
-                key={id}
-                className="relative group w-[316px] sm:w-[395px] overflow-hidden shadow rounded"
-              >
-                {/* CARD-LEVEL SKELETON */}
-                {!loaded && (
-                  <div className="absolute inset-0 z-0">
-                    <div className="w-full bg-gray-200 animate-pulse" style={{ height: '260px' }} />
-                    <div className="w-full bg-gray-300 animate-pulse" style={{ height: '72px' }} />
-                  </div>
-                )}
-
-
-                {/* REAL CARD */}
-                <figure
-                  className={`relative z-10 transition-opacity duration-300 ${
-                    loaded ? "opacity-100" : "opacity-0"
-                  }`}
+              return (
+                <div
+                  key={id}
+                  className="mb-6 sm:mb-8 break-inside-avoid"
                 >
-                  {/* Main Image */}
-                  <img
-                    src={tpl.proxyImageUrl}
-                    alt={tpl.title || tpl?._doc?.title || "template"}
-                    className="w-[316px] sm:w-[395px]"
-                    onLoad={() => setImageLoaded((prev) => ({ ...prev, [id]: true }))}
-                    onError={() => setImageLoaded((prev) => ({ ...prev, [id]: true }))}
-                  />
+                  <div className="relative group w-full overflow-hidden shadow rounded">
+                    {/* CARD-LEVEL SKELETON */}
+                    {!loaded && (
+                      <div className="absolute inset-0 z-0">
+                        <div className="w-full bg-gray-200 animate-pulse" style={{ height: '260px' }} />
+                        <div className="w-full bg-gray-300 animate-pulse" style={{ height: '72px' }} />
+                      </div>
+                    )}
 
-                  {/*  Disclaimer strip between main + footer (PREVIEW) */}
-                  <div className="w-full bg-white px-3 py-1">
-                    <p className="text-[7px] sm:text-[6px] text-gray-800 text-center leading-snug">
-                        Disclaimer: {getDisclaimerText(tpl)}
-                      </p>
-
-                  </div>
-
-
-                  {/* Footer */}
-                  <div id={`top-container-${id}`} className="relative w-full">
-                    <img
-                      src={footerImgSrc}
-                      alt="footer"
-                      style={{
-                        width: "100%",
-                        height: "auto",        
-                        objectFit: "contain",  
-                        display: "block",
-                      }}
-                    />
-
-                    {/* Overlay text (NO EMAIL) */}
-                  <div
-                    className="absolute right-[21%] top-[3%]
-                              flex flex-col items-start
-                              text-left
-                              text-[5px] sm:text-[7px]
-                              font-normal leading-tight text-gray-700"
-                  >
-                    <div className="mb-[3px]">{user?.name}</div>
-                    <div>+91 {user?.phone}</div>
-                  </div>
-
-                  </div>
-
-                  {/* Overlay + download button */}
-                  <div className="absolute inset-0 flex items-end justify-center transition-all group-hover:bg-gradient-to-bl from-black/20 to-transparent bg-transparent duration-300 ease-out group-hover:bg-black/10">
-                    <button
-                      onClick={() => convertToImage(tpl, user)}
-                      className="group hidden group-hover:flex justify-center absolute top-2 right-2 items-center gap-2 px-5 py-2.5 rounded-full bg-white/20 text-white font-medium backdrop-blur-sm border border-white transition-all hover:bg-white/30 hover:shadow-xl cursor-pointer min-w-36"
+                    {/* REAL CARD */}
+                    <figure
+                      className={`relative z-10 transition-opacity duration-300 ${
+                        loaded ? "opacity-100" : "opacity-0"
+                      }`}
                     >
-                      {!isDownloading ? (
-                        <>
-                          <BsArrowDownCircle className="text-xl transition-transform duration-200" />
-                          <span className="text-base tracking-wide">Download</span>
-                        </>
-                      ) : (
-                        <span className="text-xl tracking-wide animate-spin">
-                          <CgSpinner />
-                        </span>
-                      )}
-                    </button>
+                      <img
+                        src={tpl.proxyImageUrl}
+                        alt={tpl.title || tpl?._doc?.title || "template"}
+                        className="w-full h-auto block"
+                        onLoad={() => setImageLoaded((prev) => ({ ...prev, [id]: true }))}
+                        onError={() => setImageLoaded((prev) => ({ ...prev, [id]: true }))}
+                      />
+
+                      <div className="absolute inset-0 flex items-end justify-center transition-all group-hover:bg-gradient-to-bl from-black/20 to-transparent bg-transparent duration-300 ease-out group-hover:bg-black/10">
+                        <button
+                          onClick={() => convertToImage(tpl, user)}
+                          className="group hidden group-hover:flex justify-center absolute top-2 right-2 items-center gap-2 px-5 py-2.5 rounded-full bg-white/20 text-white font-medium backdrop-blur-sm border border-white transition-all hover:bg-white/30 hover:shadow-xl cursor-pointer min-w-36"
+                        >
+                          {!isDownloading ? (
+                            <>
+                              <BsArrowDownCircle className="text-xl transition-transform duration-200" />
+                              <span className="text-base tracking-wide">Download</span>
+                            </>
+                          ) : (
+                            <span className="text-xl tracking-wide animate-spin">
+                              <CgSpinner />
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    </figure>
                   </div>
-                </figure>
-              </div>
-            );
-          })
-        )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </section>
+
 
       {/* SIDEBAR FORM + TOAST */}
       <UserForm isModalOpen={isModalOpen} handleClose={handleCancelEdit} />
