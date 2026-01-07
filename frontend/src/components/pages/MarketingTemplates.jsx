@@ -237,7 +237,7 @@ function MarketingTemplates() {
       <div className="mb-2 flex bg-gray-100 px-2 py-2 rounded-lg">
         <h3 className="text-3xl font-bold">Marketing Templates</h3>
 
-        <div className="fixed z-10 bottom-6 right-6 p-3 rounded-lg bg-white shadow-slate-200">
+        <div className="fixed z-[999] bottom-6 right-6 p-3 rounded-lg bg-white shadow-slate-200">
           <button
             title="Edit branding"
             onClick={handleEditMarkting}

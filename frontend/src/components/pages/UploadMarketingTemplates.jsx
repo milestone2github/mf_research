@@ -622,7 +622,7 @@ const UploadMarketingTemplates = () => {
 
       {/*  Upload Modal (UI fixed: close X + buttons never hidden) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-20 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] bg-black/40 flex items-start justify-center pt-10 overflow-y-auto">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl relative max-h-[90vh] overflow-y-auto">
             {/* sticky header so X always visible */}
             <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b">
@@ -824,7 +824,7 @@ const UploadMarketingTemplates = () => {
 
       {/*  Edit Modal (UI fixed same way) */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl relative max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b">
               <h4 className="text-xl font-semibold text-gray-800">Edit Template</h4>
