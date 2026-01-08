@@ -24,7 +24,7 @@ import Assets from '../components/pages/Assets'
 import { assetRoutes } from './assetRoutes'
 import OnboardingLayout from '../components/onboarding/OnboardingLayout';
 import Leaderboard from '../components/pages/Leaderboard';
-import InsuranceLeadUpdate from '../components/pages/InsuranceLeadUpdate';
+import InsuranceReco from '../components/pages/InsuranceReco';
 import onboardingRoutes from './onboarding'
 import RbacLayout from '../centralRbac/src/pages/RbacLayout'
 import { centralRbacRoutes } from './centralRbacRoutes'
@@ -295,10 +295,10 @@ export const appRoutes = [
 	
 	// insurance lead update
 	{ 
-		requiredPermission: "insurance_lead_update",
-		to: '/insurance-lead-update',
-		label: 'Insurance Lead Update',
-		element: <InsuranceLeadUpdate />,
+		requiredPermission: "insurance_reco",
+		to: '/insurance-reco',
+		label: 'Insurance Reco',
+		element: <InsuranceReco />,
 		protected: true,
 		showInSidebar: true
   },
