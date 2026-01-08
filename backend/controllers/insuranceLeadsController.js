@@ -24,6 +24,7 @@ async function ingestInsuranceLeads(req, res) {
     // Build URL with query params safely
     const url = new URL(baseUrl);
     url.searchParams.set("company", company);
+    url.searchParams.set("name_of_employee", req.user.name);
     url.searchParams.set("type", fileType);
     url.searchParams.set("reupload", reupload === "true");
     const targetUrl = url.toString();
