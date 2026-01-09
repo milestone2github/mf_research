@@ -42,7 +42,7 @@ router.post('/retry-gotra/:userId', retryGotra);
 router.post('/retry-notify/:userId', retryNotify);
 router.patch('/update-allocation-status/:userId', verifyUser, updateAssetAllocationStatus);
 router.get('/onboarding-form/:userId',getHrOnboardingData);
-router.get("/employee-onboarding/all", getAllEmployeesForEdit);
+router.get("/employee-onboarding/all", verifyUser, getAllEmployeesForEdit);
 router.put('/onboarding-form/:userId',upload.single("offerLetterPdf"),updateHrDetailsAndResendOffer);
 
 
