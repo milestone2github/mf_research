@@ -1,9 +1,16 @@
+const { HR_NAME } = require("./constants");
 
 function getOfferLetterEmailTemplate({ name, doj, onboardingLink }) {
+  // Capitalize first name only
+  const firstName = ((name || "").trim().split(" ")[0] || "")
+    .toLowerCase()
+    .replace(/^\w/, c => c.toUpperCase());
+
+
   return {
     subject: "Offer Letter from Mnivesh",
     body: `
-      <p>Dear ${name},</p>
+      <p>Dear ${firstName},</p>
 
       <p>I would like to congratulate you on clearing all rounds of interview and also would like to welcome you to our family.</p>
 
@@ -18,23 +25,25 @@ function getOfferLetterEmailTemplate({ name, doj, onboardingLink }) {
       <p>Congratulations on your appointment. I wish you all the best for our future relationship.</p>
 
       <br/>
+
       <p><strong>Thanks & Regards</strong></p>
-      <p><strong>Vilakshan Bhutani</strong><br/>
-      CEO - Chief Executive Officer<br/>
-      M: +91 99 100 76952</p>
+      <p><strong>${HR_NAME}, Hr</strong></p>
+ 
+      <p>
+        <a href="https://niveshonline.com/about-us" target="_blank" style="text-decoration:none;">
+          <img 
+            src="https://niveshonline.com/images/LOGOfinal.png"
+            alt="Mnivesh Logo" 
+            style="height:60px; border:0; margin-top:8px;"
+          />
+        </a>
+      </p>
 
-      <p><strong>Milestone Global Moneymart Private Limited</strong><br/>
-      <em>a pathway to achieve financial milestones</em></p>
-
-      <p><strong>IVR:</strong> +91 8269 135135 &nbsp;&nbsp; 
-         <strong>O:</strong> +91-11-45510989 / 47010647</p>
-
-      <p>Corp. Office: 101-G | Crown Heights | Twin District Tower <br/>
-      Rohini Sector 10 | New Delhi | Delhi – 110085</p>
-
-      <p>Branch Office: 166-P | Railway Road | Ferozepur Cantt. | Punjab – 152001</p>
-
-      <p><a href="https://www.niveshonline.com" target="_blank">Web: www.Niveshonline.com</a></p>
+      <p>
+        <a href="https://niveshonline.com/about-us" target="_blank">
+          https://niveshonline.com/about-us
+        </a>
+      </p>
     `
   };
 }
