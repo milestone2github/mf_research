@@ -32,7 +32,7 @@ const initialState = {
   purch_redempTraxTypeOptions: ['Purchase', 'Redemption'],
   purchaseTraxUnits_AmountOptions: ['Amount in next question'],
   redemptionTraxUnits_AmountOptions: ['Amount in next question', 'Long Term Units', 'Redeem All Units', 'Units in next question', 'Unlocked Units'],
-  switchTraxUnits_AmountOptions: ['Amount Given in next question', 'Long Term Units', 'Switch All Units', 'Units in next question', 'Unlocked Units'],
+  switchTraxUnits_AmountOptions: ['Amount in next question', 'Long Term Units', 'Switch All Units', 'Units in next question', 'Unlocked Units'],
   sysPaymentModeOptions: ['Netbanking', 'Mandate', 'Cheque', 'NEFT/RTGS', 'Zero Balance', 'UPI'],
   purchPaymentModeOptions: ['Netbanking', 'Mandate', 'Cheque', 'NEFT/RTGS', 'UPI'],
   frequencyOptions: [ 'Daily', 'Weekly', 'Monthly', 'Annually' ]

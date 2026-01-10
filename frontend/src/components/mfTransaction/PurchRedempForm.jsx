@@ -87,6 +87,45 @@ function PurchRedempForm({ index, updateCollapsed }) {
     dispatch(handleSelect({ name, value, index }));
   };
 
+  const selectedTraxOption = purchRedempItem.purch_redempTransactionUnits_Amount;
+
+  const AMOUNT_BASED_OPTIONS = ['Amount in next question'];
+  const UNIT_INPUT_OPTIONS = ['Units in next question'];
+  const UNIT_DIRECT_OPTIONS = ['Redeem All Units', 'Long Term Units', 'Unlocked Units'];
+
+  const isAmount = AMOUNT_BASED_OPTIONS.includes(selectedTraxOption);
+  const isUnitInput = UNIT_INPUT_OPTIONS.includes(selectedTraxOption);
+  const isUnitDirect = UNIT_DIRECT_OPTIONS.includes(selectedTraxOption);
+
+  useEffect(() => {
+    if (isAmount) {
+      // Clear units
+      dispatch(handleSelect({
+        name: 'purch_redempTransactionUnits',
+        value: '',
+        index
+      }));
+    }
+
+    if (isUnitInput || isUnitDirect) {
+      // Clear amount
+      dispatch(handleChange({
+        name: 'purch_redempTransactionAmount',
+        value: '',
+        index
+      }));
+    }
+
+    // For direct unit options, auto-store text
+    if (isUnitDirect) {
+      dispatch(handleSelect({
+        name: 'purch_redempTransactionUnits',
+        value: selectedTraxOption,
+        index
+      }));
+    }
+  }, [selectedTraxOption]);
+
   // effect to fetch folio options on change of amc and pan number 
   useEffect(() => {
     if (commonData.iWellCode) {
@@ -187,17 +226,23 @@ function PurchRedempForm({ index, updateCollapsed }) {
         />
       </div>
       <div className='grow shrink basis-72 max-w-full md:max-w-[calc(50%-32px)] lg:max-w-[calc(33%-39.6px)]'>
-        <NumberInput
-          id='purch_redempTransactionAmount'
-          index={index}
-          label='Amount / Units'
-          min={1}
-          step={0.001}
-          required={true}
-          value={purchRedempItem.purch_redempTransactionAmount}
-          onChange={handleInputChange}
-          updateCollapsed={updateCollapsed}
-        />
+        {(isAmount || isUnitInput) && (
+          <NumberInput
+            id={isAmount ? 'purch_redempTransactionAmount' : 'purch_redempTransactionUnits'}
+            index={index}
+            label={isAmount ? 'Amount' : 'Number of Units'}
+            min={isAmount ? 0 : 1}
+            step={isAmount ? 1 : 0.001}
+            required={true}
+            value={
+              isAmount
+                ? purchRedempItem.purch_redempTransactionAmount
+                : purchRedempItem.purch_redempTransactionUnits
+            }
+            onChange={handleInputChange}
+            updateCollapsed={updateCollapsed}
+          />
+        )}
       </div>
       {purchRedempItem.purch_RedempTraxType === 'Purchase' &&
         <div className='grow shrink basis-72 max-w-full md:max-w-[calc(50%-32px)] lg:max-w-[calc(33%-39.6px)]'>
