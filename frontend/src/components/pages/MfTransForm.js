@@ -318,21 +318,75 @@ function MfTransForm() {
           allTransactions.systematicData.push(systematicData[index]);
           break;
 
-        case 'purchRedemp':
-          if (!validatePurchRedemp(purchRedempData[index], index + 1)) {
-            validationErrorOccurred = true;
-            return;
-          }
-          allTransactions.purchRedempData.push(purchRedempData[index]);
-          break;
+        case 'purchRedemp': {
+          const item = purchRedempData[index];
 
-        case 'switch':
-          if (!validateSwitch(switchData[index], index + 1)) {
+          if (!validatePurchRedemp(item, index + 1)) {
             validationErrorOccurred = true;
             return;
           }
-          allTransactions.switchData.push(switchData[index]);
+          const selectedOption = item.purch_redempTransactionUnits_Amount;
+
+          const isAmount = selectedOption === 'Amount in next question';
+          const isUnitInput = selectedOption === 'Units in next question';
+          const isUnitDirect = ['Redeem All Units', 'Long Term Units', 'Unlocked Units']
+            .includes(selectedOption);
+
+          const transformedItem = {
+            ...item,
+
+            // Amount column
+            purch_redempTransactionAmount:
+              isAmount
+                ? Number(item.purch_redempTransactionAmount)
+                : isUnitInput
+                  ? Number(item.purch_redempTransactionUnits)
+                  : null,
+
+            // Units column ALWAYS shows selected option
+            purch_redempTransactionUnits_Amount:
+              isAmount || isUnitInput || isUnitDirect
+                ? selectedOption
+                : null,
+          };
+
+          allTransactions.purchRedempData.push(transformedItem);
           break;
+        }
+
+        case 'switch': {
+          const item = switchData[index];
+          if (!validateSwitch(item, index + 1)) {
+            validationErrorOccurred = true;
+            return;
+          }
+
+          const selectedOption = item.switchTransactionUnits_Amount;
+
+          const isAmount = selectedOption === 'Amount in next question';
+          const isUnitInput = selectedOption === 'Units in next question';
+          const isUnitDirect = ['Switch All Units', 'Long Term Units', 'Unlocked Units']
+            .includes(selectedOption);
+
+          const transformedItem = {
+            ...item,
+
+            switchTransactionAmount:
+              isAmount
+                ? Number(item.switchTransactionAmount)
+                : isUnitInput
+                  ? Number(item.switchTransactionAmount)
+                  : null,
+
+            switchTransactionUnits_Amount:
+              isAmount || isUnitInput || isUnitDirect
+                ? selectedOption
+                : null,
+          };
+
+          allTransactions.switchData.push(transformedItem);
+          break;
+        }
 
         default:
           // console.log('Unknown transaction type:', type);

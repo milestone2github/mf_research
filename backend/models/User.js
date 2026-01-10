@@ -127,17 +127,36 @@ const userSchema = new mongoose.Schema({
             requestId: { type: String }
         },
         zohoSetup: {
+            status: {
+                type: String,
+                enum: ['pending', 'in_progress', 'completed', 'failed'],
+                default: 'pending'
+            },
             userCreated: { type: Boolean, default: false },
             zohoEmployeeId: { type: String },
             email: { type: String },
-            assignedAt: { type: Date }
+            assignedAt: { type: Date },
+            error: { type: String }
         },
         hasAssestAllocated: { type: Boolean, default: false },
         gotra: {
-            sent: { type: Boolean, default: false },
-            sentAt: { type: Date }
+        status: {
+            type: String,
+            enum: ['pending', 'completed', 'failed'],
+            default: 'pending'
         },
-        hasNotifiedToAll: { type: Boolean, default: false }
+        sentAt: Date,
+        error: String
+        },
+        hasNotifiedToAll: {
+        status: {
+            type: String,
+            enum: ['pending', 'completed', 'failed'],
+            default: 'pending'
+        },
+        sentAt: Date,
+        error: String
+        }
     },
     status: {
         type: String,

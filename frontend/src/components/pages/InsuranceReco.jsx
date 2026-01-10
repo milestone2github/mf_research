@@ -52,7 +52,9 @@ function InsuranceLeadUpdate() {
   useEffect(() => {
     async function fetchCompanies() {
       try {
-        const res = await fetch(`${backendUrl}/api/insurance-leads/companies`);
+        const res = await fetch(`${backendUrl}/api/insurance-leads/companies`, {
+        credentials: "include"
+      });
         const data = await res.json();
         setCompanyOptions(data || []);
       } catch (err) {
@@ -217,6 +219,7 @@ function InsuranceLeadUpdate() {
 
       await fetch(`${backendUrl}/api/insurance-leads/ingest`, {
         method: "POST",
+        credentials: "include",
         body: form,
       });
     }, 300); // after 300ms UI resets no matter what
@@ -261,6 +264,7 @@ function InsuranceLeadUpdate() {
 
       await fetch(`${backendUrl}/api/insurance-leads/ingest`, {
         method: "POST",
+        credentials: "include",
         body: form,
       });
     }, 300);
@@ -402,9 +406,9 @@ function InsuranceLeadUpdate() {
               </label>
             </div>
 
-            <div className="overflow-auto border rounded-xl">
+            <div className="border rounded-xl max-h-[40vh] overflow-y-auto overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th className="p-2 border-b"></th>
                     {headers.map((h) => (
@@ -459,7 +463,7 @@ function InsuranceLeadUpdate() {
                 disabled={loading || previewLoading}
                 className="text-sm text-blue-600 hover:underline"
               >
-                Back to upload options
+                Back to Bulk upload options
               </button>
             </div>
           </div>

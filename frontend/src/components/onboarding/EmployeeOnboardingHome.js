@@ -16,6 +16,10 @@ const EmployeeOnboardingHome = () => {
   const [showModal, setShowModal] = useState(false);
   const [deleteName, setDeleteName] = useState('');
   const [confirmInput, setConfirmInput] = useState('');
+  const [verifying, setVerifying] = useState({ userId: null, action: null });
+  const [retryZohoId, setRetryZohoId] = useState(null);
+  const [retryGotraId, setRetryGotraId] = useState(null);
+  const [retryNotifyId, setRetryNotifyId] = useState(null);
 
 
 
@@ -57,6 +61,12 @@ const EmployeeOnboardingHome = () => {
     color = 'text-red-600';
   }
 
+  if (normalized === 'skipped') {
+  Icon = FaClock;
+  label = 'Skipped';
+  color = 'text-gray-400';
+}
+
   return (
     <span className={`flex items-center ${color}`}>
       <Icon className="mr-1" /> {label}
@@ -66,6 +76,7 @@ const EmployeeOnboardingHome = () => {
 
 const handleSpringVerifyAction = async (userId, action) => {
   try {
+    setVerifying({ userId, action });
     const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/onboarding/spring-verify`, {
       method: "POST",
       headers: {
@@ -78,14 +89,15 @@ const handleSpringVerifyAction = async (userId, action) => {
     const result = await res.json();
 
     if (res.ok) {
-      alert(result.message);
-      window.location.reload(); // or refetch users list
+      toast.success(result.message);
     } else {
-      alert(result.message || "Failed to process action");
+      toast.error(result.message || "Failed to process action");
     }
   } catch (err) {
     console.error("Spring Verify Error:", err);
-    alert("Unexpected error");
+    toast.error("Unexpected error");
+  } finally {
+    setVerifying({ userId: null, action: null });
   }
 };
 
@@ -129,10 +141,11 @@ const handleSpringVerifyAction = async (userId, action) => {
               <th className="px-4 py-2">NDA</th>
               <th className="px-6 py-2 w-40">Verification</th>
               <th className="px-4 py-2">User Setup</th>
-              <th className="px-4 py-2">Gotra</th>
+              <th className="px-4 py-2">Gotraka</th>
               <th className="px-4 py-2">Assets</th>
               <th className="px-4 py-2">Notify</th>
               <th className='px-4 py-2'>Actions</th>
+              <th className="px-4 py-2">Edit</th>
             </tr>
           </thead>
           <tbody>
@@ -143,18 +156,19 @@ const handleSpringVerifyAction = async (userId, action) => {
     const offerGenerated = onboarding?.offerLetter?.generated;
     const backgroundVerified = onboarding?.backgroundCheck?.status === 'verified';
     const ndaSigned = onboarding?.nda?.signed;
-    const zohoCreated = onboarding?.zohoSetup?.userCreated;
+    const zohoStatus = onboarding?.zohoSetup?.status || 'pending';
 
     const isEligibleForAllocation =
       offerGenerated &&
       formStatus === 'Submitted' &&
-      ndaSigned &&
-      zohoCreated;
+      ndaSigned ;
 
     return (
       <tr key={user._id} className="border-t">
         <td className="px-4 py-2">{onboarding?.hrFilledInfo?.name || '-'}</td>
-        <td className="px-4 py-2">{user.email}</td>
+        <td className="px-4 py-2">
+          {user.onboarding?.hrFilledInfo?.personalEmail || '-'}
+        </td>
 
         <td className="px-4 py-2">{renderStatus(offerGenerated ? 'Completed' : 'Pending')}</td>
         <td className="px-4 py-2">{renderStatus(formStatus)}</td>
@@ -170,16 +184,22 @@ const handleSpringVerifyAction = async (userId, action) => {
   onboarding?.backgroundCheck?.status === 'pending' ? (
     <div className="flex border border-gray-300 rounded overflow-hidden">
       <button
+        disabled={verifying.userId === user._id}
         onClick={() => handleSpringVerifyAction(user._id, 'verify')}
-        className="px-3 py-1 text-sm text-green-600 hover:bg-green-50 w-full border-r border-gray-300"
+        className="px-3 py-1 text-sm text-green-600 hover:bg-green-50 w-full border-r border-gray-300 disabled:opacity-50"
       >
-        Verify
+        {verifying.userId === user._id && verifying.action === 'verify'
+          ? 'Verifying...'
+          : 'Verify'}
       </button>
       <button
+        disabled={verifying.userId === user._id}
         onClick={() => handleSpringVerifyAction(user._id, 'skip')}
-        className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 w-full"
+        className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 w-full disabled:opacity-50"
       >
-        Skip
+        {verifying.userId === user._id && verifying.action === 'skip'
+          ? 'Skipping...'
+          : 'Skip'}
       </button>
     </div>
   ) : (
@@ -190,20 +210,76 @@ const handleSpringVerifyAction = async (userId, action) => {
 
 
         
-        {/* Zoho user status  */}
+        
+                {/* Zoho user status with retry */}
         <td className="px-4 py-2">
-          {renderStatus(zohoCreated ? 'Completed' : 'Pending')}
+          {zohoStatus === 'failed' ? (
+            <button
+                disabled={retryZohoId === user._id}
+                onClick={async () => {
+                  setRetryZohoId(user._id);
+                  try {
+                    const res = await fetch(
+                      `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/retry-zoho-setup/${user._id}`,
+                      { method: 'POST' }
+                    );
+                    const result = await res.json();
+
+                    if (res.ok) {
+                      toast.success(result.message);
+                    } else {
+                      toast.error(result.message);
+                    }
+                  } catch {
+                    toast.error("Retry failed");
+                  } finally {
+                    setRetryZohoId(null);
+                  }
+                }}
+                className="px-3 py-1 text-sm text-red-600 border border-red-600 rounded hover:bg-red-50 disabled:opacity-50"
+              >
+                {retryZohoId === user._id ? "Retrying..." : "Retry"}
+              </button>
+
+          ) : (
+            renderStatus(zohoStatus)
+          )}
         </td>
 
 
         {/* Gotra */}
         <td className="px-4 py-2">
-          {renderStatus(
-            onboarding?.gotra?.sent
-              ? 'Completed'
-              : 'Pending'
-          )}
-        </td>
+        {onboarding?.gotra?.status === 'failed' ? (
+          <button
+          disabled={retryGotraId === user._id}
+          onClick={async () => {
+            setRetryGotraId(user._id);
+            try {
+              const res = await fetch(
+                `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/retry-gotra/${user._id}`,
+                { method: 'POST' }
+              );
+              const result = await res.json();
+
+              if (res.ok) {
+                toast.success(result.message);
+              } else {
+                toast.error(result.message);
+              }
+            } catch {
+              toast.error('Retry failed');
+            } finally {
+              setRetryGotraId(null);
+            }
+          }}
+          className="px-3 py-1 text-sm text-red-600 border border-red-600 rounded hover:bg-red-50 disabled:opacity-50"
+        >
+          {retryGotraId === user._id ? "Retrying..." : "Retry"}
+        </button>
+        ) : (
+          renderStatus(onboarding?.gotra?.status || 'pending')
+        )}
+      </td>
 
         <td className="px-4 py-2">
   {onboarding?.hasAssestAllocated ? (
@@ -225,27 +301,82 @@ const handleSpringVerifyAction = async (userId, action) => {
 
         {/* Notify: show only after eligible */}
         <td className="px-4 py-2">
-          {renderStatus(
-            onboarding?.hasNotifiedToAll
-              ? 'Completed'
-              : 'Pending'
+          {onboarding?.hasNotifiedToAll?.status === 'failed' ? (
+            <button
+              disabled={retryNotifyId === user._id}
+              onClick={async () => {
+                setRetryNotifyId(user._id);
+                try {
+                  const res = await fetch(
+                    `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/retry-notify/${user._id}`,
+                    { method: 'POST' }
+                  );
+                  const result = await res.json();
+
+                  if (res.ok) {
+                    toast.success(result.message);
+                  } else {
+                    toast.error(result.message);
+                  }
+                } catch {
+                  toast.error('Retry failed');
+                } finally {
+                  setRetryNotifyId(null);
+                }
+              }}
+              className="px-3 py-1 text-sm text-red-600 border border-red-600 rounded hover:bg-red-50 disabled:opacity-50"
+            >
+              {retryNotifyId === user._id ? "Retrying..." : "Retry"}
+            </button>
+          ) : (
+            renderStatus(onboarding?.hasNotifiedToAll?.status || 'pending')
           )}
         </td>
 
         <td className="px-4 py-2">
-           <button
-          onClick={() => {
-          setDeleteId(user._id);
-          setDeleteName(user.onboarding?.hrFilledInfo?.name || '');
-          setConfirmInput('');
-          setShowModal(true);
-        }}
+          {!ndaSigned ? (
+            <button
+              onClick={() => {
+                setDeleteId(user._id);
+                setDeleteName(user.onboarding?.hrFilledInfo?.name || '');
+                setConfirmInput('');
+                setShowModal(true);
+              }}
+              className="text-red-600 border border-red-600 px-2 py-1 rounded hover:bg-red-50 text-sm"
+            >
+              Delete
+            </button>
+          ) : (
+            <button
+              disabled
+              title="Delete disabled after NDA completion"
+              className="text-gray-400 border border-gray-300 px-2 py-1 rounded text-sm cursor-not-allowed"
+            >
+              Delete
+            </button>
+          )}
+        </td>
 
-          className="text-red-600 border border-red-600 px-2 py-1 rounded hover:bg-red-50 text-sm"
-        >
-          Delete
-        </button>
-         </td>
+         {/* {Edit Hr form} */}
+         <td className="px-4 py-2"> 
+          {!ndaSigned ? (
+          <button
+            onClick={() => navigate(`/onboarding/edit/${user._id}`)}
+            className="text-blue-600 border border-blue-600 px-2 py-1 rounded hover:bg-blue-50 text-sm"
+          >
+            Edit
+          </button>
+        ) : (
+          <button
+            disabled
+            title="Edit disabled after NDA completion"
+            className="text-gray-400 border border-gray-300 px-2 py-1 rounded text-sm cursor-not-allowed"
+          >
+            Edit
+          </button>
+        )}
+
+        </td>
       </tr>
     );
   })}
