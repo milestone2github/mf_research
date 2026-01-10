@@ -1,8 +1,10 @@
-const SectionHeader = ({ title, edit, onEdit, onSave, onCancel, saving, }) => {
+const SectionHeader = ({ title, edit, onEdit, onSave, onCancel, saving,icon, }) => {
   return (
     <div className="flex justify-between items-center mb-6">
-      <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
-
+      <div className="flex gap-2">
+      <i>{icon}</i>
+      <h3 className="text-xl font-semibold text-gray-800 ">{title}</h3>
+      </div>
       {!edit ? (
         <button
           onClick={onEdit}

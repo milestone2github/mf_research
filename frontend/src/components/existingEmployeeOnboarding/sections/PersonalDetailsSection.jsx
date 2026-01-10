@@ -1,7 +1,7 @@
 import SectionHeader from "../components/SectionHeader";
 import Input from "../components/Input";
 import FileThumbnail from "../components/FileThumbnail";
-
+import { PiAddressBookLight } from "react-icons/pi";
 
 const PersonalDetailsSection = ({
   data,
@@ -18,7 +18,8 @@ const PersonalDetailsSection = ({
   return (
     <div className="border rounded-xl p-6 mb-8">
       <SectionHeader
-        title="👤 Personal Details"
+        icon={<PiAddressBookLight size={24} className="text-gray-700" />}
+        title="Personal Details"
         edit={edit}
         onEdit={onEdit}
         onSave={onSave}
