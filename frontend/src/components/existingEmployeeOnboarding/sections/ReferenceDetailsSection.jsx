@@ -1,5 +1,6 @@
 import SectionHeader from "../components/SectionHeader";
 import Input from "../components/Input";
+import { MdOutlineContactEmergency } from "react-icons/md";
 
 const ReferenceDetailsSection = ({
   data,
@@ -16,7 +17,8 @@ const ReferenceDetailsSection = ({
   return (
     <div className="border rounded-xl p-6 mb-8">
       <SectionHeader
-        title="📞 Reference & Emergency Details"
+        icon={<MdOutlineContactEmergency size={24} className="text-gray-700" />}
+        title="Reference & Emergency Details"
         edit={edit}
         onEdit={onEdit}
         onSave={onSave}

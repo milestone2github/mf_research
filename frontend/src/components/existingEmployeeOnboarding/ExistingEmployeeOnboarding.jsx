@@ -7,10 +7,8 @@ import BankDetailsSection from "./sections/BankDetailsSection";
 import EducationDetailsSection from "./sections/EducationDetailsSection";
 import { useNavigate, useParams } from "react-router-dom";
 
-const API = `${process.env.REACT_APP_API_BASE_URL}/api/onboarding`;
 
 const ExistingEmployeeOnboarding = () => {
-  const token = localStorage.getItem("token");
   const { userId } = useParams();
   const [savingSection, setSavingSection] = useState(null);
   const navigate = useNavigate();
@@ -41,14 +39,10 @@ const ExistingEmployeeOnboarding = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const url = userId
-          ? `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/onboarding-details/${userId}`
-          : `${API}/me`;
+        const url = `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/onboarding-details/${userId}`
+          
 
         const { data } = await axios.get(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
           withCredentials: true,
         });
 
@@ -73,8 +67,8 @@ const ExistingEmployeeOnboarding = () => {
       }
     };
 
-    if (token) fetchData();
-  }, [token, userId]);
+    if (userId) fetchData();
+  }, [userId]);
 
   /* SAVE SINGLE SECTION */
   const saveSection = async (sectionKey) => {
@@ -129,13 +123,11 @@ const ExistingEmployeeOnboarding = () => {
           );
       }
 
-      const saveUrl = userId
-        ? `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/user-filled-info/${userId}`
-        : `${API}/me`;
+      const saveUrl = `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/user-filled-info/${userId}`
+
 
       await axios.put(saveUrl, payload, {
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
         withCredentials: true,
