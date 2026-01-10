@@ -1,6 +1,7 @@
 import SectionHeader from "../components/SectionHeader";
 import Input from "../components/Input";
 import FileThumbnail from "../components/FileThumbnail";
+import { CiBank } from "react-icons/ci"
 
 
 const BankDetailsSection = ({
@@ -18,7 +19,8 @@ const BankDetailsSection = ({
   return (
     <div className="border rounded-xl p-6 mb-8">
       <SectionHeader
-        title="🏦 Bank Details"
+        icon={<CiBank size={24} className="text-gray-700" />}
+        title="Bank Details"
         edit={edit}
         onEdit={onEdit}
         onSave={onSave}
