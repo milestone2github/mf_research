@@ -255,7 +255,7 @@ export const appRoutes = [
      
 	// All Employees Onboarding	
 	{
-		requiredPermission: "employee_onboarding",
+		requiredPermission: "employee_profiles",
 		to: "/employee-profiles",
 		label: "Employee Profiles",
 		element: <EmployeeProfiles />,

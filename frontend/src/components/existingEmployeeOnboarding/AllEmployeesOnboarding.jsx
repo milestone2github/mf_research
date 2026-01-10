@@ -22,9 +22,6 @@ const AllEmployeesOnboarding = () => {
         const res = await fetch(
           `${process.env.REACT_APP_API_BASE_URL}/api/onboarding/employee-onboarding/all`,
           {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
             credentials: "include",
           }
         );

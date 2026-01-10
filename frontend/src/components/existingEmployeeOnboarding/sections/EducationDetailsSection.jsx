@@ -1,5 +1,6 @@
 import SectionHeader from "../components/SectionHeader";
 import FileThumbnail from "../components/FileThumbnail";
+import { PiCertificateLight } from "react-icons/pi";
 
 
 const EducationDetailsSection = ({
@@ -14,7 +15,8 @@ const EducationDetailsSection = ({
   return (
     <div className="border rounded-xl p-6 mb-8">
       <SectionHeader
-        title="🎓 Education & Certificates"
+        icon={<PiCertificateLight size={24} className="text-gray-700" />}
+        title="Education & Certificates"
         edit={edit}
         onEdit={onEdit}
         onSave={onSave}
