@@ -38,6 +38,8 @@ import LumpsumauditLb from '../components/pages/LumpsumAuditLb'
 import MFSIPLeaderboard from '../components/pages/MFSIPLeaderboard'
 import UploadMarketingTemplates from '../components/pages/UploadMarketingTemplates'
 import InsuranceForm from '../components/pages/InsuranceForm'
+import EmployeeProfiles from '../components/pages/EmployeeProfiles'
+import { employeeProfileRoutes } from './EmployeeProfileRoutes'
 
 
 export const appRoutes = [
@@ -249,6 +251,18 @@ export const appRoutes = [
 		showInSidebar: true,
 		nestedRoutes: onboardingRoutes,
 	},
+     
+	// All Employees Onboarding	
+	{
+		requiredPermission: "employee_onboarding",
+		to: "/employee-profiles",
+		label: "Employee Profiles",
+		element: <EmployeeProfiles />,
+		protected: true,
+		showInSidebar: true,
+		nestedRoutes: employeeProfileRoutes,
+		},
+	
 
 	// RBAC
 	{
