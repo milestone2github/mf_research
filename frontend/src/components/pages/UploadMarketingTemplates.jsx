@@ -1,76 +1,126 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import Select, { components } from "react-select";
 import axios from "axios";
 import { CiCalendarDate } from "react-icons/ci";
-import { BiEdit, BiTrash, BiUpload } from "react-icons/bi";
+import { BiEdit, BiTrash, BiUpload, BiPlus } from "react-icons/bi";
 import { IoIosArrowBack, IoIosArrowForward, IoMdClose } from "react-icons/io";
 import { toast, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DeleteConfirmationModal from "../../centralRbac/src/components/common/DeleteConfirmationModal";
+import CategoryDisclaimerManager from "../common/CategoryDisclaimerManager";
 const { formatDateDDShortMonthNameYY } = require("../../utils/formatDate");
+// const baseUrl = import.meta.env.VITE_API_BASE_URL;
+const baseUrl = process.env.REACT_APP_API_BASE_URL;
 
 const UploadMarketingTemplates = () => {
   const [templates, setTemplates] = useState([]);
   const [filterMinDate, setFilterMinDate] = useState("");
   const [filterMaxDate, setFilterMaxDate] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const CATEGORY_OPTIONS = [
-    { value: "MARKETING", label: "Marketing" },
-    { value: "MARKETING_COLLATERAL", label: "Marketing Collateral" },
-  ];
-
-  //  Save ONLY disclaimer TYPE in DB (but backend currently expects key `disclaimer`)
-  const DISCLAIMER_OPTIONS = [
-    { label: "Mutual Fund", value: "MUTUAL_FUND" },
-    { label: "Insurance", value: "INSURANCE" },
-    { label: "Stock market", value: "STOCK_MARKET" },
-  ];
-
-  //  Map (use later wherever you need full disclaimer text)
-  const DISCLAIMER_TEXT_BY_TYPE = {
-    MUTUAL_FUND:
-      "Mutual Fund investments are subject to market risks, read all scheme related documents carefully.",
-    INSURANCE:
-      "Insurance is a subject matter of solicitation. The information provided here cannot substitute for the advice of a licensed professional.",
-    STOCK_MARKET:
-      "Investments in the securities market are subject to market risks, read all the related documents carefully before investing.",
-  };
-
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: "MARKETING",
-    disclaimerType: DISCLAIMER_OPTIONS[0].value,
-    publishDate: "",
-    closeDate: "",
-    image: null,
-  });
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [disclaimerOptions, setDisclaimerOptions] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_SIZE = 10;
+  const [priorityCategory, setPriorityCategory] = useState(null);
 
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editData, setEditData] = useState({
-    title: "",
-    description: "",
-    category: "MARKETING",
-    disclaimerType: DISCLAIMER_OPTIONS[0].value,
-    publishDate: "",
-    closeDate: "",
-  });
-
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  // Manager Modal State
+  const [managerOpen, setManagerOpen] = useState(false);
+  const [managerType, setManagerType] = useState("category"); // 'category' | 'disclaimer'
+  const [managerData, setManagerData] = useState(null);
+
+
+  const EMPTY_FORM = {
+    title: "",
+    description: "",
+    categoryId: null, // ObjectId
+    disclaimerId: null, // ObjectId
+    publishDate: "",
+    closeDate: "",
+    image: null,
+  };
+
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [editData, setEditData] = useState(EMPTY_FORM);
+
   const isValidDate = (d) => d && !isNaN(new Date(d));
   const toISODate = (d) => (d ? new Date(d).toISOString().split("T")[0] : "");
-  const isCollateral = (cat) => cat === "MARKETING_COLLATERAL";
-  const isMarketing = (cat) => cat === "MARKETING";
+  const isCollateral = (catId) => {
+    const meta = categoryOptions.find(c => c.value === catId)?.meta;
+    return meta?.key === "MARKETING_COLLATERAL";
+  };
+  const isMarketing = (catId) => {
+    const meta = categoryOptions.find(c => c.value === catId)?.meta;
+    return meta?.key === "MARKETING";
+  };
+  const isFestival = (catId) => {
+    const meta = categoryOptions.find(c => c.value === catId)?.meta;
+    return meta?.key === "FESTIVAL";
+  };
 
+  // Fetch Category and Disclaimer options
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const res = await axios.get(`${baseUrl}/api/marketing-template/getList`);
+
+        const categories = res.data.category.map((c) => ({
+          value: c._id,
+          label: c.label,
+          meta: c
+        }));
+
+        const disclaimers = res.data.disclaimerOptions.map((d) => ({
+          value: d._id,
+          label: d.label,
+          text: d.text || "",
+          meta: d
+        }));
+
+        setCategoryOptions(categories);
+        setDisclaimerOptions(disclaimers);
+      } catch (err) {
+        console.error("Failed to fetch marketing options", err);
+      }
+    };
+
+    fetchOptions();
+  }, []);
+
+  // Hydrate FormData after fetching Category and Disclaimer details
+  useEffect(() => {
+    if (categoryOptions.length && !formData.categoryId) {
+      setFormData((p) => ({
+        ...p,
+        categoryId: categoryOptions[0]._id,
+      }));
+    }
+
+    if (disclaimerOptions.length && !formData.disclaimerId) {
+      setFormData((p) => ({
+        ...p,
+        disclaimerId: disclaimerOptions[0]._id,
+      }));
+    }
+
+    // if (categoryOptions.length && disclaimerOptions.length) {
+    // 	setFormData((prev) => ({
+    // 		...prev,
+    // 		category: prev.category || categoryOptions[0].value,
+    // 		disclaimerType: prev.disclaimerType || disclaimerOptions[0].value,
+    // 	}));
+    // }
+  }, [categoryOptions, disclaimerOptions]);
+
+  // Fetch marketing templates list
   const fetchTemplates = async (page = 1) => {
     try {
       setFetching(true);
@@ -83,8 +133,11 @@ const UploadMarketingTemplates = () => {
           filterMaxDate || new Date().toISOString().split("T")[0];
       }
 
-      const res = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/admin`,
+      if (priorityCategory) {
+        params.priorityCategory = priorityCategory.value;
+      }
+
+      const res = await axios.get(`${baseUrl}/api/marketing-template/admin`,
         { params }
       );
 
@@ -94,6 +147,7 @@ const UploadMarketingTemplates = () => {
         setTemplates([]);
       }
 
+      // Pagination logic
       const pagination = res.data?.pagination;
       if (pagination) {
         setCurrentPage(pagination.currentPage || 1);
@@ -109,7 +163,7 @@ const UploadMarketingTemplates = () => {
       );
       toast.error(
         err.response?.data?.message ||
-          "Error fetching templates. Please try again later.",
+        "Error fetching templates. Please try again later.",
         { autoClose: 3000, transition: Slide }
       );
       setCurrentPage(1);
@@ -119,15 +173,45 @@ const UploadMarketingTemplates = () => {
     }
   };
 
+  // Fetch updated templates based on filters
   useEffect(() => {
     fetchTemplates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterMinDate, filterMaxDate]);
+  }, [filterMinDate, filterMaxDate, priorityCategory]);
 
+  // Category and Disclaimer CRUD logic along-with the Selection drop-down
+  const CrudOption = (props) => {
+    const { data, selectProps } = props;
+    return (
+      <components.Option {...props}>
+        <div className="flex justify-between items-center">
+          <span>{data.label}</span>
+          <div className="flex gap-2">
+            <BiEdit
+              className="cursor-pointer text-blue-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                selectProps.onEdit(data.meta);
+              }}
+            />
+            <BiTrash
+              className="cursor-pointer text-red-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                selectProps.onDelete(data.meta);
+              }}
+            />
+          </div>
+        </div>
+      </components.Option>
+    );
+  };
+
+  // Delete Template handler
   const handleDelete = async (id) => {
     try {
       const response = await axios.delete(
-        `${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${id}`
+        `${baseUrl}/api/marketing-template/${id}`
       );
 
       const nextPage =
@@ -147,8 +231,8 @@ const UploadMarketingTemplates = () => {
       console.error("Error deleting template:", err);
       toast.error(
         err.response?.data?.message ||
-          err.message ||
-          "Error deleting template. Please try again later.",
+        err.message ||
+        "Error deleting template. Please try again later.",
         { autoClose: 3000, transition: Slide }
       );
     }
@@ -159,27 +243,34 @@ const UploadMarketingTemplates = () => {
     fetchTemplates(page);
   };
 
+  // Template EDIT Modal logic
   const openEditModal = (tpl) => {
-    const tplCategory = tpl.category || "MARKETING";
+    console.log("Editing Template Data:", tpl);
 
-    // supports old saved "disclaimer" (full text) OR new saved "disclaimer" (type)
-    let incoming = tpl.disclaimerType || tpl.disclaimer || DISCLAIMER_OPTIONS[0].value;
+    // Extract ID from populated object (or use string if not populated)
+    const catId = tpl.category?._id || (typeof tpl.category === 'string' ? tpl.category : null);
+    let discId = tpl.disclaimer?._id || (typeof tpl.disclaimer === 'string' ? tpl.disclaimer : null);
 
-    // if old data stored full text, convert to type if possible (fallback to first option)
-    if (!DISCLAIMER_TEXT_BY_TYPE[incoming]) {
-      const found = Object.entries(DISCLAIMER_TEXT_BY_TYPE).find(
-        ([, fullText]) => fullText === incoming
-      );
-      incoming = found ? found[0] : DISCLAIMER_OPTIONS[0].value;
+    // Fallback for legacy disclaimer text (if stored as string and not matching an ID)
+    if (!discId && tpl.disclaimer && typeof tpl.disclaimer === 'string') {
+      // Check if it matches a text in options
+      const found = disclaimerOptions.find(d => d.text === tpl.disclaimer || d.value === tpl.disclaimer);
+      if (found) discId = found.value;
+    }
+    // Default fallback if still missing (optional, maybe better to leave empty)
+    if (!discId && disclaimerOptions.length > 0) {
+      // discId = disclaimerOptions[0].value; 
+      // Better NOT to default randomly if data is missing, but user code had a default.
+      // Let's rely on what's there.
     }
 
     setEditingTemplate(tpl);
     setEditData({
-      title: tpl.title || "",
-      description: tpl.description || "",
-      category: tplCategory,
-      disclaimerType: incoming,
-      publishDate: tpl.publishDate ? toISODate(tpl.publishDate) : "",
+      title: tpl.title,
+      description: tpl.description,
+      categoryId: catId,
+      disclaimerId: discId,
+      publishDate: toISODate(tpl.publishDate),
       closeDate: tpl.closeDate ? toISODate(tpl.closeDate) : "",
     });
     setIsEditModalOpen(true);
@@ -191,13 +282,14 @@ const UploadMarketingTemplates = () => {
     setEditData({
       title: "",
       description: "",
-      category: "MARKETING",
-      disclaimerType: DISCLAIMER_OPTIONS[0].value,
+      category: categoryOptions[0].value,
+      disclaimerType: disclaimerOptions[0].value,
       publishDate: "",
       closeDate: "",
     });
   };
 
+  // Save Updated Template handler
   const handleEditSave = async (e) => {
     e.preventDefault();
     if (!editingTemplate?._id) return;
@@ -218,7 +310,7 @@ const UploadMarketingTemplates = () => {
 
       // validation: closeDate should not be before publishDate (only if NOT collateral)
       if (
-        !isCollateral(editData.category) &&
+        !isCollateral(editData.categoryId) &&
         normalizedCloseDate &&
         editData.publishDate &&
         normalizedCloseDate < editData.publishDate
@@ -232,23 +324,38 @@ const UploadMarketingTemplates = () => {
 
       setLoading(true);
 
+      let finalPublishDate = editData.publishDate;
+      let finalCloseDate = editData.closeDate;
+
+      if (isFestival(editData.categoryId)) {
+        // T-2 logic
+        if (!editData.festivalDate) {
+          toast.error("Festival Date is required.", { autoClose: 2500, transition: Slide });
+          return;
+        }
+        const festDate = new Date(editData.festivalDate);
+        const pubDate = new Date(festDate);
+        pubDate.setDate(festDate.getDate() - 2);
+
+        finalPublishDate = pubDate.toISOString().split('T')[0];
+        finalCloseDate = festDate.toISOString().split('T')[0];
+      } else if (isCollateral(editData.categoryId)) {
+        finalCloseDate = null;
+      }
+
+      setLoading(true);
+
       const payload = {
         title: editData.title,
         description: editData.description,
-        category: editData.category,
-
-        //  BACKEND expects `disclaimer` (required) -> send TYPE in it
-        disclaimer: editData.disclaimerType,
-
-        // optional future-proof (safe even if backend ignores)
-        disclaimerType: editData.disclaimerType,
-
-        publishDate: editData.publishDate,
-        closeDate: isCollateral(editData.category) ? null : normalizedCloseDate,
+        category: editData.categoryId,
+        disclaimer: editData.disclaimerId,
+        publishDate: finalPublishDate,
+        closeDate: finalCloseDate,
       };
 
       const response = await axios.patch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/${editingTemplate._id}`,
+        `${baseUrl}/api/marketing-template/${editingTemplate._id}`,
         payload
       );
 
@@ -270,8 +377,8 @@ const UploadMarketingTemplates = () => {
     } catch (err) {
       toast.error(
         err.response?.data?.message ||
-          err.message ||
-          "Something went wrong, please try again later",
+        err.message ||
+        "Something went wrong, please try again later",
         { autoClose: 3000, transition: Slide }
       );
     } finally {
@@ -294,7 +401,9 @@ const UploadMarketingTemplates = () => {
       setEditData((prev) => ({
         ...prev,
         category: value,
+        categoryId: value, // Ensure ID is set
         closeDate: isCollateral(value) ? "" : prev.closeDate,
+        festivalDate: "", // Reset festival date
       }));
     }
   };
@@ -315,7 +424,7 @@ const UploadMarketingTemplates = () => {
     }
 
     //  MARKETING => closeDate compulsory
-    if (isMarketing(formData.category) && !normalizedCloseDate) {
+    if (isMarketing(formData.categoryId) && !normalizedCloseDate) {
       toast.error("Close date is required for Marketing templates.", {
         autoClose: 2500,
         transition: Slide,
@@ -325,7 +434,7 @@ const UploadMarketingTemplates = () => {
 
     // validation: closeDate should not be before publishDate (only if NOT collateral)
     if (
-      !isCollateral(formData.category) &&
+      !isCollateral(formData.categoryId) &&
       normalizedCloseDate &&
       formData.publishDate &&
       normalizedCloseDate < formData.publishDate
@@ -344,21 +453,27 @@ const UploadMarketingTemplates = () => {
       data.append("title", formData.title);
       data.append("description", formData.description);
       data.append("category", formData.category);
+      data.append("disclaimer", formData.disclaimerId);
+      if (isFestival(formData.category)) {
+        if (!formData.festivalDate) {
+          toast.error("Festival Date is required.", { autoClose: 2500, transition: Slide });
+          return;
+        }
+        const festDate = new Date(formData.festivalDate);
+        const pubDate = new Date(festDate);
+        pubDate.setDate(festDate.getDate() - 2);
 
-      //  BACKEND expects `disclaimer` (required) -> send TYPE in it
-      data.append("disclaimer", formData.disclaimerType);
-
-      // optional future-proof
-      data.append("disclaimerType", formData.disclaimerType);
-
-      data.append("publishDate", formData.publishDate);
-
-      if (!isCollateral(formData.category)) {
-        data.append("closeDate", normalizedCloseDate);
+        data.append("publishDate", pubDate.toISOString().split('T')[0]);
+        data.append("closeDate", festDate.toISOString().split('T')[0]);
+      } else {
+        data.append("publishDate", formData.publishDate);
+        if (!isCollateral(formData.category)) {
+          data.append("closeDate", normalizedCloseDate);
+        }
       }
 
       await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/api/marketing-template/`,
+        `${baseUrl}/api/marketing-template/`,
         data,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -367,8 +482,8 @@ const UploadMarketingTemplates = () => {
       setFormData({
         title: "",
         description: "",
-        category: "MARKETING",
-        disclaimerType: DISCLAIMER_OPTIONS[0].value,
+        category: categoryOptions[0].value,
+        disclaimerType: disclaimerOptions[0].value,
         publishDate: "",
         closeDate: "",
         image: null,
@@ -384,7 +499,7 @@ const UploadMarketingTemplates = () => {
       console.error("Error uploading template:", err);
       toast.error(
         err.response?.data?.message ||
-          "Error uploading template. Please try again later.",
+        "Error uploading template. Please try again later.",
         { autoClose: 3000, transition: Slide }
       );
     } finally {
@@ -392,8 +507,46 @@ const UploadMarketingTemplates = () => {
     }
   };
 
-  const categoryLabel = (cat) =>
-    cat === "MARKETING_COLLATERAL" ? "Marketing Collateral" : "Marketing";
+  // const categoryLabel = (cat) =>
+  //   cat === "MARKETING_COLLATERAL" ? "Marketing Collateral" : "Marketing";
+
+  const fetchCategories = async () => {
+    const res = await axios.get(`${baseUrl}/api/marketing-template/getList`);
+    setCategoryOptions(
+      res.data.category.map((c) => ({ value: c._id, label: c.label, meta: c }))
+    );
+    setDisclaimerOptions(
+      res.data.disclaimerOptions.map((d) => ({ value: d._id, label: d.label, text: d.text, meta: d }))
+    );
+  };
+
+  const openManager = (type, data = null) => {
+    setManagerType(type);
+    setManagerData(data);
+    setManagerOpen(true);
+  };
+
+  const handleDeleteItem = async (type, meta) => {
+    if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
+
+    // setLoading(true); // maybe set specific loading?
+    const endpoint = type === "category" ? "category" : "disclaimer";
+    try {
+      await axios.delete(`${baseUrl}/api/marketing-template/${endpoint}/${meta._id}`);
+      toast.success(`${type === "category" ? "Category" : "Disclaimer"} deleted!`, {
+        transition: Slide,
+        autoClose: 2000
+      });
+      fetchCategories(); // Refresh options
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Delete failed",
+        { transition: Slide }
+      );
+    }
+  };
+
+
 
   return (
     <main className="p-4 sm:p-6 bg-gray-50 min-h-screen">
@@ -403,7 +556,20 @@ const UploadMarketingTemplates = () => {
           Upload Marketing Templates
         </h2>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+
+          {/* Priority Category Filter */}
+          <div className="w-48">
+            <Select
+              value={priorityCategory}
+              onChange={setPriorityCategory}
+              options={categoryOptions}
+              placeholder="Sort by Category"
+              isClearable
+              className="text-sm"
+            />
+          </div>
+
           {/* Publish Date Range Filter */}
           <div className="flex bg-white items-center rounded-md border shadow-sm">
             <span className="text-xl ps-px text-black ml-2">
@@ -413,9 +579,8 @@ const UploadMarketingTemplates = () => {
             {/* From Date */}
             <label
               htmlFor="min-date"
-              className={`relative flex items-center justify-center focus-within:bg-gray-100 text-sm w-[84px] h-9 text-center hover:bg-gray-100 ${
-                !filterMinDate ? "text-gray-500" : "text-blue-600"
-              }`}
+              className={`relative flex items-center justify-center focus-within:bg-gray-100 text-sm w-[84px] h-9 text-center hover:bg-gray-100 ${!filterMinDate ? "text-gray-500" : "text-blue-600"
+                }`}
             >
               {filterMinDate
                 ? formatDateDDShortMonthNameYY(filterMinDate)
@@ -436,9 +601,8 @@ const UploadMarketingTemplates = () => {
             {/* To Date */}
             <label
               htmlFor="max-date"
-              className={`relative flex items-center justify-center focus-within:bg-gray-100 text-sm w-[84px] h-9 p-1 text-center hover:bg-gray-100 ${
-                !filterMaxDate ? "text-gray-500" : "text-blue-600"
-              }`}
+              className={`relative flex items-center justify-center focus-within:bg-gray-100 text-sm w-[84px] h-9 p-1 text-center hover:bg-gray-100 ${!filterMaxDate ? "text-gray-500" : "text-blue-600"
+                }`}
             >
               {filterMaxDate
                 ? formatDateDDShortMonthNameYY(filterMaxDate)
@@ -512,7 +676,7 @@ const UploadMarketingTemplates = () => {
 
                   <div className="mt-2">
                     <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-700 border">
-                      {categoryLabel(tpl.category)}
+                      {tpl.category?.label || tpl.category?.key || "Marketing"}
                     </span>
                   </div>
 
@@ -593,11 +757,10 @@ const UploadMarketingTemplates = () => {
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1 || fetching}
-            className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
-              currentPage === 1 || fetching
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-gray-100"
-            }`}
+            className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${currentPage === 1 || fetching
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-gray-100"
+              }`}
           >
             <IoIosArrowBack /> Prev
           </button>
@@ -609,11 +772,10 @@ const UploadMarketingTemplates = () => {
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages || fetching}
-            className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${
-              currentPage === totalPages || fetching
-                ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-gray-100"
-            }`}
+            className={`px-4 py-2 border rounded-md text-gray-700 flex items-center gap-1 ${currentPage === totalPages || fetching
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-gray-100"
+              }`}
           >
             Next <IoIosArrowForward />
           </button>
@@ -682,89 +844,6 @@ const UploadMarketingTemplates = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Category *
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => handleCategoryChange(e.target.value, "create")}
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Disclaimer Type *
-                </label>
-                <select
-                  value={formData.disclaimerType}
-                  onChange={(e) =>
-                    setFormData({ ...formData, disclaimerType: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  {DISCLAIMER_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Optional preview */}
-                <p className="text-xs text-gray-500 mt-1">
-                  {DISCLAIMER_TEXT_BY_TYPE[formData.disclaimerType]}
-                </p>
-              </div>
-
-              <div
-                className={`grid grid-cols-1 ${
-                  isCollateral(formData.category)
-                    ? "sm:grid-cols-1"
-                    : "sm:grid-cols-2"
-                } gap-3`}
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Publish Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="publishDate"
-                    value={formData.publishDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, publishDate: e.target.value })
-                    }
-                    required
-                    className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {!isCollateral(formData.category) && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">
-                      Close Date *
-                    </label>
-                    <input
-                      type="date"
-                      name="closeDate"
-                      value={formData.closeDate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, closeDate: e.target.value })
-                      }
-                      required={isMarketing(formData.category)}
-                      className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
                   Description
                 </label>
                 <textarea
@@ -776,6 +855,155 @@ const UploadMarketingTemplates = () => {
                   }
                   className="w-full border border-gray-300 rounded-md p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-600">
+                    Category *
+                  </label>
+                  <button
+                    type="button"
+                    className="text-blue-600 text-xs cursor-pointer flex items-center gap-1 hover:underline focus:outline-none"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openManager("category");
+                    }}
+                  >
+                    <BiPlus /> Add New
+                  </button>
+                </div>
+                <Select
+                  value={categoryOptions.find(
+                    (c) => c.value === formData.category
+                  )}
+                  options={categoryOptions}
+                  components={{ Option: CrudOption }}
+                  onEdit={(meta) => openManager("category", meta)}
+                  onDelete={(meta) => handleDeleteItem("category", meta)}
+                  onChange={(opt) => handleCategoryChange(opt.value, "create")}
+                  className="text-sm"
+                  classNamePrefix="react-select"
+                />
+
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-600">
+                    Disclaimer Type *
+                  </label>
+                  <button
+                    type="button"
+                    className="text-blue-600 text-xs cursor-pointer flex items-center gap-1 hover:underline focus:outline-none"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openManager("disclaimer");
+                    }}
+                  >
+                    <BiPlus /> Add New
+                  </button>
+                </div>
+                <Select
+                  value={disclaimerOptions.find(
+                    (d) => d.value === formData.disclaimerId
+                  )}
+                  options={disclaimerOptions}
+                  components={{ Option: CrudOption }}
+                  onEdit={(meta) => openManager("disclaimer", meta)}
+                  onDelete={(meta) => handleDeleteItem("disclaimer", meta)}
+                  onChange={(opt) =>
+                    setFormData(p => ({ ...p, disclaimerId: opt.value }))
+                  }
+                  className="text-sm"
+                  classNamePrefix="react-select"
+                />
+                {/* <select
+                  value={formData.disclaimerType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, disclaimerType: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  {disclaimerOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select> */}
+
+                {/* Optional preview --> To-Do */}
+                <p className="text-xs text-gray-500 mt-1">
+                  {
+                    disclaimerOptions.find((d) => d.value === formData.disclaimerId)?.text
+                  }
+                </p>
+              </div>
+
+              <div
+                className={`grid grid-cols-1 ${isCollateral(formData.category)
+                  ? "sm:grid-cols-1"
+                  : "sm:grid-cols-2"
+                  } gap-3`}
+              >
+                {isFestival(formData.category) ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                      Festival Date *
+                    </label>
+                    <input
+                      type="date"
+                      name="festivalDate"
+                      value={formData.festivalDate || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, festivalDate: e.target.value })
+                      }
+                      required
+                      className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-blue-600 mt-1">
+                      Template will be visible from T-2 days.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Publish Date *
+                      </label>
+                      <input
+                        type="date"
+                        name="publishDate"
+                        value={formData.publishDate}
+                        onChange={(e) =>
+                          setFormData({ ...formData, publishDate: e.target.value })
+                        }
+                        required
+                        className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    {!isCollateral(formData.category) && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Close Date *
+                        </label>
+                        <input
+                          type="date"
+                          name="closeDate"
+                          value={formData.closeDate}
+                          onChange={(e) =>
+                            setFormData({ ...formData, closeDate: e.target.value })
+                          }
+                          required={isMarketing(formData.category)}
+                          className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* sticky footer so buttons never hidden */}
@@ -797,181 +1025,256 @@ const UploadMarketingTemplates = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div >
       )}
 
-      {deleteModalOpen && (
-        <>
-          <style>
-            {`.fixed.inset-0 .bg-gray-700,
+      {
+        deleteModalOpen && (
+          <>
+            <style>
+              {`.fixed.inset-0 .bg-gray-700,
               .fixed.inset-0 .bg-gray-700 * {
                 color: #ffffff !important;
               }`}
-          </style>
+            </style>
 
-          <DeleteConfirmationModal
-            modalData={{ deleteTitle: deleteTarget?.title }}
-            onClose={() => setDeleteModalOpen(false)}
-            onDeleteConfirm={async () => {
-              await handleDelete(deleteTarget.id);
-              setDeleteModalOpen(false);
-              setDeleteTarget(null);
-            }}
-            message="This action cannot be undone."
-          />
-        </>
-      )}
+            <DeleteConfirmationModal
+              modalData={{ deleteTitle: deleteTarget?.title }}
+              onClose={() => setDeleteModalOpen(false)}
+              onDeleteConfirm={async () => {
+                await handleDelete(deleteTarget.id);
+                setDeleteModalOpen(false);
+                setDeleteTarget(null);
+              }}
+              message="This action cannot be undone."
+            />
+          </>
+        )
+      }
 
       {/*  Edit Modal (UI fixed same way) */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl relative max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b">
-              <h4 className="text-xl font-semibold text-gray-800">Edit Template</h4>
-              <button
-                onClick={closeEditModal}
-                className="text-gray-500 hover:text-gray-900 transition"
-                aria-label="Close"
-              >
-                <IoMdClose size={22} />
-              </button>
-            </div>
-
-            <form onSubmit={handleEditSave} className="flex flex-col gap-6 px-6 py-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={editData.title}
-                  onChange={(e) =>
-                    setEditData({ ...editData, title: e.target.value })
-                  }
-                  required
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Category *
-                </label>
-                <select
-                  value={editData.category}
-                  onChange={(e) => handleCategoryChange(e.target.value, "edit")}
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+      {
+        isEditModalOpen && (
+          <div className="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white w-full max-w-2xl rounded-lg shadow-xl relative max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b">
+                <h4 className="text-xl font-semibold text-gray-800">Edit Template</h4>
+                <button
+                  onClick={closeEditModal}
+                  className="text-gray-500 hover:text-gray-900 transition"
+                  aria-label="Close"
                 >
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  <IoMdClose size={22} />
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Disclaimer Type *
-                </label>
-                <select
-                  value={editData.disclaimerType}
-                  onChange={(e) =>
-                    setEditData({ ...editData, disclaimerType: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  {DISCLAIMER_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-
-                <p className="text-xs text-gray-500 mt-1">
-                  {DISCLAIMER_TEXT_BY_TYPE[editData.disclaimerType]}
-                </p>
-              </div>
-
-              <div
-                className={`grid grid-cols-1 ${
-                  isCollateral(editData.category)
-                    ? "sm:grid-cols-1"
-                    : "sm:grid-cols-2"
-                } gap-3`}
-              >
+              <form onSubmit={handleEditSave} className="flex flex-col gap-6 px-6 py-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Publish Date *
+                    Title *
                   </label>
                   <input
-                    type="date"
-                    name="publishDate"
-                    value={editData.publishDate}
+                    type="text"
+                    name="title"
+                    value={editData.title}
                     onChange={(e) =>
-                      setEditData({ ...editData, publishDate: e.target.value })
+                      setEditData({ ...editData, title: e.target.value })
                     }
                     required
                     className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
-                {!isCollateral(editData.category) && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">
-                      Close Date *
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    rows="2"
+                    name="description"
+                    value={editData.description}
+                    onChange={(e) =>
+                      setEditData({ ...editData, description: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-md p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-600">
+                      Category *
                     </label>
-                    <input
-                      type="date"
-                      name="closeDate"
-                      value={editData.closeDate}
-                      onChange={(e) =>
-                        setEditData({ ...editData, closeDate: e.target.value })
-                      }
-                      required={isMarketing(editData.category)}
-                      className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <button
+                      type="button"
+                      className="text-blue-600 text-xs cursor-pointer flex items-center gap-1 hover:underline focus:outline-none"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openManager("category");
+                      }}
+                    >
+                      <BiPlus /> Add New
+                    </button>
                   </div>
-                )}
-              </div>
+                  <Select
+                    value={categoryOptions.find(c => c.value === editData.categoryId)}
+                    onChange={(opt) => handleCategoryChange(opt.value, "edit")}
+                    options={categoryOptions}
+                    components={{ Option: CrudOption }}
+                    onEdit={(meta) => openManager("category", meta)}
+                    onDelete={(meta) => handleDeleteItem("category", meta)}
+                    className="text-sm"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows="2"
-                  name="description"
-                  value={editData.description}
-                  onChange={(e) =>
-                    setEditData({ ...editData, description: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-600">
+                      Disclaimer Type *
+                    </label>
+                    <button
+                      type="button"
+                      className="text-blue-600 text-xs cursor-pointer flex items-center gap-1 hover:underline focus:outline-none"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openManager("disclaimer");
+                      }}
+                    >
+                      <BiPlus /> Add New
+                    </button>
+                  </div>
+                  <Select
+                    value={disclaimerOptions.find(d => d.value === editData.disclaimerId)}
+                    onChange={(opt) =>
+                      setEditData({ ...editData, disclaimerId: opt.value })
+                    }
+                    options={disclaimerOptions}
+                    components={{ Option: CrudOption }}
+                    onEdit={(meta) => openManager("disclaimer", meta)}
+                    onDelete={(meta) => handleDeleteItem("disclaimer", meta)}
+                    className="text-sm"
+                  />
 
-              <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  className="border border-gray-300 rounded-md px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm transition"
+                  <p className="text-xs text-gray-500 mt-1">
+                    {/* {DISCLAIMER_TEXT_BY_TYPE[editData.disclaimerType]} */}
+                    {disclaimerOptions.find((d) => d.value === editData.disclaimerType)?.text}
+                  </p>
+                </div>
+
+                <div
+                  className={`grid grid-cols-1 ${isCollateral(editData.category)
+                    ? "sm:grid-cols-1"
+                    : "sm:grid-cols-2"
+                    } gap-3`}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 text-sm flex items-center gap-2 transition disabled:opacity-60"
-                >
-                  {loading ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </form>
+                  {isFestival(editData.categoryId) ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Festival Date *
+                      </label>
+                      <input
+                        type="date"
+                        name="festivalDate"
+                        value={editData.festivalDate || ""}
+                        onChange={(e) =>
+                          setEditData({ ...editData, festivalDate: e.target.value })
+                        }
+                        required
+                        className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-blue-600 mt-1">
+                        Template will be visible from T-2 days.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Publish Date *
+                        </label>
+                        <input
+                          type="date"
+                          name="publishDate"
+                          value={editData.publishDate}
+                          onChange={(e) =>
+                            setEditData({ ...editData, publishDate: e.target.value })
+                          }
+                          required
+                          className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      {!isCollateral(editData.category) && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Close Date *
+                          </label>
+                          <input
+                            type="date"
+                            name="closeDate"
+                            value={editData.closeDate}
+                            onChange={(e) =>
+                              setEditData({ ...editData, closeDate: e.target.value })
+                            }
+                            required={isMarketing(editData.category)}
+                            className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    className="border border-gray-300 rounded-md px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-2 text-sm flex items-center gap-2 transition disabled:opacity-60"
+                  >
+                    {loading ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        )
+      }
+      <CategoryDisclaimerManager
+        isOpen={managerOpen}
+        onClose={() => setManagerOpen(false)}
+        type={managerType}
+        initialData={managerData}
+        baseUrl={baseUrl}
+        onSuccess={fetchCategories}
+      />
+
+      {deleteModalOpen && (
+        <DeleteConfirmationModal
+          modalData={{ deleteTitle: deleteTarget?.title }}
+          onClose={() => setDeleteModalOpen(false)}
+          onDeleteConfirm={() => {
+            if (deleteTarget) {
+              handleDelete(deleteTarget.id);
+              setDeleteModalOpen(false);
+            }
+          }}
+        />
       )}
-    </main>
+
+    </main >
   );
 };
 
