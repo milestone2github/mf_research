@@ -59,48 +59,49 @@ async function sendGotraDocument(user) {
 }
 
 // Sent new Joinee notification Mail to all Employees
-// async function sentNewJoineeMailNotification(user) {
-//   try {
-//     const accessToken = await getwebHookAccessToken();
+async function sentNewJoineeMailNotification(user) {
+  try {
+    const accessToken = await getwebHookAccessToken();
 
-//     const allEmployeeMailIds = await getEmployeeRecords(accessToken);
+    const allEmployeeMailIds = await getEmployeeRecords(accessToken);
 
-//     // const allEmployeeMailIds = ['mayank@niveshonline.com', 'kishan@niveshonline.com'];
+    // const allEmployeeMailIds = ['mayank@niveshonline.com', 'kishan@niveshonline.com'];
 
-//     const hrInfo = user.onboarding.hrFilledInfo;
-//     const userInfo = user.onboarding.userFilledInfo.personalDetails;
+    const hrInfo = user.onboarding.hrFilledInfo;
+    const userInfo = user.onboarding.userFilledInfo.personalDetails;
 
-//     const mailBody = getNewJoineeMailBody({
-//       fullName: hrInfo.name,
-//       firstName: hrInfo.name.split(" ")[0],
-//       designation: hrInfo.role || "Team Member",
-//       department: hrInfo.department || "Department",
-//       joiningDate: hrInfo.doj
-//         ? new Date(hrInfo.doj).toLocaleDateString("en-IN")
-//         : "TBD",
-//       email: user.email,
-//     });
+    const mailBody = getNewJoineeMailBody({
+      fullName: hrInfo.name,
+      firstName: hrInfo.name.split(" ")[0],
+      designation: hrInfo.role || "Team Member",
+      department: hrInfo.department || "Department",
+      joiningDate: hrInfo.doj
+        ? new Date(hrInfo.doj).toLocaleDateString("en-IN")
+        : "TBD",
+      email: user.email,
+    });
 
-//     // Remove duplicates or filter invalid emails
-//     const toAddresses = [...new Set(allEmployeeMailIds.filter(Boolean))].join(',');
+    // Remove duplicates or filter invalid emails
+    const toAddresses = [...new Set(allEmployeeMailIds.filter(Boolean))].join(',');
 
-//     const mailResult = await sendEmail({
-//       subject: ` Meet Our New Team Member - ${hrInfo.name}!`,
-//       body: mailBody,
-//       toAddress: toAddresses,
-//     });
+    const mailResult = await sendEmail({
+      subject: ` Meet Our New Team Member - ${hrInfo.name}!`,
+      body: mailBody,
+      toAddress: toAddresses,
+    });
 
-//     if (mailResult) {
-//       // console.log("✅ New joinee notification sent to all employees.");
+    if (mailResult) {
+      // console.log("✅ New joinee notification sent to all employees.");
 
-//       user.onboarding.hasNotifiedToAll = true;
-//       await user.save();
-//     }
+      user.onboarding.hasNotifiedToAll = true;
+      await user.save();
+    }
 
-//   } catch (err) {
-//     console.error("❌ Failed to send new joinee notification:", err.message);
-//   }
-// }
+  } catch (err) {
+    console.error("❌ Failed to send new joinee notification:", err.message);
+  }
+}
+
 //To get Email ids of all employees
 async function getEmployeeRecords(access_token) {
   const url = "https://people.zoho.com/people/api/forms/P_EmployeeView/records";

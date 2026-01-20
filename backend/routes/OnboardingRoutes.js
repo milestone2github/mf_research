@@ -9,7 +9,7 @@ const {
   getRoles,
   processSpringVerifyOrNda,
   updateAssetAllocationStatus,
-   deleteJoinee,
+  deleteJoinee,
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
 
 const verifyUser = require('../middlewares/VerifyUser');
