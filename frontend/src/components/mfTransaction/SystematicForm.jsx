@@ -4,7 +4,7 @@ import TextInput from './common/TextInput'
 import PreFilledSelect from './common/PreFilledSelect'
 import NumberInput from './common/NumberInput'
 import { useDispatch, useSelector } from 'react-redux'
-import { handleChange, handleSelect } from '../../reducers/SystematicDataSlice'
+import { handleChange, handleSelect, resetUnwantedFields } from '../../reducers/SystematicDataSlice'
 import { setAmcNameOptions, setSchemeNameOptions } from '../../reducers/OptionListsSlice'
 import { fetchAmcNameOptions, fetchFolioOptions, fetchSchemeNameOptions } from '../../Actions/OptionListsAction'
 import CustomInputList from './common/CustomInputList'
@@ -67,7 +67,12 @@ function SystematicForm({ index, updateCollapsed }) {
   // method to handle change in inputs 
   const handleInputChange = (event) => {
     const { name, value, dataset: { index } } = event.target;
-    dispatch(handleChange({ name, value, index })); // dispatch the change 
+
+    // Reset unwanted fields when transaction type changes
+    dispatch(handleChange({ name, value, index }));
+    if (name === `systematicTraxFor-${index}`) {
+      dispatch(resetUnwantedFields({ index, transactionFor: value }));
+    }
   };
 
   // method to handle change in amc name

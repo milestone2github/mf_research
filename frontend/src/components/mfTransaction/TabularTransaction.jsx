@@ -6,9 +6,9 @@ import SwitchForm from './SwitchForm';
 import MinusButton from './common/MinusButton';
 import Badge from './common/Badge';
 import { handleAdd, handleRemove, handleUpdate as handleTransactionUpdate } from '../../reducers/TransactionSlice'
-import { handleAdd as systematicAdd, handleRemove as systematicRemove } from '../../reducers/SystematicDataSlice'
-import { handleAdd as purchRedempAdd, handleRemove as purchRedempRemove } from '../../reducers/PurchRedempDataSlice'
-import { handleAdd as switchAdd, handleRemove as switchRemove } from '../../reducers/SwitchDataSlice'
+import { handleAdd as systematicAdd, handleRemove as systematicRemove, resetSystematicData } from '../../reducers/SystematicDataSlice'
+import { handleAdd as purchRedempAdd, handleRemove as purchRedempRemove, resetPurchRedempData } from '../../reducers/PurchRedempDataSlice'
+import { handleAdd as switchAdd, handleRemove as switchRemove, resetSwitchData } from '../../reducers/SwitchDataSlice'
 import { useDispatch, useSelector } from 'react-redux';
 
 // Tabs for form types 
@@ -86,6 +86,19 @@ function TabularTransaction({ idx, isAddVisible, didReset, hasReviewed, updateHa
   // method to handle tab change 
   const onTabChange = (tab) => {
     setActiveTab(tab)
+
+    // NOT IN USE , Commented for now : this provide clearing all the field when tab changes between systematic, purch/redemp and switch so user gets empty form to fill,no value reminding from previous tab
+    // Reset fields when switching tabs
+    // if (tab === 'systematic') {
+    //     dispatch(resetPurchRedempData());
+    //     dispatch(resetSwitchData());
+    // } else if (tab === 'purchRedemp') {
+    //     dispatch(resetSystematicData());
+    //     dispatch(resetSwitchData());
+    // } else if (tab === 'switch') {
+    //     dispatch(resetSystematicData());
+    //     dispatch(resetPurchRedempData());
+    // }
 
     // change type in transactions state also 
     dispatch(handleTransactionUpdate({ index: idx, type: tab }))
