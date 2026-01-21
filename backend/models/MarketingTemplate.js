@@ -53,17 +53,16 @@ const marketingTemplateSchema = new mongoose.Schema(
 		description: { type: String, trim: true },
 		imageUrl: { type: String, required: true, trim: true },
 
-		// store only type in same field
+		category: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "MarketingCategory",
+			required: true,
+		},
+
 		disclaimer: {
 			type: mongoose.Schema.ObjectId,
       ref: "DisclaimerOptions",
 			// enum: ["MUTUAL_FUND", "INSURANCE", "STOCK_MARKET"],
-			required: true,
-		},
-
-		category: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: "MarketingCategory",
 			required: true,
 		},
 
