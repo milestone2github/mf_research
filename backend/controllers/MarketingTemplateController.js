@@ -94,7 +94,7 @@ const getUserTemplates = async (req, res) => {
       .populate({
         path: "disclaimer",
         match: { isActive: true, isDeleted: false },
-        select: "key label",
+        select: "key label text",
       })
       .sort({ publishDate: 1 });
 
@@ -111,7 +111,11 @@ const getUserTemplates = async (req, res) => {
             key: obj.category.key,
             label: obj.category.label,
           },
-          disclaimerType: obj.disclaimer.key, // string key
+          disclaimer: {
+            key: obj.disclaimer.key,
+            label: obj.disclaimer.label,
+            text: obj.disclaimer.text
+          },
           proxyImageUrl: `${requestBase}/api/marketing-template/proxy?url=${encodeURIComponent(
             obj.imageUrl
           )}`,
@@ -275,6 +279,19 @@ const createTemplate = async (req, res) => {
         message: "Image, title, and publishDate are required",
       });
     }
+    
+    // Date Validation (Publish Date must be later or equal to today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const pubDate = new Date(publishDate);
+		pubDate.setHours(0, 0, 0, 0);
+    if (pubDate < today) {
+			return res.status(400).json({
+				success: false,
+				message: "Publish date cannot be before today",
+			});
+		}
 
     console.log("Category ==> ", category); // debug
 
@@ -414,6 +431,19 @@ const updateTemplate = async (req, res) => {
       .lean();
     if (!existing) {
       return res.status(404).json({ success: false, message: "Template not found" });
+    }
+
+    // Date Validation (Publish Date must be later or equal to today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const pubDate = new Date(publishDate);
+    pubDate.setHours(0, 0, 0, 0);
+    if (pubDate < today) {
+      return res.status(400).json({
+        success: false,
+        message: "Publish date cannot be before today",
+      });
     }
 
     let finalCategoryId = existing.category?._id;
@@ -675,7 +705,6 @@ const updateCategory = async (req, res) => {
   res.json({ success: true, data: updated });
 };
 
-
 const deleteCategory = async (req, res) => {
   const { id } = req.params;
 
@@ -712,7 +741,6 @@ const createDisclaimer = async (req, res) => {
   res.status(201).json({ success: true, data: disclaimer });
 };
 
-
 const updateDisclaimer = async (req, res) => {
   const { id } = req.params;
   const { label, text, isActive } = req.body;
@@ -743,7 +771,6 @@ const updateDisclaimer = async (req, res) => {
 
   res.json({ success: true, data: updated });
 };
-
 
 const deleteDisclaimer = async (req, res) => {
   const { id } = req.params;

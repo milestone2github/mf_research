@@ -36,6 +36,7 @@ const UploadMarketingTemplates = () => {
   const [managerOpen, setManagerOpen] = useState(false);
   const [managerType, setManagerType] = useState("category"); // 'category' | 'disclaimer'
   const [managerData, setManagerData] = useState(null);
+  const today = new Date().toISOString().split("T")[0];
 
 
   const EMPTY_FORM = {
@@ -969,7 +970,9 @@ const UploadMarketingTemplates = () => {
                     <input
                       type="date"
                       name="festivalDate"
+                      min={today}
                       value={formData.festivalDate || ""}
+                      onKeyDown={(e) => e.preventDefault()}
                       onChange={(e) =>
                         setFormData({ ...formData, festivalDate: e.target.value })
                       }
@@ -989,7 +992,9 @@ const UploadMarketingTemplates = () => {
                       <input
                         type="date"
                         name="publishDate"
+                        min={today}
                         value={formData.publishDate}
+                        onKeyDown={(e) => e.preventDefault()}
                         onChange={(e) =>
                           setFormData({ ...formData, publishDate: e.target.value })
                         }
@@ -1192,7 +1197,9 @@ const UploadMarketingTemplates = () => {
                       <input
                         type="date"
                         name="festivalDate"
+                        min={today}
                         value={editData.festivalDate || ""}
+                        onKeyDown={(e) => e.preventDefault()}
                         onChange={(e) =>
                           setEditData({ ...editData, festivalDate: e.target.value })
                         }
@@ -1212,7 +1219,9 @@ const UploadMarketingTemplates = () => {
                         <input
                           type="date"
                           name="publishDate"
+                          min={today}
                           value={editData.publishDate}
+                          onKeyDown={(e) => e.preventDefault()}
                           onChange={(e) =>
                             setEditData({ ...editData, publishDate: e.target.value })
                           }

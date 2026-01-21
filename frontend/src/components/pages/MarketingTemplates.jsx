@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Select from "react-select";
 import { useDispatch, useSelector } from 'react-redux';
 import { BsArrowDownCircle, BsPencilSquare } from "react-icons/bs";
@@ -11,19 +11,18 @@ import { createUser, getUser, updateUser } from '../../Actions/MarketingUserActi
 import axios from 'axios';
 import footerImgSrc from '../../assets/FooterMarketingTemplate.png';
 
-const DISCLAIMER_TEXT_BY_TYPE = {
-  MUTUAL_FUND:
-    "Mutual Fund investments are subject to market risks, read all scheme related documents carefully.",
-  INSURANCE:
-    "Insurance is a subject matter of solicitation. The information provided here cannot substitute for the advice of a licensed professional.",
-  STOCK_MARKET:
-    "Investments in the securities market are subject to market risks, read all the related documents carefully before investing.",
-};
+// const DISCLAIMER_TEXT_BY_TYPE = {
+//   MUTUAL_FUND:
+//     "Mutual Fund investments are subject to market risks, read all scheme related documents carefully.",
+//   INSURANCE:
+//     "Insurance is a subject matter of solicitation. The information provided here cannot substitute for the advice of a licensed professional.",
+//   STOCK_MARKET:
+//     "Investments in the securities market are subject to market risks, read all the related documents carefully before investing.",
+// };
 
-const getDisclaimerText = (tpl) => {
-  const type = tpl?.disclaimerType || tpl?.disclaimer; // your DB currently stores in `disclaimer`
-  return DISCLAIMER_TEXT_BY_TYPE[type] || DISCLAIMER_TEXT_BY_TYPE.MUTUAL_FUND;
-};
+const getDisclaimerText = (tpl) => tpl?.disclaimer?.text || "";
+  // const type = tpl?.disclaimer; // your DB currently stores in `disclaimer`
+  // return DISCLAIMER_TEXT_BY_TYPE[type] || DISCLAIMER_TEXT_BY_TYPE.MUTUAL_FUND
 
 // Image Loader Utility
 const loadImage = (src) => {
