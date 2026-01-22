@@ -101,6 +101,7 @@ async function sentNewJoineeMailNotification(user) {
     console.error("❌ Failed to send new joinee notification:", err.message);
   }
 }
+
 //To get Email ids of all employees
 async function getEmployeeRecords(access_token) {
   const url = "https://people.zoho.com/people/api/forms/P_EmployeeView/records";
