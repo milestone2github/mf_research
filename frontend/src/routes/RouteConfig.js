@@ -293,6 +293,16 @@ export const appRoutes = [
 		showInSidebar: true,
 	},
 	
+	// New Leaderboard
+	{
+		requiredPermission: "leaderboard",
+		to: "http://localhost:5173",
+		label: "New Leaderboard",
+		protected: false,
+		showInSidebar: true,
+		external: true
+	},
+	
 	// insurance lead update
 	{ 
 		requiredPermission: "insurance_lead_update",
