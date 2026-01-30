@@ -308,9 +308,19 @@ export const appRoutes = [
 	},
 	
 	// PLI Leaderboard
+	// {
+	// 	requiredPermission: "pli_leaderboard",
+	// 	to: "https://leaderboard.mnivesh.com",
+	// 	label: "PLI Leaderboard",
+	// 	protected: true,
+	// 	showInSidebar: true,
+	// 	external: true
+	// },
+	// PLI Leaderboard (With Auth Token)
 	{
 		requiredPermission: "pli_leaderboard",
-		to: "https://leaderboard.mnivesh.com",
+		// Appends the current user's token to the URL
+		to: () => `https://leaderboard.mnivesh.com?auth_token=${getCookie("internal_token")}`,
 		label: "PLI Leaderboard",
 		protected: true,
 		showInSidebar: true,
