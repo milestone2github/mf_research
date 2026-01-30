@@ -169,6 +169,7 @@ const zohoCallback = async (req, res) => {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === "production",
 				sameSite: "Lax",  // To-Do: make it None for production
+        domain: isProd ? ".mnivesh.com" : undefined, //added by Vilakshan to fix PLI_Leaderboard auth error
 				// domain: "localhost", // To-Do: put the correct domain name
 				maxAge: 8 * 60 * 60 * 1000, // 8 hours
 			});
