@@ -293,12 +293,12 @@ export const appRoutes = [
 		showInSidebar: true,
 	},
 	
-	// New Leaderboard
+	// PLI Leaderboard
 	{
-		requiredPermission: "leaderboard",
-		to: "http://localhost:5173",
-		label: "New Leaderboard",
-		protected: false,
+		requiredPermission: "pli_leaderboard",
+		to: "https://leaderboard.mnivesh.com",
+		label: "PLI Leaderboard",
+		protected: true,
 		showInSidebar: true,
 		external: true
 	},
