@@ -183,7 +183,8 @@ const zohoCallback = async (req, res) => {
 			// });
 
       // Define Domain based on environment
-      const isProd = process.env.NODE_ENV === "production";
+      const isProd = process.env.NODE_ENV === "production" 
+        || (req.hostname && req.hostname.includes('mnivesh.com'));
       // Store the JWT in Cookie
       res.cookie("internal_token", appToken, {
         httpOnly: true,
