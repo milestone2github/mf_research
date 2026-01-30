@@ -173,18 +173,31 @@ const zohoCallback = async (req, res) => {
 				{ algorithm: "RS256", expiresIn: "8h" },
 			);
 
+      // // Store the JWT in Cookie
+      // res.cookie("internal_token", appToken, {
+			// 	httpOnly: true,
+			// 	secure: false,
+			// 	// sameSite: process.env.NODE_ENV === "production" ? "None": "Lax",  // None for production
+			// 	// domain: "localhost", // To-Do: put the correct domain name
+			// 	maxAge: 8 * 60 * 60 * 1000, // 8 hours
+			// });
+
+      // Define Domain based on environment
+      const isProd = process.env.NODE_ENV === "production";
       // Store the JWT in Cookie
       res.cookie("internal_token", appToken, {
-				httpOnly: true,
-				secure: false,
-				// sameSite: process.env.NODE_ENV === "production" ? "None": "Lax",  // None for production
-				// domain: "localhost", // To-Do: put the correct domain name
-				maxAge: 8 * 60 * 60 * 1000, // 8 hours
-			});
+        httpOnly: true,
+        secure: isProd,           // True in Production (HTTPS)
+        sameSite: "Lax",          // Allows cookie on top-level navigation
+        domain: isProd ? ".mnivesh.com" : undefined, // ✅ SHARED DOMAIN
+        maxAge: 8 * 60 * 60 * 1000, // 8 Hours
+      });
 
       // console.log("Session Set (Existing User):", req.session);
       return res.redirect(redirectUrl);
     }
+
+    
 
     // Step 5: If user does NOT exist, fetch department & role details
     //--Check or create department and role if not in database
@@ -399,6 +412,8 @@ const fetchRMList = async (req, res) => {
     res.status(500).json({ success: false, msg: "Internal server error" });
   }
 };
+
+
   
 async function getCombinedPermissions(user) {
   const department = await Department.findById(user.department).populate('permissions');
