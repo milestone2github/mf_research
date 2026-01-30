@@ -307,6 +307,16 @@ export const appRoutes = [
 		showInSidebar: true,
 	},
 	
+	// PLI Leaderboard
+	{
+		requiredPermission: "pli_leaderboard",
+		to: "https://leaderboard.mnivesh.com",
+		label: "PLI Leaderboard",
+		protected: true,
+		showInSidebar: true,
+		external: true
+	},
+	
 	// insurance lead update
 	{ 
 		requiredPermission: "insurance_reco",

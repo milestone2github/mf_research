@@ -148,6 +148,31 @@ const zohoCallback = async (req, res) => {
 
       setUserSession(userExist);
 
+      // Set JWT for Zoho SSO (used for external Apps like Leaderboard)
+      const appToken = jwt.sign(
+				{
+					sub: userExist._id,
+					email: userExist.email,
+					mintUsername: userExist.mintUsername,
+					role: userExist.role?.name,
+					permissions: combinedPermissions,
+					issuer: "mf_research",
+					audience: "Leaderboard",
+          is_admin: userExist.email === "vilakshan@niveshonline.com"  // stale line as of now (2026-01-29)
+				},
+				process.env.INTERNAL_JWT_PRIVATE_KEY,
+				{ algorithm: "RS256", expiresIn: "8h" },
+			);
+
+      // Store the JWT in Cookie
+      res.cookie("internal_token", appToken, {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === "production",
+				sameSite: "Lax",  // To-Do: make it None for production
+				// domain: "localhost", // To-Do: put the correct domain name
+				maxAge: 8 * 60 * 60 * 1000, // 8 hours
+			});
+
       // console.log("Session Set (Existing User):", req.session);
       return res.redirect(redirectUrl);
     }
