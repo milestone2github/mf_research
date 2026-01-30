@@ -103,10 +103,10 @@ app.get("*", (_req, res) => {
 server.listen(port, async () => {
   console.log(`Server running on http://localhost:${port}/`);
   // scheduling jobs
-  // cron.schedule('0 9 5 * *', pendingTransactionsNotification);
+  cron.schedule('0 9 5 * *', pendingTransactionsNotification);
   
-  // cron.schedule("0 11 * * *", () => {
-  //   console.log("Running SpringVerify daily background check status cron at 11:00 AM...");
-  //   springVerifyStatusCheck();
-  // });
+  cron.schedule("0 11 * * *", () => {
+    console.log("Running SpringVerify daily background check status cron at 11:00 AM...");
+    springVerifyStatusCheck();
+  });
 });

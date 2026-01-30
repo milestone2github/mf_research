@@ -149,6 +149,15 @@ const zohoCallback = async (req, res) => {
       setUserSession(userExist);
 
       // Set JWT for Zoho SSO (used for external Apps like Leaderboard)
+      const JWT_PRIVATE_KEY = process.env.INTERNAL_JWT_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+      if (!JWT_PRIVATE_KEY?.includes("BEGIN PRIVATE KEY")) {
+        throw new Error("JWT_PRIVATE_KEY is missing or not a PEM private key");
+      }
+
+      console.log('JWT_PRIVATE_KEY starts with:', JWT_PRIVATE_KEY.slice(0, 30));
+      console.log('JWT_PRIVATE_KEY length:', JWT_PRIVATE_KEY.length);
+
       const appToken = jwt.sign(
 				{
 					sub: userExist._id,
@@ -160,7 +169,7 @@ const zohoCallback = async (req, res) => {
 					audience: "Leaderboard",
           is_admin: userExist.email === "vilakshan@niveshonline.com"  // stale line as of now (2026-01-29)
 				},
-				process.env.INTERNAL_JWT_PRIVATE_KEY,
+				JWT_PRIVATE_KEY,
 				{ algorithm: "RS256", expiresIn: "8h" },
 			);
 

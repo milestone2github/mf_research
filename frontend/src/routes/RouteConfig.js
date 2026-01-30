@@ -178,6 +178,7 @@ export const appRoutes = [
 		requiredPermission: "operations_dashboard",
 		to: "https://ops.mnivesh.com",
 		label: "OPS Dashboard",
+		protected: true,
 		external: true,
 		showInSidebar: true,
 	},
@@ -209,7 +210,7 @@ export const appRoutes = [
 		to: "/upload-marketing-templates",
 		label: "Upload Marketing Templates",
 		element: <UploadMarketingTemplates />,
-		protected: false,
+		protected: true,
 		showInSidebar: true,
 	},
 
