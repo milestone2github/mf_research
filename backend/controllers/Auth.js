@@ -167,8 +167,8 @@ const zohoCallback = async (req, res) => {
       // Store the JWT in Cookie
       res.cookie("internal_token", appToken, {
 				httpOnly: true,
-				secure: process.env.NODE_ENV === "production",
-				sameSite: "Lax",  // To-Do: make it None for production
+				secure: false,
+				// sameSite: process.env.NODE_ENV === "production" ? "None": "Lax",  // None for production
 				// domain: "localhost", // To-Do: put the correct domain name
 				maxAge: 8 * 60 * 60 * 1000, // 8 hours
 			});
