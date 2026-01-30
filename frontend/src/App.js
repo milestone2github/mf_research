@@ -51,7 +51,9 @@ function App() {
 export default App;
 
 const renderRoutes = (routes, basePath = '') => {
-  return routes.map(({ to, element, nestedRoutes, protected: isProtected, requiredPermission, requiredInternalRole }) => {
+  return routes
+    .filter(r => !r.external)
+    .map(({ to, element, nestedRoutes, protected: isProtected, requiredPermission, requiredInternalRole }) => {
     const fullPath = basePath + to;
 
     if (nestedRoutes && nestedRoutes.length > 0) {
