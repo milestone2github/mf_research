@@ -209,7 +209,7 @@ export const appRoutes = [
 		to: "/upload-marketing-templates",
 		label: "Upload Marketing Templates",
 		element: <UploadMarketingTemplates />,
-		protected: false,
+		protected: true,
 		showInSidebar: true,
 	},
 
