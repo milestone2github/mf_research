@@ -161,7 +161,7 @@ const zohoCallback = async (req, res) => {
           is_admin: userExist.email === "vilakshan@niveshonline.com"  // stale line as of now (2026-01-29)
 				},
 				process.env.INTERNAL_JWT_PRIVATE_KEY,
-				{ algorithm: "RS256", expiresIn: "7d" },
+				{ algorithm: "RS256", expiresIn: "8h" },
 			);
 
       // Store the JWT in Cookie
@@ -170,7 +170,7 @@ const zohoCallback = async (req, res) => {
 				secure: process.env.NODE_ENV === "production",
 				sameSite: "Lax",  // To-Do: make it None for production
 				// domain: "localhost", // To-Do: put the correct domain name
-				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+				maxAge: 8 * 60 * 60 * 1000, // 8 hours
 			});
 
       // console.log("Session Set (Existing User):", req.session);
