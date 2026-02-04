@@ -9,6 +9,7 @@ const sendEmail = require("../../utils/sendEmail");
 const generateOnboardingLink = require('../../utils/generateOnboardingLink');
 const { getOfferLetterEmailTemplate } = require('../../utils/offerLetterTemplate');
 const { BlobServiceClient } = require('@azure/storage-blob');
+const OfferLetterTemplate = require("../../models/OfferLetterTemplate");
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const ONBOARDING_FORM_LINK = process.env.ONBOARDING_FORM_LINK;
 const WRITER_DOCUMENT_ID = process.env.WRITER_DOCUMENT_ID; 
@@ -27,7 +28,12 @@ async function sendGotraDocument(user) {
     const pdfBuffer = Buffer.from(response.data, "binary");
 
     // 2. Send email
-    const to = user.onboarding?.userFilledInfo?.personalDetails?.email || user.onboarding?.hrFilledInfo?.personalEmail || user.email;
+    const to = [
+      user.onboarding?.hrFilledInfo?.personalEmail,
+      user.onboarding?.userFilledInfo?.personalDetails?.email,
+      user.email
+    ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+
 
     const name = user.onboarding.hrFilledInfo.name;
 
@@ -199,7 +205,11 @@ async function saveJoineeDetails(req, res) {
       doj,
       city,
       reportingLocation,
-      gender
+      gender,
+      isIntern,
+      postProbationNoticeValue,
+      postProbationNoticeUnit,
+      incentiveStructure,
     } = req.body;
 
     const deptIsId = mongoose.isValidObjectId(department);
@@ -208,6 +218,7 @@ async function saveJoineeDetails(req, res) {
     const update = {
       email: personalEmail,
       onboarding: {
+        isIntern: isIntern === 'true' || isIntern === true,
         hrFilledInfo: {
           name,
           personalEmail,
@@ -224,6 +235,9 @@ async function saveJoineeDetails(req, res) {
           gender,
           initiatedBy: req.user ? req.user._id : null,
           initiatedAt: new Date(),
+          postProbationNoticeValue,
+          postProbationNoticeUnit,
+          incentiveStructure,
         },
       },
     };
@@ -1216,6 +1230,59 @@ const updateExistingUserOnboardingInfo = async (req, res) => {
 };
 
 
+// ======= Fetch Offer Letter Template =======
+const getOfferLetterTemplate = async (req, res) => {
+  try {
+    const { type } = req.query; // "intern" | "fulltime"
+
+    const templateType = type === "intern" ? "intern" : "fulltime";
+
+    const template = await OfferLetterTemplate
+      .findOne({ type: templateType })
+      .lean();
+
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        message: "Offer letter template not found",
+      });
+    }
+
+    const settings = template.settings || {};
+
+    const fetchAsBase64 = async (url) => {
+      if (!url) return null;
+      try {
+        const response = await axios.get(url, {
+          responseType: "arraybuffer",
+        });
+        const mime = response.headers["content-type"] || "image/png";
+        return `data:${mime};base64,${Buffer.from(response.data).toString("base64")}`;
+      } catch {
+        return null;
+      }
+    };
+
+    settings.headerImageBase64 = await fetchAsBase64(settings.headerImageUrl);
+    settings.hrSignatureImageBase64 = await fetchAsBase64(settings.hrSignatureImageUrl);
+
+    template.settings = settings;
+    
+
+    res.status(200).json({
+      success: true,
+      data: template,
+    });
+  } catch (error) {
+    console.error("Error fetching offer letter template:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch offer letter template",
+    });
+  }
+};
+
+
 
 
 // ======= EXPORT ==========
@@ -1241,5 +1308,7 @@ module.exports = {
   sendGotraDocument,
   getAllEmployeesForEdit,
   updateExistingUserOnboardingInfo,
+  sentNewJoineeMailNotification,
+  getOfferLetterTemplate,
 };
 

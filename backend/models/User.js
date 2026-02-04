@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema({
             city: { type: String },
             reportingLocation: { type: String },
             gender: { type: String, enum: ['male', 'female'] },
+            postProbationNoticeValue: { type: Number },
+            postProbationNoticeUnit: { type: String, enum: ['days', 'months'] },
+            incentiveStructure: {
+                type: String,
+                enum: ['NOT_APPLICABLE', 'DOJ', 'POST_PROBATION'],
+                default: 'NOT_APPLICABLE'
+            },
             initiatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
             initiatedAt: { type: Date }
         },
@@ -94,10 +101,19 @@ const userSchema = new mongoose.Schema({
                 postalZipCode: { type: String, default: "" },
                 stateRegionProvince: { type: String, default: "" },
                 country: { type: String, default: "" },
+                bloodGroup: {
+                    type: String,
+                    enum: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", ""],
+                    default: ""
+                },
                 photo: { type: String, default: "" }
             },
             submittedAt: Date
         },
+            isIntern: {
+                type: Boolean,
+                default: false
+            },
         offerLetter: {
             generated: { type: Boolean, default: false },
             generatedAt: { type: Date },

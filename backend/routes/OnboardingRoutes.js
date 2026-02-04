@@ -16,6 +16,7 @@ const {
   retryNotify,
   updateExistingUserOnboardingInfo,
   getAllEmployeesForEdit,
+  getOfferLetterTemplate,
 } = require('../controllers/onboardingControllers/newJoineeDetailsControllers');
 const multer = require("multer");
 const upload = multer();
@@ -36,6 +37,7 @@ router.post('/onboarding-form', upload.single("offerLetterPdf"), saveJoineeDetai
 router.get('/onboarding-status', statusDetailsAllJoinee);
 router.get('/onboarding-details', statusDetails);
 router.get('/onboarding-details/:id', statusDetailsById);
+router.get("/offer-letter/template", getOfferLetterTemplate);
 router.put('/zohosetup', newEmployeeSetup);
 router.post('/retry-zoho-setup/:userId', retryZohoSetup);
 router.post('/retry-gotra/:userId', retryGotra);
