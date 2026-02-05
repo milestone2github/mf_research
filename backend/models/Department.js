@@ -4,6 +4,10 @@ const departmentSchema = mongoose.Schema({
     name: {
         type: String, required: true, trim: true
     },
+    zohoid: {
+    type: String,   
+    trim: true
+  },
     permissions: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "PERMISSIONS"

@@ -2,38 +2,116 @@ const Otp = require('../../models/Otp');
 const User = require('../../models/User');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const { WA_WATI_URL } = require('../../utils/constants');
 
-// --- SEND OTP via SMS ---
-async function sendOtpSms(req, res) {
-  let otp = Math.ceil(Math.random() * 10000);
-  if (otp < 1000) otp += 1000;
+// --- SEND OTP via WhatsApp ---
 
-  const phone = req.body.phone;
+async function sendWATemplateMessage(whatsappNumber, otp) {
+  if (!whatsappNumber) {
+    throw new Error('Please provide a valid WhatsApp number');
+  }
 
+  // Add +91 if only 10 digits
+  if (whatsappNumber.length === 10) {
+    whatsappNumber = '+91' + whatsappNumber;
+  }
+
+  const url = WA_WATI_URL(whatsappNumber);
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.WA_TOKEN}`,
+  };
+
+  const payload = {
+    broadcast_name: process.env.WA_BROADCAST,
+    template_name: 'otp_send',
+    parameters: [
+      {
+        name: '1',
+        value: String(otp), // MUST be string
+      },
+    ],
+  };
+
+  const response = await axios.post(url, payload, { headers });
+  const data = response.data;
+
+  //  TEMP DEBUG (keep for now)
+  console.log('WATI RESPONSE:', JSON.stringify(data));
+
+  //  ONLY case where we fallback to SMS
+  if (data?.validWhatsAppNumber === false) {
+    const err = new Error('NOT_WHATSAPP_NUMBER');
+    err.code = 'NOT_WHATSAPP';
+    throw err;
+  }
+
+  // WhatsApp exists but send failed → CONFIG ISSUE
+  if (data?.result !== true) {
+    throw new Error('WATI_SEND_FAILED');
+  }
+
+  return true;
+}
+
+
+
+async function sendOtpSmsInternal(phone, otp) {
   const baseUrl = "https://2factor.in/API/V1/";
   const apiKey = process.env.TWO_FACTOR_API_KEY;
   const template = "mverify";
 
   const finalUrl = `${baseUrl}${encodeURIComponent(apiKey)}/SMS/${encodeURIComponent(phone)}/${encodeURIComponent(otp)}/${encodeURIComponent(template)}`;
-  
-  try {
-    await axios.get(finalUrl);
 
-    await Otp.findOneAndUpdate(
-      { phone },
-      { otp, createdAt: Date.now() },
-      { upsert: true, new: true }
-    );
+  await axios.get(finalUrl);
+}
 
-    if(!Otp) {
-      return res.status(400).json({ error: 'Failed to send OTP' });
-    }
 
-    res.status(200).json({ message: 'OTP sent via SMS ✅', data: phone });
-  } catch (error) {
-    console.error('error message: ', error.response?.data || error.message);
-    res.status(500).json({ error: error.message });
+// --- SEND OTP via SMS ---
+async function sendOtp(req, res) {
+  const { phone, forceSms } = req.body;
+
+  if (!phone) {
+    return res.status(400).json({ error: 'Phone required' });
   }
+
+  let otp = Math.ceil(Math.random() * 10000);
+  if (otp < 1000) otp += 1000;
+
+  let channel = 'sms';
+
+  
+  if (forceSms === true) {
+    await sendOtpSmsInternal(phone, otp);
+    channel = 'sms';
+  } else {
+    try {
+      await sendWATemplateMessage(phone, otp);
+      channel = 'whatsapp';
+    } catch (err) {
+      if (err.code === 'NOT_WHATSAPP') {
+        await sendOtpSmsInternal(phone, otp);
+        channel = 'sms';
+      } else {
+        console.error('WATI CONFIG ERROR:', err.message);
+        return res.status(500).json({
+          error: 'WhatsApp OTP failed due to configuration issue'
+        });
+      }
+    }
+  }
+
+  await Otp.findOneAndUpdate(
+    { phone },
+    { otp, createdAt: Date.now() },
+    { upsert: true, new: true }
+  );
+
+  return res.status(200).json({
+    message: 'OTP sent successfully',
+    channel
+  });
 }
 
 
@@ -97,7 +175,7 @@ async function otpVerifiedStatus(req, res) {
 
 
 module.exports = {
-  sendOtpSms,
+  sendOtp,
   verifyOtp,
   otpVerifiedStatus
 };

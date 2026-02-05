@@ -11,6 +11,10 @@ function Protected({ children, requiredPermission, requiredInternalRole }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // If request to verifySession came from external app
+  const params = new URLSearchParams(window.location.search);
+	const redirectUri = params.get("redirect_uri");
+
   useEffect(() => {
     const checkLoggedIn = async () => {
       dispatch(setLoading(true));
@@ -20,11 +24,23 @@ function Protected({ children, requiredPermission, requiredInternalRole }) {
           credentials: 'include'
         });
         const data = await response.json();
+        if (!data.loggedIn) {
+          // navigate('/login', { replace: true });
+          navigate(`/login?redirect_uri=${encodeURIComponent(redirectUri)}`, {
+						replace: true,
+					});
+          return;
+        }
+        
+        // Set the new session in Internal
         dispatch(setLoggedIn(data.loggedIn));
         dispatch(setUser(data.user));
-        if (!data.loggedIn) {
-          navigate('/login', { replace: true });
-        }
+        
+        // Redirect back to external app if redirectUri found
+        if (data.loggedIn && redirectUri) {
+					window.location.replace(redirectUri);
+					return;
+				}
       } catch (error) {
         console.error("Error Checking session", error.message);
         navigate('/login?error=internalServerError', { replace: true });

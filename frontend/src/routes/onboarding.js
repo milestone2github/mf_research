@@ -14,6 +14,10 @@ const onboardingRoutes = [
     element: <EmployeeOnboardingForm />
   },
   {
+  to: '/onboarding/edit/:userId',
+  element: <EmployeeOnboardingForm />
+  },
+  {
     to: '/onboarding/allocate/:userId',
     element: <AssetAllocationPage />
   }

@@ -5,7 +5,6 @@ const Role = require("../../models/Role");
 const { fetchPackageAndAddCandidate, getCandidateStatus } = require('./springVerifyControllers');
 const { getZohoAccessToken } = require("../../utils/getZohoAccessToken");
 const { getwebHookAccessToken } = require("../../utils/webHookAccessToken");
-const { getNewJoineeMailBody } = require("../../utils/newJoineeMailTemplate");
 const sendEmail = require("../../utils/sendEmail");
 const generateOnboardingLink = require('../../utils/generateOnboardingLink');
 const { getOfferLetterEmailTemplate } = require('../../utils/offerLetterTemplate');
@@ -23,12 +22,13 @@ async function sendGotraDocument(user) {
 
     // 1. Fetch the PDF from blob storage
     const gotraUrl =
-      "https://mfdatafeed.blob.core.windows.net/onboarding/Gotraka_-_HR_guideline_2023_.pdf";
+      "https://mfdatafeed.blob.core.windows.net/onboarding/Gotraka_HR_guideline_2023.pdf";
     const response = await axios.get(gotraUrl, { responseType: "arraybuffer" });
     const pdfBuffer = Buffer.from(response.data, "binary");
 
     // 2. Send email
-    const to = user.email;
+    const to = user.onboarding?.userFilledInfo?.personalDetails?.email || user.onboarding?.hrFilledInfo?.personalEmail || user.email;
+
     const name = user.onboarding.hrFilledInfo.name;
 
     const mailResult = await sendEmail({
@@ -246,19 +246,24 @@ async function saveJoineeDetails(req, res) {
     }
     const salutation = gender === 'female' ? 'Ms.' : 'Mr.';
 
-    const mergeData = {
-      "Name_Salutation": salutation,
-      "Name_First": name.split(" ")[0],
-      "Name_Last": name.split(" ").slice(1).join(" "),
-      "SingleLine": city,
-      "Dropdown": roleName,                // ✅ designation: ID name or free text
-      "Date": formatDate(doj),
-      "Number": annualCtc,
-      "Number1": baseSalary,
-      "Dropdown1": reportingLocation
-    };
-  // 2. Generate Offer Letter PDF
-  const pdfBuffer = await mergeOfferLetter(mergeData);
+    // const mergeData = {
+    //   "Name_Salutation": salutation,
+    //   "Name_First": name.split(" ")[0],
+    //   "Name_Last": name.split(" ").slice(1).join(" "),
+    //   "SingleLine": city,
+    //   "Dropdown": roleName,                // ✅ designation: ID name or free text
+    //   "Date": formatDate(doj),
+    //   "Number": annualCtc,
+    //   "Number1": baseSalary,
+    //   "Dropdown1": reportingLocation
+    // };
+  // 2. Use PDF sent from frontend 
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "PDF not uploaded" });
+    }
+
+    const pdfBuffer = req.file.buffer;
+
   // console.log("Offer Letter PDF generated");
     const { subject, body } = getOfferLetterEmailTemplate({
       name,
@@ -358,7 +363,10 @@ async function statusDetails(req, res) {
 async function statusDetailsById(req, res) {
   try {
     const { id } = req.params;
-    const users = await User.findOne({ _id: id }).lean();
+    const users = await User.findOne({ _id: id })
+    .populate('role', 'name')
+    .populate('department', 'name')
+    .lean();
     if (!users) {
       return res.status(404).json({
         success: false,
@@ -404,7 +412,7 @@ async function updateAssetAllocationStatus(req, res) {
     //   throw new Error('Unable to Send Gotra Document.')
     // }
     //sending New joinee Mail to all Employees
-    await sentNewJoineeMailNotification(user);
+    // await sentNewJoineeMailNotification(user);
 
     res.status(200).json({
       success: true,
@@ -571,15 +579,30 @@ const savePartialUserOnboardingInfo = async (req, res) => {
       }
     }
 
-    // === Save Remaining Form Data ===
+    // === Save Remaining Form Data (SAFE) ===
+    const FILE_FIELDS = new Set([
+      'personalDetails.photo',
+      'bankDetails.bankVerificationDoc'
+    ]);
+
     for (const [key, value] of Object.entries(submitStatus)) {
+      //  Skip meta + file fields
       if (
-        key !== 'finalSubmit' &&
-        !key.startsWith('educationalCertificatesAndDegree') &&
-        !(typeof value === 'object' && value !== null && Object.keys(value).length === 0) // skip empty objects
+        key === 'finalSubmit' ||
+        FILE_FIELDS.has(key) ||
+        key.startsWith('educationalCertificatesAndDegree')
       ) {
-        update.$set[`onboarding.userFilledInfo.${key}`] = value;
+        continue;
       }
+
+      //  Skip empty objects
+      if (typeof value === 'object' && value !== null && Object.keys(value).length === 0) {
+        continue;
+      }
+
+      // Prevent array pollution
+      update.$set[`onboarding.userFilledInfo.${key}`] =
+        Array.isArray(value) ? value[value.length - 1] : value;
     }
 
 
@@ -720,7 +743,7 @@ const processSpringVerifyOrNda = async (req, res) => {
       // await dispatchNdaFlow(userId, authToken, userDetails);
 
       return res.status(200).json({
-        status: 'success', message: 'SpringVerify skipped, NDA workflow dispatched',
+        status: 'success', message: 'SpringVerify skipped',
       });
     }
 
@@ -819,6 +842,382 @@ const deleteJoinee = async (req, res) => {
   }
 };
 
+// ======= Get HR Onboarding Data by User ID =======
+
+async function getHrOnboardingData(req, res) {
+  try {
+    const user = await User.findById(req.params.userId)
+      .select("email onboarding.hrFilledInfo");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const hrInfo = user.onboarding.hrFilledInfo || {};
+
+    res.json({
+      success: true,
+      data: {
+        ...hrInfo,
+        doj: hrInfo.doj
+          ? new Date(hrInfo.doj).toISOString().split("T")[0]
+          : null,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching HR onboarding data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch onboarding data",
+    });
+  }
+}
+
+
+
+// ======= Update HR Onboarding Data and Resend Offer Letter =======
+async function updateHrDetailsAndResendOffer(req, res) {
+  try {
+    const userId = req.params.userId;
+
+    const {
+      name,
+      personalEmail,
+      phone,
+      baseSalary,
+      annualCtc,
+      department,
+      role,
+      isPfApplicable,
+      isExperienced,
+      doj,
+      city,
+      reportingLocation,
+      gender,
+    } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    //  UPDATE ONLY HR FILLED INFO
+    user.onboarding.hrFilledInfo = {
+      ...user.onboarding.hrFilledInfo,
+      name,
+      personalEmail,
+      phone,
+      baseSalary,
+      annualCtc,
+      department,
+      role,
+      isPfApplicable,
+      isExperienced,
+      doj,
+      city,
+      reportingLocation,
+      gender,
+      editedAt: new Date(),
+    };
+
+    //  Mark offer letter as regenerated (do NOT reset)
+    user.onboarding.offerLetter = {
+      ...user.onboarding.offerLetter,
+      regenerated: true,
+      regeneratedAt: new Date(),
+    };
+
+    await user.save();
+
+    //  Send updated offer letter
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Offer letter PDF missing",
+      });
+    }
+
+    await sendEmail({
+      toAddress: personalEmail,
+      subject: "Updated Offer Letter",
+      body: `Dear ${name},\n\nPlease find your updated offer letter attached.\n\nRegards,\nHR Team`,
+      attachments: [
+        {
+          filename: `Updated-OfferLetter-${name}.pdf`,
+          content: req.file.buffer,
+        },
+      ],
+    });
+
+    res.json({
+      success: true,
+      message: "Offer letter updated successfully without resetting onboarding",
+    });
+  } catch (error) {
+    console.error("Error updating HR onboarding details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update onboarding details",
+    });
+  }
+}
+
+
+// Retry gotra notification send to employee
+const retryGotra = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.onboarding.gotra = user.onboarding.gotra || { status: 'pending' };
+
+    if (user.onboarding.gotra.status === 'completed') {
+      return res.status(400).json({
+        message: 'Gotra already sent'
+      });
+    }
+
+    try {
+      await sendGotraDocument(user);
+
+      user.onboarding.gotra.status = 'completed';
+      user.onboarding.gotra.sentAt = new Date();
+      user.onboarding.gotra.error = null;
+
+      await user.save();
+
+      return res.status(200).json({
+        message: 'Gotra document sent successfully'
+      });
+
+    } catch (err) {
+      user.onboarding.gotra.status = 'failed';
+      user.onboarding.gotra.error = err.message;
+
+      await user.save();
+
+      return res.status(500).json({
+        message: 'Failed to send Gotra document'
+      });
+    }
+
+  } catch (err) {
+    console.error('Retry Gotra error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+// Retry New Joinee Notification Mail to all Employees
+const retryNotify = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.onboarding.hasNotifiedToAll =
+      user.onboarding.hasNotifiedToAll || { status: 'pending' };
+
+    if (user.onboarding.hasNotifiedToAll.status === 'completed') {
+      return res.status(400).json({
+        message: 'Notification already sent'
+      });
+    }
+
+    try {
+      await sentNewJoineeMailNotification(user);
+
+      user.onboarding.hasNotifiedToAll.status = 'completed';
+      user.onboarding.hasNotifiedToAll.sentAt = new Date();
+      user.onboarding.hasNotifiedToAll.error = null;
+
+      await user.save();
+
+      return res.status(200).json({
+        message: 'New joinee notification sent successfully'
+      });
+
+    } catch (err) {
+      user.onboarding.hasNotifiedToAll.status = 'failed';
+      user.onboarding.hasNotifiedToAll.error = err.message;
+
+      await user.save();
+
+      return res.status(500).json({
+        message: 'Failed to send notification'
+      });
+    }
+
+  } catch (err) {
+    console.error('Retry Notify error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+// ======= Fetch ALL Employees (HR Edit List) =======
+async function getAllEmployeesForEdit(req, res) {
+  try {
+    const users = await User.find({})
+      .select(
+        "email name status onboarding.hrFilledInfo.name onboarding.hrFilledInfo.personalEmail"
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      message: "All employees fetched successfully",
+      data: users,
+    });
+  } catch (error) {
+    console.error("Error fetching all employees:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch employees",
+      error: error.message,
+    });
+  }
+}
+
+
+// ========== Update Existing Employee Onboarding (Section-wise) ==========
+const updateExistingUserOnboardingInfo = async (req, res) => {
+  try {
+    const userId = req.params.userId || req.user.userId;
+    const body = req.body || {};
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const sanitizedEmail = user.email.replace(/[^a-zA-Z0-9]/g, "_");
+
+    const update = { $set: {} };
+
+    // Normalize multer files (upload.any()) into a map
+    const filesMap = {};
+    if (Array.isArray(req.files)) {
+      for (const file of req.files) {
+        if (!filesMap[file.fieldname]) {
+          filesMap[file.fieldname] = [];
+        }
+        filesMap[file.fieldname].push(file);
+      }
+    }
+
+
+    // ---------- Azure Setup ----------
+    const blobServiceClient =
+      BlobServiceClient.fromConnectionString(
+        AZURE_STORAGE_CONNECTION_STRING
+      );
+    const containerClient =
+      blobServiceClient.getContainerClient("employee-onboarding");
+
+    // ==========================================================
+    // 1 FILE UPLOADS (PHOTO, BANK DOC, EDUCATION)
+    // ==========================================================
+
+    const fileUploadMap = {
+      "personalDetails.photo": "photo",
+      "bankDetails.bankVerificationDoc": "bankVerificationDoc",
+      tenthMarksheetFile: "tenthMarksheet",
+      lastEducationFileUpload: "lastEducationFile",
+      latestUpdateCvUpload: "latestUpdateCv",
+    };
+
+    if (req.files && Object.keys(req.files).length > 0) {
+      for (const [formKey, dbField] of Object.entries(fileUploadMap)) {
+        const fileArr = filesMap?.[formKey];
+        if (!fileArr?.length) continue;
+
+        const file = fileArr[0];
+        const blobName = `${Date.now()}-${sanitizedEmail}-${dbField}-${file.originalname}`;
+
+        const blockBlobClient =
+          containerClient.getBlockBlobClient(blobName);
+
+        await blockBlobClient.uploadData(file.buffer, {
+          blobHTTPHeaders: { blobContentType: file.mimetype },
+        });
+
+        const blobUrl = `https://${containerClient.accountName}.blob.core.windows.net/${containerClient.containerName}/${blobName}`;
+
+        if (formKey.includes(".")) {
+          const [section, field] = formKey.split(".");
+          update.$set[
+            `onboarding.userFilledInfo.${section}.${field}`
+          ] = blobUrl;
+        } else {
+          update.$set[
+            `onboarding.userFilledInfo.educationalCertificatesAndDegree.${dbField}`
+          ] = blobUrl;
+        }
+      }
+    }
+
+    // ==========================================================
+    // 2 TEXT FIELD UPDATES (SAFE)
+    // ==========================================================
+
+    const BLOCKED_KEYS = new Set([
+      "photo",
+      "bankVerificationDoc",
+    ]);
+
+    for (const [key, value] of Object.entries(body)) {
+  if (value === undefined || value === null || value === "") continue;
+
+  // Expecting keys like "personalDetails.country"
+  if (!key.includes(".")) continue;
+
+  const [sectionKey, field] = key.split(".");
+
+  if (BLOCKED_KEYS.has(field)) continue;
+
+  update.$set[
+    `onboarding.userFilledInfo.${sectionKey}.${field}`
+  ] = value;
+}
+
+
+    // ==========================================================
+    // 3 EXECUTE UPDATE
+    // ==========================================================
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      update,
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Section updated successfully",
+      data: updatedUser.onboarding.userFilledInfo,
+    });
+  } catch (error) {
+    console.error("❌ Error updating onboarding info:", error);
+    res.status(500).json({ error: "Failed to update onboarding data" });
+  }
+};
+
+
+
 
 // ======= EXPORT ==========
 // ======= EXPORT ==========
@@ -836,5 +1235,12 @@ module.exports = {
   generateOnboardingLink,
   deleteJoinee,
   mergeOfferLetter,
+  getHrOnboardingData,
+  updateHrDetailsAndResendOffer,
+  retryGotra,
+  retryNotify,
+  sendGotraDocument,
+  getAllEmployeesForEdit,
+  updateExistingUserOnboardingInfo,
 };
 

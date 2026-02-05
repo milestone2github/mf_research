@@ -4,6 +4,10 @@ const roleSchema = mongoose.Schema({
     name: {
         type: String, required: true, trim: true
     },
+    zohoid: {
+    type: String,   
+    trim: true
+  },
     department: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "DEPARTMENTS",

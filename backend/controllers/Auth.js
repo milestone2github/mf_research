@@ -8,6 +8,7 @@ const { refreshZohoAccessToken } = require('../utils/refreshZohoAccessToken ');
 const { fetchZohoPeopleData } = require('../utils/fetchZohoPeopleData');
 const Department = require('../models/Department');
 const { FE } = require('../models/RouteOptimization');
+const { getJWTPrivateKey } = require('../utils/getJWTPrivateKey');
 
 
 // Initiates login with Zoho OAuth
@@ -149,6 +150,7 @@ const zohoCallback = async (req, res) => {
       setUserSession(userExist);
 
       // Set JWT for Zoho SSO (used for external Apps like Leaderboard)
+      const JWT_PRIVATE_KEY = getJWTPrivateKey();
       const appToken = jwt.sign(
 				{
 					sub: userExist._id,
@@ -160,17 +162,17 @@ const zohoCallback = async (req, res) => {
 					audience: "Leaderboard",
           is_admin: userExist.email === "vilakshan@niveshonline.com"  // stale line as of now (2026-01-29)
 				},
-				process.env.INTERNAL_JWT_PRIVATE_KEY,
-				{ algorithm: "RS256", expiresIn: "7d" },
+				JWT_PRIVATE_KEY,
+				{ algorithm: "RS256", expiresIn: "8h" },
 			);
 
       // Store the JWT in Cookie
       res.cookie("internal_token", appToken, {
 				httpOnly: true,
-				secure: process.env.NODE_ENV === "production",
-				sameSite: "Lax",  // To-Do: make it None for production
+				secure: false,
+				// sameSite: process.env.NODE_ENV === "production" ? "None": "Lax",  // None for production
 				// domain: "localhost", // To-Do: put the correct domain name
-				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+				maxAge: 8 * 60 * 60 * 1000, // 8 hours
 			});
 
       // console.log("Session Set (Existing User):", req.session);
@@ -242,7 +244,13 @@ const logout = (req, res) => {
         console.error("Session destruction error", err);
         return res.status(500).json({ message: "Could not log out." });
       }
-      res.clearCookie("user");
+      res.clearCookie("user");	// To-Do: Session has user, not the cookie (2026-02-02)
+      res.clearCookie("internal_token", {  // clear the Leaderboard cookie as well
+        // To-Do: MATCH/CHANGE WITH COOKIE OPTIONS AS IT'S SET LATER FOR SPECIFIC DOMAINS (ref Line 177)
+				httpOnly: true,
+				secure: false,
+			});
+
       // console.log("Logout: Session destroyed- cookies clear") //debug
       res.status(204).send(); // No content to send back
     });
@@ -253,9 +261,10 @@ const logout = (req, res) => {
 
 const verifySession = async (req, res) => {
   // console.log("Session Data:", req.session);//debug
+  const JWT_PRIVATE_KEY = getJWTPrivateKey();
   if (req.session && req.session.user) {
     // refresh the session expiration time by the time set during configuration  
-    req.session.touch(); 
+    req.session.touch();
      const user = await User.findOne({ email: req.session.user.email });
       if (!user) {
         return res.status(401).json({ loggedIn: false, user: null });
@@ -266,6 +275,32 @@ const verifySession = async (req, res) => {
       req.session.user.permissions = permissions;
 
     // console.log("Updated session user:", req.session.user);
+      if (!req.cookies?.internal_token) {
+        // sign token again and generate new cookie
+        const appToken = jwt.sign(
+          {
+            sub: user._id,
+            email: user.email,
+            mintUsername: user.mintUsername,
+            role: user.role?.name,
+            permissions: permissions,
+            issuer: "mf_research",
+            audience: "Leaderboard",
+            is_admin: user.email === "vilakshan@niveshonline.com", // stale line as of now (2026-01-29)
+          },
+          JWT_PRIVATE_KEY,
+          { algorithm: "RS256", expiresIn: "8h" },
+        );
+
+        // Store the JWT in Cookie
+        res.cookie("internal_token", appToken, {
+          httpOnly: true,
+          secure: false,
+          // sameSite: process.env.NODE_ENV === "production" ? "None": "Lax",  // None for production
+          // domain: "localhost", // To-Do: put the correct domain name
+          maxAge: 8 * 60 * 60 * 1000, // 8 hours
+        });
+      }
 
     // If the session exists and contains user information, the user is logged in
     res.status(200).json({ loggedIn: true, user: req.session.user });

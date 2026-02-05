@@ -24,7 +24,7 @@ import Assets from '../components/pages/Assets'
 import { assetRoutes } from './assetRoutes'
 import OnboardingLayout from '../components/onboarding/OnboardingLayout';
 import Leaderboard from '../components/pages/Leaderboard';
-import InsuranceLeadUpdate from '../components/pages/InsuranceLeadUpdate';
+import InsuranceReco from '../components/pages/InsuranceReco';
 import onboardingRoutes from './onboarding'
 import RbacLayout from '../centralRbac/src/pages/RbacLayout'
 import { centralRbacRoutes } from './centralRbacRoutes'
@@ -38,6 +38,8 @@ import LumpsumauditLb from '../components/pages/LumpsumAuditLb'
 import MFSIPLeaderboard from '../components/pages/MFSIPLeaderboard'
 import UploadMarketingTemplates from '../components/pages/UploadMarketingTemplates'
 import InsuranceForm from '../components/pages/InsuranceForm'
+import EmployeeProfiles from '../components/pages/EmployeeProfiles'
+import { employeeProfileRoutes } from './EmployeeProfileRoutes'
 
 
 export const appRoutes = [
@@ -207,7 +209,7 @@ export const appRoutes = [
 		to: "/upload-marketing-templates",
 		label: "Upload Marketing Templates",
 		element: <UploadMarketingTemplates />,
-		protected: false,
+		protected: true,
 		showInSidebar: true,
 	},
 
@@ -249,6 +251,18 @@ export const appRoutes = [
 		showInSidebar: true,
 		nestedRoutes: onboardingRoutes,
 	},
+     
+	// All Employees Onboarding	
+	{
+		requiredPermission: "employee_profiles",
+		to: "/employee-profiles",
+		label: "Employee Profiles",
+		element: <EmployeeProfiles />,
+		protected: true,
+		showInSidebar: true,
+		nestedRoutes: employeeProfileRoutes,
+		},
+	
 
 	// RBAC
 	{
@@ -293,22 +307,22 @@ export const appRoutes = [
 		showInSidebar: true,
 	},
 	
-	// New Leaderboard
+	// PLI Leaderboard
 	{
-		requiredPermission: "leaderboard",
-		to: "http://localhost:5173",
-		label: "New Leaderboard",
-		protected: false,
+		requiredPermission: "pli_leaderboard",
+		to: "https://leaderboard.mnivesh.com",
+		label: "PLI Leaderboard",
+		protected: true,
 		showInSidebar: true,
 		external: true
 	},
 	
 	// insurance lead update
 	{ 
-		requiredPermission: "insurance_lead_update",
-		to: '/insurance-lead-update',
-		label: 'Insurance Lead Update',
-		element: <InsuranceLeadUpdate />,
+		requiredPermission: "insurance_reco",
+		to: '/insurance-reco',
+		label: 'Insurance Reco',
+		element: <InsuranceReco />,
 		protected: true,
 		showInSidebar: true
   },

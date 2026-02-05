@@ -13,6 +13,10 @@ const Loginpage = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
+  // In-case login request generated from external app (like Leaderboard)
+  const params = new URLSearchParams(window.location.search);
+	const redirectExternalUri = params.get("redirect_uri");
+
   useEffect(() => {
     let query = window.location.search;
     // Create a test URLSearchParams object
@@ -29,10 +33,14 @@ const Loginpage = () => {
       
   }, [])
 
+  // Redirect back to External app (e.g. Leaderboard) in case login request is initiated from there
   const handleLogin = async () => {
-    const frontendRedirectUrl = encodeURIComponent(window.location.origin);
-    window.location.href = `${process.env.REACT_APP_API_BASE_URL}/auth/zoho?redirect=${frontendRedirectUrl}`
-  }
+		const redirect = redirectExternalUri
+			? encodeURIComponent(redirectExternalUri)
+			: encodeURIComponent(window.location.origin);
+		
+    window.location.href = `${process.env.REACT_APP_API_BASE_URL}/auth/zoho?redirect=${redirect}`;
+	};
 
   const googlelogin = async () => {
     try {
@@ -49,12 +57,18 @@ const Loginpage = () => {
         })
       })
       const res = await response.json()
+      // if (res.success) {
+      //   navigate("/", { replace: true })
+      // }
       if (res.success) {
-        navigate("/", { replace: true })
-      }
-      else {
-        dispatch(updateToast({ message: res.msg, type: 'error' }))
-      }
+				if (redirectExternalUri) {
+					window.location.replace(redirectExternalUri);
+				} else {
+					navigate("/", { replace: true });
+				}
+			} else {
+				dispatch(updateToast({ message: res.msg, type: "error" }));
+			} 
     } catch (error) {
       console.error(error);
     }

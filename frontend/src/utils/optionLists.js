@@ -71,12 +71,12 @@ const sip_stp_swpDateOptions = [
 
 // list of transaction Units / Amount for purchase/redemptions
 const purch_redempTraxUnits_AmountOptions = [
-  'Amount Given in next question', 'Long Term Units', 'Redeem All Units', 'Units Mentioned in Remarks', 'Unlocked Units'
+  'Amount in next question', 'Long Term Units', 'Redeem All Units', 'Units Mentioned in Remarks', 'Unlocked Units'
 ]
 
 // list of transaction Units / Amount for switch
 const switchTraxUnits_AmountOptions = [
-  'Amount Given in next question', 'Long Term Units', 'Switch All Units', 'Units Mentioned in Remarks', 'Unlocked Units'
+  'Amount in next question', 'Long Term Units', 'Switch All Units', 'Units Mentioned in Remarks', 'Unlocked Units'
 ]
 
 // list of transaction preference 
