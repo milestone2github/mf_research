@@ -95,9 +95,9 @@ app.post('/api/send-mail', verifyUser, sendEmailController);
 app.use('/api', router);
 
 // wildcard route to serve react using express
-// app.get("*", (_req, res) => {
-//   res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
-// });
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
+});
 
 // Start the server and connect to MongoDB
 server.listen(port, async () => {
