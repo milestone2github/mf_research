@@ -141,7 +141,7 @@ function renderHtmlToPdf(doc, html, startY, formData, hrSignatureBase64) {
 
         doc.text(formData.name, marginLeft, y);
         doc.text(
-          `Date: ${formatLongDate(formData.doj)}`,
+          `Date: ${formatLongDate(new Date())}`,
           pageWidth - marginRight,
           y,
           { align: "right" }
@@ -790,6 +790,7 @@ const isEditMode = Boolean(userId);
 
 
         {/* Fresher / Experienced */}
+{isFullTime && (
 <div className="flex flex-col col-span-2">
   <label className="mb-2 text-sm font-medium text-gray-700">Candidate Type</label>
   <div className="flex gap-4">
@@ -843,6 +844,7 @@ const isEditMode = Boolean(userId);
     Used only for internal purpose during the Spring Verification setup
   </p>
 </div>
+)}
 
 
         {/* Submit */}
