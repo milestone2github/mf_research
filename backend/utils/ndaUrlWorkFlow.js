@@ -305,7 +305,7 @@ const embeddedsigning = async (req, res) => {
             },
             {
                 recipient_name: 'Vilakshan Bhutani',
-                recipient_email: 'vilakshan@niveshonline.com',
+                recipient_email: 'hr@niveshonline.com',
                 signing_order: 2,
                 // role: 'Director',
                 action_type: 'SIGN',
@@ -1005,7 +1005,7 @@ const embeddedsigning = async (req, res) => {
             {
                 action_id: directorActionId,
                 recipient_name: 'Vilakshan Bhutani',
-                recipient_email: 'vilakshan@niveshonline.com',
+                recipient_email: 'hr@niveshonline.com',
                 action_type: 'SIGN',
                 fields: fieldJsonDirector
             }

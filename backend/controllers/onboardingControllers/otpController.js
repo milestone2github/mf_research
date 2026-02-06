@@ -68,7 +68,9 @@ async function sendOtpSmsInternal(phone, otp) {
 }
 
 
-// --- SEND OTP via SMS ---
+const OTP_VALIDITY_MS = 5 * 60 * 1000; // 5 minutes
+
+// --- SEND OTP ---
 async function sendOtp(req, res) {
   const { phone, forceSms } = req.body;
 
@@ -76,41 +78,49 @@ async function sendOtp(req, res) {
     return res.status(400).json({ error: 'Phone required' });
   }
 
-  let otp = Math.ceil(Math.random() * 10000);
-  if (otp < 1000) otp += 1000;
+  const now = Date.now();
+  let otpDoc = await Otp.findOne({ phone });
+  let otp;
+
+  // Reuse OTP if within 5 minutes
+  if (otpDoc && now - otpDoc.createdAt < OTP_VALIDITY_MS) {
+    otp = otpDoc.otp;
+  } else {
+    //  Generate new OTP
+    otp = Math.floor(1000 + Math.random() * 9000);
+
+    await Otp.findOneAndUpdate(
+      { phone },
+      { otp, createdAt: now },
+      { upsert: true, new: true }
+    );
+  }
 
   let channel = 'sms';
 
-  
-  if (forceSms === true) {
-    await sendOtpSmsInternal(phone, otp);
-    channel = 'sms';
-  } else {
-    try {
+  try {
+    if (forceSms === true) {
+      await sendOtpSmsInternal(phone, otp);
+      channel = 'sms';
+    } else {
       await sendWATemplateMessage(phone, otp);
       channel = 'whatsapp';
-    } catch (err) {
-      if (err.code === 'NOT_WHATSAPP') {
-        await sendOtpSmsInternal(phone, otp);
-        channel = 'sms';
-      } else {
-        console.error('WATI CONFIG ERROR:', err.message);
-        return res.status(500).json({
-          error: 'WhatsApp OTP failed due to configuration issue'
-        });
-      }
+    }
+  } catch (err) {
+    if (err.code === 'NOT_WHATSAPP') {
+      await sendOtpSmsInternal(phone, otp);
+      channel = 'sms';
+    } else {
+      return res.status(500).json({
+        error: 'OTP delivery failed'
+      });
     }
   }
 
-  await Otp.findOneAndUpdate(
-    { phone },
-    { otp, createdAt: Date.now() },
-    { upsert: true, new: true }
-  );
-
   return res.status(200).json({
     message: 'OTP sent successfully',
-    channel
+    channel,
+    reused: !!(otpDoc && now - otpDoc.createdAt < OTP_VALIDITY_MS)
   });
 }
 

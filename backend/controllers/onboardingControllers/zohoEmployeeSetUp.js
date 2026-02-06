@@ -4,6 +4,7 @@ const ZohoEmployeeIdCount = require("../../models/ZohoEmployeeIdCount");
 const Department = require("../../models/Department");
 const Role = require("../../models/Role");
 const { getwebHookAccessToken } = require("../../utils/webHookAccessToken");
+const { ZOHO_FLOW_WEBHOOK_URL } = require("../../utils/stringConstants");
 
 async function resolveZohoDepartmentId(departmentId) {
   if (!departmentId) return '';
@@ -21,10 +22,14 @@ async function resolveZohoDesignationId(roleId) {
 
 
 
-const ZOHO_FLOW_WEBHOOK = process.env.ZOHO_FLOW_WEBHOOK_URL;
+const ZOHO_FLOW_WEBHOOK = ZOHO_FLOW_WEBHOOK_URL;
 
 
 async function triggerZohoFlow(payload) {
+  if (!ZOHO_FLOW_WEBHOOK) {
+    console.warn("[ZohoFlow] Webhook URL not configured");
+    return;
+  }
   console.log('[ZohoFlow][TRIGGER_PAYLOAD]', payload);
   
   const response = await axios.post(ZOHO_FLOW_WEBHOOK, payload);
