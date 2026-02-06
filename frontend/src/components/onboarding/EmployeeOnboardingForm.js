@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { CgSpinner } from "react-icons/cg";
 import { Link } from 'react-router-dom';
 import jsPDF from "jspdf";
-import HeaderImage from '../../assets/Header1.png';
-import HRSignatureImage from '../../assets/Hrsign.png';
 import { useParams } from "react-router-dom";
 import { HR_NAME } from '../../utils/stringConstants';
+import { useSearchParams } from "react-router-dom";
+
 
 
 function formatLongDate(dateInput) {
@@ -29,219 +29,276 @@ function formatShortDate(dateInput) {
   });
 }
 
-function capitalizeWords(text = "") {
-  return text
-    .toLowerCase()
-    .split(" ")
-    .filter(Boolean)
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
 
 
 const REPORTING_LOCATIONS = [
-  { label: "Delhi", value: "delhi" },
-  { label: "Ferozepur", value: "ferozepur" },
-  { label: "Sonipat", value: "sonipat" },
+  { label: "Delhi", value: "Delhi" },
+  { label: "Ferozepur", value: "Ferozepur" },
+  { label: "Sonipat", value: "Sonipat" },
 ];
 
+function fillTemplate(template, values) {
+  return template.replace(/{{(.*?)}}/g, (_, key) => {
+    return values[key.trim()] ?? "";
+  });
+}
 
-function generateOfferLetterPDF(formData) {
-  const doc = new jsPDF("p", "pt", "a4");
-
-  // Insert header image
+function renderHtmlToPdf(doc, html, startY, formData, hrSignatureBase64) {
   const pageWidth = doc.internal.pageSize.getWidth();
-  doc.addImage(HeaderImage, "PNG", 20, 20, pageWidth - 40, 110);
+  const pageHeight = doc.internal.pageSize.getHeight();
 
   const marginLeft = 40;
   const marginRight = 40;
-  const textWidth = doc.internal.pageSize.getWidth() - marginLeft - marginRight;
+  const textWidth = pageWidth - marginLeft - marginRight;
+
   const lineHeight = 16;
-  const paraGap = 22;
-  const pageHeight = doc.internal.pageSize.getHeight();
   const bottomMargin = 72;
 
-  let y = 150;
+  let y = startY;
+  let candidateBlockRendered = false;
+  let skipNextParagraph = false;
 
-  const todayFormatted = formatLongDate(new Date());
-  const dojShort = formatShortDate(formData.doj);
 
-  const salutation = formData.gender === "female" ? "Ms." : "Mr.";
-  const firstName = ((formData.name || "").split(" ")[0] || "")
-  .toLowerCase()
-  .replace(/^\w/, c => c.toUpperCase());
-  const roleText = formData.letterRole || formData.role;
-
-  const annualCtcNumber = Number(formData.annualCtc || 0);
-  const baseSalaryNumber = Number(formData.baseSalary || 0);
-
-  const annualCtcFormatted = annualCtcNumber.toLocaleString("en-IN");
-  const baseSalaryFormatted = baseSalaryNumber.toLocaleString("en-IN");
-  const ctcLakhs = (annualCtcNumber / 100000 || 0).toFixed(2);
-
-  doc.setFont("times", "normal");
-  doc.setFontSize(12);
-
-  const ensurePageSpace = (extra = 0) => {
+  const ensureSpace = (extra = 0) => {
     if (y + extra > pageHeight - bottomMargin) {
       doc.addPage();
-      y = 72;
+      y = 80;
     }
   };
 
-  const addParagraph = (text, extraGap = paraGap) => {
-    ensurePageSpace(lineHeight * 3);
-    const lines = doc.splitTextToSize(text, textWidth);
-    doc.text(lines, marginLeft, y);
-    y += lines.length * lineHeight + extraGap;
-  };
-
-  const addRichParagraph = (segments, extraGap = paraGap) => {
-    ensurePageSpace(lineHeight * 3);
-    let x = marginLeft;
-
-    segments.forEach((seg) => {
-      const words = seg.text.split(" ");
-      doc.setFont("times", seg.bold ? "bold" : "normal");
-
-      words.forEach((word, i) => {
-        if (!word) return;
-        const token = i === words.length - 1 ? word : word + " ";
-        const w = doc.getTextWidth(token);
-
-        if (x + w > marginLeft + textWidth) {
-          x = marginLeft;
-          y += lineHeight;
-          ensurePageSpace();
-        }
-
-        doc.text(token, x, y);
-        x += w;
-      });
-    });
-
-    y += extraGap;
-    doc.setFont("times", "normal");
-  };
-
-  // ---------- HEADER ----------
-  doc.text(todayFormatted, marginLeft, y);
-  y += 40;
-
-  const fullNameCap = (formData.name || "")
-    .split(" ")
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
-
-  doc.text(`${salutation} ${fullNameCap}`, marginLeft, y);
-
-  y += 18;
-
-  doc.text(capitalizeWords(formData.city), marginLeft, y);
-  y += 40;
-
-  doc.text(`Dear ${firstName},`, marginLeft, y);
-  y += 34;
-
-  // Paragraphs
-  addRichParagraph([
-    {
-      text:
-        "I would like to congratulate you on-behalf of Milestone Global Moneymart Private Limited alongside welcoming you to our family. We are excited to offer you a position in our organisation for ",
-      bold: false,
-    },
-    { text: roleText, bold: true },
-    { text: ".", bold: false },
-  ]);
-
-  addRichParagraph([
-    {
-      text:
-        "This offer letter will be valid for 2 working days for you to accept the job from the date of receipt. The date of joining as set by the terms of the offer letter will be ",
-      bold: false,
-    },
-    { text: dojShort + " ", bold: true },
-    { text: " with option for extension of 1 week available on request.", bold: false },
-  ]);
-
-  addParagraph(
-    "As per our discussion done during the interview are stated as followed to prevent any miscommunication on either part -",
-    4
-  );
-
-  // ---------- BULLET LIST (UPDATED) ----------
-  const bullets = [
-    `Your annual compensation will be ${annualCtcFormatted} INR subject to tax and other statutory deductions. EPF deductions will be mandatory and set at 12% of basic pay or 1800 INR per month with equal contribution from employer, if opted. Making your net-inhand compensation ${baseSalaryFormatted} INR per month. Your CTC (Cost to Company) will be ${ctcLakhs} Lakhs annually approximately.`,
-    "For the first three months from the joining date, you'll be appointed as probationary officer, where the notice period in case of resignation or termination will be 07 days from either side or in-lieu 07 days of pay to waive notice period or any combination thereof. Your probation period can be extended on discretion of Milestone.",
-    `You'll be reporting to our ${capitalizeWords(formData.reportingLocation)} office.`,
-    "NISM VA qualification will be mandatory within probationary period, if you're appointed in Mutual Fund Sales.",
-    "After the probation period, you'll be regarded as a permanent employee on the payroll of the organisation where you'll be eligible for the following -",
-    "Corporate Health Insurance for the employee for which the premium will be borne by the organisation.",
-    "Corporate Personal Accidental Policy for the employee for which the premium will be borne by the organisation.",
-    "You'll be eligible for the Gratuity Scheme as per the government issued guidelines, where the 15 days of your basic pay will be accumulated annually and paid to you in case of cessation of employment from either side.",
-    "On date of joining, we expect you to be present physically at our Rohini, Delhi office for onboarding where you'll also be provided with SIM card for official Number, Laptop ( Owned by Milestone Global Moneymart (P) Ltd. and maintained by employee ).",
-    "From date of joining, you'll abide by HR policies as issued by the organisation. The policy will supersede any or all terms and conditions as stated under the offer letter.",
-    "Your notice period will be set as 1 month from either side or in-lieu same days of pay or a combination of both.",
-    "You'll be eligible for the incentive structure from the end of your probation period.",
+  const SECTION_HEADINGS = [
+    "Compensation & Salary Structure",
+    "Probation Period",
+    "Confirmation & Benefits",
+    "Work Location & Company Assets",
+    "Company Policies & Notice Period",
+    "Pre-Employment Verification",
   ];
 
-  const bulletIndent = marginLeft + 14;
-  const bulletDotX = marginLeft + 4;
+  /* ===================== HELPERS ===================== */
 
-  bullets.forEach((text) => {
-    const lines = doc.splitTextToSize(text, textWidth - 32);
-    const requiredHeight = lines.length * lineHeight + 10;
+  function renderBullet(text, indent = 0) {
+    ensureSpace(24);
+    const effectiveWidth = textWidth - indent - 32;
+    const lines = doc.splitTextToSize(text, effectiveWidth);
 
-    if (y + requiredHeight > pageHeight - bottomMargin) {
-      doc.addPage();
-      y = 72;
+    doc.circle(marginLeft + indent + 4, y - 4, 2.5, "F");
+    doc.text(lines, marginLeft + indent + 16, y);
+
+    y += lines.length * lineHeight + 10;
+  }
+
+  function renderUl(ulHtml, indent = 0) {
+    const liMatches = [...ulHtml.matchAll(/<li>([\s\S]*?)<\/li>/gi)];
+
+    liMatches.forEach(match => {
+      let liContent = match[1].trim();
+
+      // Extract nested UL if present
+      const nestedUlMatch = liContent.match(/<ul>[\s\S]*<\/ul>/i);
+      let nestedUl = null;
+
+      if (nestedUlMatch) {
+        nestedUl = nestedUlMatch[0];
+        liContent = liContent.replace(nestedUl, "").trim();
+      }
+
+      // Render main bullet
+      const cleanText = liContent.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+      if (cleanText) {
+        renderBullet(cleanText, indent);
+      }
+
+      // Render nested bullets
+      if (nestedUl) {
+        renderUl(nestedUl, indent + 20);
+      }
+    });
+
+    y += 6;
+  }
+
+  /* ===================== PARSING ===================== */
+
+  html = html.replace(/\n+/g, "\n");
+  const blocks = html.match(/<(h2|p|ul)[\s\S]*?<\/\1>/gi) || [];
+
+  blocks.forEach(block => {
+
+    /* ===================== TITLE ===================== */
+    if (block.startsWith("<h2")) {
+      const text = block.replace(/<[^>]+>/g, "").trim();
+
+      ensureSpace(40);
+      doc.setFont("times", "bold");
+      doc.setFontSize(16);
+      doc.text(text, pageWidth / 2, y, { align: "center" });
+      y += 50;
+
+      if (!candidateBlockRendered) {
+        doc.setFont("times", "normal");
+        doc.setFontSize(13);
+
+        doc.text(formData.name, marginLeft, y);
+        doc.text(
+          `Date: ${formatLongDate(new Date())}`,
+          pageWidth - marginRight,
+          y,
+          { align: "right" }
+        );
+
+        y += 18;
+        doc.text(formData.city, marginLeft, y);
+        y += 28;
+
+        candidateBlockRendered = true;
+        skipNextParagraph = true; 
+      }
+
+      return;
     }
 
-    doc.circle(bulletDotX, y - 4, 2.5, "F"); // BULLET SIZE 2.5
+    /* ===================== PARAGRAPHS ===================== */
+    if (block.startsWith("<p")) {
+      const text = block.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 
-    doc.setFontSize(13);
-    doc.text(lines, bulletIndent, y);
-    doc.setFontSize(12);
+      if (skipNextParagraph) {
+        skipNextParagraph = false;
+        return;
+      }
 
-    // LINE GAP BELOW EACH BULLET
-    y += lines.length * lineHeight + 10;
+      if (!text) return;
+
+
+      // Declaration signature block
+      if (text.startsWith("Name:")) {
+        doc.text(`Name: ${formData.name}`, marginLeft, y);
+        y += 28;
+        doc.text("Signature:", marginLeft, y);
+        y += 28;
+        doc.text("Date:", marginLeft, y);
+        y += 32;
+        return;
+      }
+
+      // Warm Regards block
+      if (text.startsWith("Warm Regards")) {
+        ensureSpace(120);
+        doc.text("Warm Regards,", marginLeft, y);
+        y += 18;
+        if (hrSignatureBase64) {
+        doc.addImage(hrSignatureBase64, "PNG", marginLeft, y, 110, 45);
+      }
+
+        y += 60 + 8;
+        doc.text(HR_NAME, marginLeft, y);
+        y += 18;
+        doc.text("HR", marginLeft, y);
+        y += 18;
+        doc.text("Milestone Global Moneymart Private Limited", marginLeft, y);
+        y += 30;
+        return;
+      }
+
+      // Section headings
+      if (SECTION_HEADINGS.includes(text)) {
+        ensureSpace(30);
+        doc.setFont("times", "bold");
+        doc.setFontSize(14);
+        doc.text(text, marginLeft, y);
+        y += 28;
+        doc.setFont("times", "normal");
+        doc.setFontSize(13);
+        return;
+      }
+
+      // Normal paragraph
+      ensureSpace(24);
+      const lines = doc.splitTextToSize(text, textWidth);
+      doc.text(lines, marginLeft, y);
+      y += lines.length * lineHeight + 12;
+      return;
+    }
+
+    
+    /* ===================== UL (FULL SUPPORT) ===================== */
+    if (block.startsWith("<ul")) {
+      renderUl(block, 0);
+    }
   });
 
-  // Extra gap after bullet section
-  y += 20;
+  return y;
+}
 
-  // ---------- FINAL PARAGRAPHS ----------
-  addParagraph(
-    "Before your date of joining, you will receive an email from Spring Verify to complete pre-employment verification. You will be deemed unfit until you have completed that verification form.",
-    26
-  );
 
-  addParagraph(
-    "For any information, clarification you may contact the undersigned at +91 9910049264 or jobs@niveshonline.com.",
-    42
-  );
+async function generateOfferLetterPDF({ formData, offerTemplate, letterRole,  postProbationNotice, incentiveClause,  pfClause, }) {
+  const doc = new jsPDF("p", "pt", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const headerImageBase64 = offerTemplate.settings.headerImageBase64;
+  const hrSignatureBase64 = offerTemplate.settings.hrSignatureImageBase64;
 
-  doc.text("Regards,", marginLeft, y);
-  y += 50;
 
-  doc.addImage(HRSignatureImage, "PNG", marginLeft, y, 140, 60, undefined, "NONE");
-  y += 70;
 
-  doc.text(HR_NAME, marginLeft, y);
-  y += 18;
-  doc.text("HR", marginLeft, y);
-  y += 18;
-  doc.text("Milestone Global Moneymart Private Limited", marginLeft, y);
-  y += 35;
+  // HEADER
+  if (headerImageBase64) {
+  doc.addImage(headerImageBase64, "PNG", 0, 0, pageWidth, 150);
+}
 
-  addParagraph(
-    "I have read all terms and conditions and will abide by them in all scenarios.",
-    30
-  );
 
-    doc.text(`${salutation} ${fullNameCap}`, marginLeft, y);
+  // TEMPLATE
+  const filledHtml = fillTemplate(offerTemplate.body, {
+  // ---- ROLE ----
+  Job_Title: letterRole,
 
-   return doc.output("blob");
+  // ---- CANDIDATE ----
+  Candidate_Name: formData.name,
+  Candidate_First_Name: formData.name.split(" ")[0],
+  Candidate_Location: formData.city,
+
+  // ---- DATES ----
+  Date_of_Joining: formatShortDate(formData.doj),
+
+  // ---- COMPENSATION ----
+  Annual_CTC: Number(formData.annualCtc || 0).toLocaleString("en-IN"),
+  Monthly_Inhand: Number(formData.baseSalary || 0).toLocaleString("en-IN"),
+
+  // ---- COMPANY ----
+  Company_Name: offerTemplate.settings.companyName || "Milestone Global Moneymart Private Limited",
+  Offer_Validity_Days: offerTemplate.settings.offerValidityDays || 2,
+
+  // ---- PROBATION ----
+  Probation_Months: offerTemplate.settings.probationMonths || "3",
+  Probation_Notice_Days: offerTemplate.settings.probationNoticeDays || "7",
+  Post_Probation_Notice: postProbationNotice
+    ? `${postProbationNotice} from either side or salary in lieu thereof, or a combination of both`
+    : "",
+   
+  // ---- PF CLAUSE ----
+  PF_Clause: pfClause || "",
+
+  // ---- INCENTIVE CLAUSE ----
+  Incentive_Clause: incentiveClause,
+
+
+  // ---- LOCATION ----
+  Office_Location: formData.reportingLocation || "the assigned office location",
+  Onboarding_Location: formData.reportingLocation || "the assigned office location",
+
+  // ---- HR ----
+  HR_Name: HR_NAME,
+  HR_Designation: "HR",
+  HR_Phone: offerTemplate.settings.hrPhone ,
+  HR_Email: offerTemplate.settings.hrEmail ,
+
+  // ---- VERIFICATION ----
+  Verification_Vendor: "Spring Verify",
+});
+
+
+
+  renderHtmlToPdf(doc, filledHtml, 190, formData, hrSignatureBase64);
+
+  return doc.output("blob");
 }
 
 
@@ -249,6 +306,9 @@ const LOCAL_API_BASE = `${process.env.REACT_APP_API_BASE_URL}/api/onboarding`;
 
 const EmployeeOnboardingForm = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const type = searchParams.get("type"); // "intern" | "fulltime" | null
+  const [offerTemplate, setOfferTemplate] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -263,13 +323,28 @@ const EmployeeOnboardingForm = () => {
     doj: '',
     city: '',
     reportingLocation: '',
-    gender: ''
+    gender: '',
+    isIntern: type === "intern",
+    postProbationNoticeValue: '',
+    postProbationNoticeUnit: 'days', // days | months
+    incentiveStructure: 'NOT_APPLICABLE', // NOT_APPLICABLE | DOJ | POST_PROBATION
   });
 
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const isIntern = type === "intern";
+  const isFullTime = type === "fulltime";
 
+
+    useEffect(() => {
+    if (isIntern) {
+      setFormData(prev => ({
+        ...prev,
+        isPfApplicable: false
+      }));
+    }
+  }, [isIntern]);
 
 
 
@@ -292,6 +367,26 @@ const isEditMode = Boolean(userId);
       }
     });
 }, [userId, isEditMode]);
+
+// Fetch offer letter template on mount
+    useEffect(() => {
+      const fetchTemplate = async () => {
+        try {
+          const res = await fetch(
+            `${LOCAL_API_BASE}/offer-letter/template?type=${type || "fulltime"}`
+          );
+          const json = await res.json();
+          if (json.success) {
+            setOfferTemplate(json.data);
+          }
+        } catch (err) {
+          console.error("Failed to load offer letter template", err);
+        }
+      };
+
+      fetchTemplate();
+    }, [type]);
+
 
   // Fetch departments on mount
   useEffect(() => {
@@ -338,16 +433,54 @@ const isEditMode = Boolean(userId);
     e.preventDefault();
     setLoading(true);
     try {
-    
+
     const finalData = { ...formData };
     const selectedRole = roles.find(r => r._id === formData.role);
     const letterRole = selectedRole?.name || formData.role;
 
+    
+
+
+    if (!offerTemplate?.body) {
+      alert("Offer letter template not loaded");
+      return;
+    }
+
+    const postProbationNotice =
+    formData.postProbationNoticeValue
+      ? `${formData.postProbationNoticeValue} ${formData.postProbationNoticeUnit}`
+      : "";
+
+      let incentiveClause = "";
+
+      if (formData.incentiveStructure === "DOJ") {
+        incentiveClause = offerTemplate?.settings?.incentiveClauseDoj || "";
+      }
+
+      if (formData.incentiveStructure === "POST_PROBATION") {
+        incentiveClause = offerTemplate?.settings?.incentiveClausePostProbation || "";
+      }
+
+      let pfClause = "";
+
+      if (isFullTime && formData.isPfApplicable) {
+        pfClause = offerTemplate?.settings?.pfClause || "";
+      }
+
+   
+      finalData.pfApplicable = isFullTime && formData.isPfApplicable;
+      finalData.pfClause = pfClause;
+
+
 
     // Generate PDF as Blob
-    const pdfBlob = generateOfferLetterPDF({
-      ...finalData,
+    const pdfBlob = await generateOfferLetterPDF({
+      formData: finalData,
+      offerTemplate,
       letterRole,
+      postProbationNotice,
+      incentiveClause,
+      pfClause,
     });
 
     // Create FormData for binary upload
@@ -387,14 +520,32 @@ const isEditMode = Boolean(userId);
   return (
     <div className="max-w-4xl mx-auto p-8 rounded-2xl bg-white text-gray-900 shadow-xl border border-gray-200 mt-8">
       <Link 
-      to="/onboarding" 
+      to="/onboarding/select-type" 
       className="text-blue-600 hover:underline text-sm mb-2 inline-block"
     >
       ← 
     </Link>
-      <h2 className="text-3xl font-bold mb-8 text-gray-800 tracking-wide">
+    <div className="flex items-center justify-between mb-8">
+    <h2 className="text-3xl font-bold text-gray-800 tracking-wide">
       {isEditMode ? "Edit Employee Details" : "Onboard New Employee"}
     </h2>
+
+    {/* BADGES */}
+    <div className="flex gap-2">
+      {isIntern && (
+        <span className="text-xs font-semibold bg-purple-100 text-purple-700 px-4 py-1 rounded-full">
+          Intern
+        </span>
+      )}
+
+      {isFullTime && (
+        <span className="text-xs font-semibold bg-green-100 text-green-700 px-4 py-1 rounded-full">
+          Employee
+        </span>
+      )}
+    </div>
+  </div>
+
 
 
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
@@ -530,11 +681,21 @@ const isEditMode = Boolean(userId);
 
 
         {/* PF Checkbox */}
+            {isFullTime && (
         <div className="flex items-center col-span-2 mt-2">
-          <input type="checkbox" id="isPfApplicable" name="isPfApplicable" checked={formData.isPfApplicable} onChange={handleChange}
-            className="mr-2" />
-          <label htmlFor="isPfApplicable" className="text-gray-800">PF Applicable</label>
+          <input
+            type="checkbox"
+            id="isPfApplicable"
+            name="isPfApplicable"
+            checked={formData.isPfApplicable}
+            onChange={handleChange}
+            className="mr-2"
+          />
+          <label htmlFor="isPfApplicable" className="text-gray-800">
+            PF Applicable
+          </label>
         </div>
+      )}
 
         {/* DOJ */}
         <div className="flex flex-col">
@@ -543,7 +704,93 @@ const isEditMode = Boolean(userId);
             className="border border-gray-300 rounded-md p-2 bg-white text-gray-900" required />
         </div>
 
+                {/* Post Probation Notice Period */}
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium text-gray-700">
+            Post-Probation Notice Period
+          </label>
+
+          <div className="flex gap-3">
+            <input
+              type="number"
+              min="1"
+              required
+              name="postProbationNoticeValue"
+              placeholder="e.g. 30"
+              value={formData.postProbationNoticeValue}
+              onChange={handleChange}
+              className="border border-gray-300 rounded-md p-2 w-1/2"
+            />
+
+            <select
+              name="postProbationNoticeUnit"
+              value={formData.postProbationNoticeUnit}
+              onChange={handleChange}
+              className="border border-gray-300 rounded-md p-2 w-1/2"
+            >
+              <option value="days">Days</option>
+              <option value="months">Months</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Incentive Structure */}
+        <div className="flex flex-col col-span-2">
+          <label className="mb-2 text-sm font-medium text-gray-700">
+            Incentive Structure
+          </label>
+
+          <div className="flex gap-4">
+            <label className={`px-4 py-2 rounded-md cursor-pointer border
+              ${formData.incentiveStructure === 'NOT_APPLICABLE'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700'}`}>
+              <input
+                type="radio"
+                name="incentiveStructure"
+                value="NOT_APPLICABLE"
+                checked={formData.incentiveStructure === 'NOT_APPLICABLE'}
+                onChange={handleChange}
+                className="hidden"
+              />
+              Not Applicable
+            </label>
+
+            <label className={`px-4 py-2 rounded-md cursor-pointer border
+              ${formData.incentiveStructure === 'DOJ'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700'}`}>
+              <input
+                type="radio"
+                name="incentiveStructure"
+                value="DOJ"
+                checked={formData.incentiveStructure === 'DOJ'}
+                onChange={handleChange}
+                className="hidden"
+              />
+              Applicable from DOJ
+            </label>
+
+            <label className={`px-4 py-2 rounded-md cursor-pointer border
+              ${formData.incentiveStructure === 'POST_PROBATION'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700'}`}>
+              <input
+                type="radio"
+                name="incentiveStructure"
+                value="POST_PROBATION"
+                checked={formData.incentiveStructure === 'POST_PROBATION'}
+                onChange={handleChange}
+                className="hidden"
+              />
+              Applicable from Date of Probation
+            </label>
+          </div>
+        </div>
+
+
         {/* Fresher / Experienced */}
+{isFullTime && (
 <div className="flex flex-col col-span-2">
   <label className="mb-2 text-sm font-medium text-gray-700">Candidate Type</label>
   <div className="flex gap-4">
@@ -597,6 +844,7 @@ const isEditMode = Boolean(userId);
     Used only for internal purpose during the Spring Verification setup
   </p>
 </div>
+)}
 
 
         {/* Submit */}

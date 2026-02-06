@@ -3,11 +3,16 @@
 import EmployeeOnboardingHome from '../components/onboarding/EmployeeOnboardingHome';
 import EmployeeOnboardingForm from '../components/onboarding/EmployeeOnboardingForm';
 import AssetAllocationPage from '../components/onboarding/AssetAllocationPage';
+import SelectEmploymentType from '../components/onboarding/SelectEmploymentType';
 
 const onboardingRoutes = [
   {
     to: '/onboarding',
     element: <EmployeeOnboardingHome />
+  },
+  {
+    to: "/onboarding/select-type",
+    element: <SelectEmploymentType />
   },
   {
     to: '/onboarding/add',

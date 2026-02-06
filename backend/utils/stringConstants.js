@@ -51,3 +51,6 @@ exports.ASSET_TYPE_CREATE_SUCCESS = "Asset Type created successfully.";
 
 exports.TRANSACTION_DB_NAME = "internal"; // transaction Database name
 exports.FETCH_CLIENT_LIST_LIMIT = 100; // Route optimization controller fetchClientList
+
+// Zoho / Webhook constants
+exports.ZOHO_FLOW_WEBHOOK_URL = process.env.ZOHO_FLOW_WEBHOOK_URL;

@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const { connectToMniveshDB } = require('../dbConfig/connection');
-const mniveshDbConnection = connectToMniveshDB();
 
 const AllocationSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'USERS' },
@@ -37,7 +36,7 @@ const AssetSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
-// ✅ Add virtual allocatedTo
+// Add virtual allocatedTo
 AssetSchema.virtual('allocatedTo').get(function () {
   if (!this.allocations || this.allocations.length === 0) return null;
 
@@ -54,11 +53,10 @@ AssetSchema.virtual('allocatedTo').get(function () {
 
 
 
-// ✅ Enable virtuals in JSON & object output
+// Enable virtuals in JSON & object output
 AssetSchema.set('toJSON', { virtuals: true });
 AssetSchema.set('toObject', { virtuals: true });
 
-// const Assets = mniveshDbConnection.model('Asset', AssetSchema);
 const Assets = mongoose.model('Asset', AssetSchema);
 
 module.exports = Assets;
