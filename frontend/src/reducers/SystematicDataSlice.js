@@ -50,12 +50,56 @@ const systematicDataSlice = createSlice({
                 state.value.splice(index, 1); // Remove the item at the specified index
             }
         },
-        resetSystematicData: (_) => {
-            return initialState;
-        }
+        // resetSystematicData: (_) => {
+        //     return initialState;
+        // }
+        resetSystematicData: (state) => {
+            state.value = [initialState.value[0]];
+        },
+
+        resetUnwantedFields: (state, action) => {
+            const { index, transactionFor } = action.payload;
+
+            // Ensure the index is valid
+            if (index < 0 || index >= state.value.length) {
+                console.error(`Invalid index: ${index} in resetUnwantedFields`);
+                return;
+            }
+
+            const item = state.value[index];
+
+            // Reset fields based on the selected transaction type
+            if (transactionFor === 'Registration') {
+                item.sipPauseMonths = ''; // Not needed for Registration
+                item.systematicChequeNumber = item.systematicChequeNumber || ''; 
+                item.firstTransactionAmount = item.firstTransactionAmount || 1; 
+                item.tenureOfSip_swp_stp = item.tenureOfSip_swp_stp || 9999; 
+                item.sip_stp_swpDate = item.sip_stp_swpDate || ''; 
+
+            } else if (transactionFor === 'Pause') {
+                item.systematicFrequency = ''; // Not needed for Pause
+                item.systematicPaymentMode = ''; 
+                item.systematicChequeNumber = ''; 
+                item.firstTransactionAmount = ''; 
+                item.sip_stp_swpDate = ''; 
+                item.sipPauseMonths = item.sipPauseMonths || ''; 
+
+            } else if (transactionFor === 'Cancellation') {
+                item.sipPauseMonths = '';  // Not needed for Cancellation
+                item.tenureOfSip_swp_stp = ''; 
+                item.systematicFrequency = ''; 
+                item.systematicPaymentMode = ''; 
+                item.systematicChequeNumber = ''; 
+                item.firstTransactionAmount = ''; 
+                item.sip_stp_swpDate = ''; 
+                item.sipPauseMonths = ''; 
+            } else {
+                console.warn(`Unknown transactionFor: ${transactionFor}`);
+            }
+        },
     }
 });
 
-export const { handleChange, handleSelect, handleAdd, handleRemove, resetSystematicData } = systematicDataSlice.actions;
+export const { handleChange, handleSelect, handleAdd, handleRemove, resetSystematicData, resetUnwantedFields } = systematicDataSlice.actions;
 
 export default systematicDataSlice.reducer;

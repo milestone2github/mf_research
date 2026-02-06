@@ -3,7 +3,7 @@ import PreFilledSelect from './common/PreFilledSelect';
 import RadioInput from './common/RadioInput';
 import NumberInput from './common/NumberInput';
 import { useDispatch, useSelector } from 'react-redux';
-import { handleChange, handleSelect } from '../../reducers/PurchRedempDataSlice';
+import { handleChange, handleSelect, resetUnwantedFields } from '../../reducers/PurchRedempDataSlice';
 import CustomInputList from './common/CustomInputList';
 import { fetchAmcNameOptions, fetchFolioOptions, fetchSchemeNameOptions } from '../../Actions/OptionListsAction';
 import debounce from '../../utils/debounce';
@@ -80,6 +80,11 @@ function PurchRedempForm({ index, updateCollapsed }) {
   const handleInputChange = (event) => {
     const { name, value, dataset: { index } } = event.target;
     dispatch(handleChange({ name, value, index }));
+
+    // Reset unwanted fields when transaction type changes
+    if (name === `purch_RedempTraxType-${index}`) {
+      dispatch(resetUnwantedFields({ index, transactionType: value }));
+    }
   };
 
   // method to handle change in select menus

@@ -45,12 +45,34 @@ const purchRedempDataSlice = createSlice({
                 state.value.splice(index, 1); // Remove the item at the specified index
             }
         },
-        resetPurchRedempData: (_) => {
-            return initialState;
-        }
+        // resetPurchRedempData: (_) => {
+        //     return initialState;
+        // }
+        resetPurchRedempData: (state) => {
+            state.value = [initialState.value[0]];
+        },
+        
+        resetUnwantedFields: (state, action) => {
+            const { index, transactionType } = action.payload;
+
+            // Ensure the index is valid
+            if (index < 0 || index >= state.value.length) {
+                console.error(`Invalid index: ${index} in resetUnwantedFields`);
+                return;
+            }
+
+            const item = state.value[index];
+
+            // Reset fields based on the selected transaction type 
+            if (transactionType === 'Redemption') {
+                item.purch_redempPaymentMode = ''; // Not needed for Redemption
+                item.purchaseChequeNumber = ''; // Not needed for Redemption
+                item.purch_redempTransactionAmount = item.purch_redempTransactionAmount || 1; // Reset amount for Redemption
+            }
+        },
     }
 });
 
-export const { handleChange, handleSelect, handleAdd, handleRemove, resetPurchRedempData } = purchRedempDataSlice.actions;
+export const { handleChange, handleSelect, handleAdd, handleRemove, resetPurchRedempData, resetUnwantedFields } = purchRedempDataSlice.actions;
 
 export default purchRedempDataSlice.reducer;
