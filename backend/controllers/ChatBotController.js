@@ -4,6 +4,48 @@ const insuranceUri = process.env.MONGO_URI;
 const dbName = "insurance-policy";
 let insuranceDb; // global cached instance
 
+const RM_FALLBACKS = ["Sagar Maini", "Ishu Mavar", "Yatin Munjal"];
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+const axios = require("axios");
+const { getwebHookAccessToken } = require("../utils/webHookAccessToken");
+
+const DEFAULT_OWNER_ID = "2969103000000183019"; // your python fallback
+
+async function getZohoUserEmailToIdMap(accessToken) {
+  const url = "https://www.zohoapis.com/crm/v2/users?type=ActiveUsers";
+  const resp = await axios.get(url, {
+    headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+  });
+
+  const users = resp.data.users || [];
+  const map = {};
+  for (const u of users) {
+    if (u.email && u.id) map[String(u.email).toLowerCase()] = u.id;
+  }
+  return map;
+}
+
+async function createZohoInvestmentLead(accessToken, { senderName, waid, ownerId }) {
+  const url = "https://www.zohoapis.com/crm/v2/Investment_leads";
+  const payload = {
+    data: [
+      {
+        Name: senderName,
+        Mobile: waid,
+        Owner: ownerId,
+        Product_Type: "Mutual Fund",
+        Refrencer_Name: "WA Marketing",
+      },
+    ],
+  };
+
+  return axios.post(url, payload, {
+    headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+  });
+}
+
 // function to create and connect DB instance
 async function dbInstanceConnect() {
   try {
@@ -91,34 +133,60 @@ async function postMessageData(req, res) {
         selected = freshDoc;
         mode = "fresh";
       } else {
-        const emptyDoc = {
-          MOBILE: waid,
-          PAN: null,
-          NAME: null,
-          EMAIL: null,
-          "FAMILY HEAD": null,
-          "RELATIONSHIP  MANAGER": null,
-          LANGUAGE: null,
-          USERNAME: null,
-          AUM: null,
-          Marketing: null,
-          MarketingTimeStamp: null,
-          CalcMode: null,
-          CalcType: null,
-          CalcStage: null,
-          Value1: null,
-          Value2: null,
-          Value3: null,
-          Value4: null,
-          Value5: null,
-          Value6: null,
-          Value7: null,
-          CalcTimeStamp: null,
-        };
-        const { insertedId } = await freshCollection.insertOne(emptyDoc);
-        selected = { ...emptyDoc, _id: insertedId };
-        mode = "fresh";
-      }
+          const rm = pickRandom(RM_FALLBACKS);
+
+          const emptyDoc = {
+            MOBILE: waid,
+            PAN: null,
+            NAME: null,
+            EMAIL: null,
+            "FAMILY HEAD": null,
+            "RELATIONSHIP  MANAGER": rm,
+            LANGUAGE: null,
+            USERNAME: null,
+            AUM: null,
+            Marketing: null,
+            MarketingTimeStamp: null,
+            CalcMode: null,
+            CalcType: null,
+            CalcStage: null,
+            Value1: null,
+            Value2: null,
+            Value3: null,
+            Value4: null,
+            Value5: null,
+            Value6: null,
+            Value7: null,
+            CalcTimeStamp: null,
+          };
+
+          const { insertedId } = await freshCollection.insertOne(emptyDoc);
+          selected = { ...emptyDoc, _id: insertedId };
+          mode = "fresh";
+
+          // ✅ CREATE ZOHO LEAD HERE (only when new FreshClient is created)
+          try {
+            const accessToken = await getwebHookAccessToken();
+            const emailToId = await getZohoUserEmailToIdMap(accessToken);
+
+            const ownerEmail = `${rm.split(" ")[0].toLowerCase()}@niveshonline.com`;
+            const ownerId = emailToId[ownerEmail.toLowerCase()] || DEFAULT_OWNER_ID;
+
+            // if you have sender name in request, use req.body.senderName
+            const senderName = req.body.senderName || "WhatsApp Lead";
+
+            const zohoResp = await createZohoInvestmentLead(accessToken, {
+              senderName,
+              waid,
+              ownerId,
+            });
+
+            // optional log
+            console.log("Zoho lead created:", zohoResp.data);
+          } catch (e) {
+            console.error("Zoho lead create failed:", e?.response?.data || e.message);
+          }
+        }
     }
 
     // Fetch NAME and EMAIL using shared insuranceDb instance
@@ -153,13 +221,13 @@ async function postMessageData(req, res) {
       calcType: selected.CalcType || null,
       calcStage: selected.CalcStage || null,
       values: [
-        selected.Value1 || null,
-        selected.Value2 || null,
-        selected.Value3 || null,
-        selected.Value4 || null,
-        selected.Value5 || null,
-        selected.Value6 || null,
-        selected.Value7 || null,
+        selected.Value1 ?? null,
+        selected.Value2 ?? null,
+        selected.Value3 ?? null,
+        selected.Value4 ?? null,
+        selected.Value5 ?? null,
+        selected.Value6 ?? null,
+        selected.Value7 ?? null,
       ],
       calcTimeStamp: selected.CalcTimeStamp || null,
       rmCode: selected["RELATIONSHIP  MANAGER"] || null,
