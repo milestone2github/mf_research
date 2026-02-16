@@ -108,7 +108,7 @@ const handleSpringVerifyAction = async (userId, action) => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Welcome, HR Team 👋</h1>
         <button
-          onClick={() => navigate('/onboarding/add')}
+          onClick={() => navigate('/onboarding/select-type')}
           className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
         >
           Add New Joinee
@@ -154,7 +154,6 @@ const handleSpringVerifyAction = async (userId, action) => {
     const formStatus = user.onboarding?.userFilledInfo?.submittedAt ?"Submitted" : 'Pending';
 
     const offerGenerated = onboarding?.offerLetter?.generated;
-    const backgroundVerified = onboarding?.backgroundCheck?.status === 'verified';
     const ndaSigned = onboarding?.nda?.signed;
     const zohoStatus = onboarding?.zohoSetup?.status || 'pending';
 
