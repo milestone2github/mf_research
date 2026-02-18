@@ -8,11 +8,14 @@ import {
   FiBookmark,
   FiMapPin
 } from "react-icons/fi";
+import { useSelector } from "react-redux";
+import NotFound from "../pages/NotFound";
 
 const cards = [
   {
     id: 'track-fe',
     to: 'track/fe',
+    requiredPermission: 'track_field_executive',
     title: 'Track Field Executive',
     description:
       'Monitor real-time locations, completed visits and delays across your field force to keep the day on track.',
@@ -25,6 +28,7 @@ const cards = [
   {
     id: 'add-visit',
     to: 'client/add/visit',
+    requiredPermission: 'add_visit',
     title: 'Add New Client Visit',
     description:
       'Capture upcoming meetings, preferred timeslots and visit objectives in just a few clicks.',
@@ -40,6 +44,7 @@ const cards = [
   {
     id: 'assign-clients',
     to: 'assign-clients',
+    requiredPermission: 'assign_clients',
     title: 'Assign Clients to FE',
     description:
       'Distribute visits intelligently across your field team to minimize travel and idle time.',
@@ -55,6 +60,7 @@ const cards = [
   {
     id: 'unassigned',
     to: 'client/view/unassigned',
+    requiredPermission: 'view_unassigned_clients',
     title: 'Show Unassigned Client',
     description:
       "Review all clients that are pending assignment and quickly move them into an FE's queue.",
@@ -70,6 +76,7 @@ const cards = [
   {
     id: 'on-hold',
     to: 'client/view/onhold',
+    requiredPermission: 'view_onhold_clients',
     title: 'Show On-Hold Clients',
     description:
       'Track temporarily paused relationships and decide when to reactivate visits or follow-ups.',
@@ -85,6 +92,7 @@ const cards = [
   {
     id: 'assigned-details',
     to: 'view/plan-details',
+    requiredPermission: 'view_planner_details',
     title: 'Show Assigned Details',
     description:
       'See a consolidated view of which executive owns which clients, upcoming visits and status.',
@@ -100,6 +108,7 @@ const cards = [
   {
     id: 'create-fe',
     to: 'fe/add',
+    requiredPermission: 'create_field_executive',
     title: 'Create New Field Executive',
     description:
       'Add new executives, define coverage regions and manage their activity status.',
@@ -115,6 +124,7 @@ const cards = [
   {
     id: 'create-temp-client',
     to: 'client/tempAdd',
+    requiredPermission: 'create_temporary_client',
     title: 'Create Temporary Client',
     description:
       'Add Temporary clients, define coverage regions and manage their activity status.',
@@ -130,6 +140,20 @@ const cards = [
 ];
 
 const PlannerIndex = () => {
+    const permissions = useSelector(
+      (state) => state.user.userData?.permissions || []
+    );
+
+    const allowedCards = cards.filter(
+      (card) =>
+        !card.requiredPermission ||
+        permissions.includes(card.requiredPermission)
+    );
+
+    if (allowedCards.length === 0) {
+      return <NotFound />;
+    }
+
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 pt-6 lg:px-6">
       {/* Page header */}
@@ -144,7 +168,7 @@ const PlannerIndex = () => {
 
       {/* Cards grid */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((card) => {
+        {allowedCards.map((card) => {
           const Icon = card.icon;
           const isPrimary = card.variant === 'primary';
 
