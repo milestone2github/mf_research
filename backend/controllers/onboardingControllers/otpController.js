@@ -38,7 +38,7 @@ async function sendWATemplateMessage(whatsappNumber, otp) {
   const data = response.data;
 
   //  TEMP DEBUG (keep for now)
-  console.log('WATI RESPONSE:', JSON.stringify(data));
+  // console.log('WATI RESPONSE:', JSON.stringify(data));
 
   //  ONLY case where we fallback to SMS
   if (data?.validWhatsAppNumber === false) {
