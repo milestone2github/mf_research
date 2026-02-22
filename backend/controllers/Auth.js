@@ -1,4 +1,5 @@
 require('dotenv').config();
+const crypto = require("crypto");
 const { default: axios } = require('axios');
 const User = require('../models/User');
 const Role = require('../models/Role');
@@ -14,17 +15,31 @@ const { getJWTPrivateKey } = require('../utils/getJWTPrivateKey');
 // Initiates login with Zoho OAuth
 
 const loginWithZoho = (req, res) => {
-  const redirectUrl = req.query.redirect || process.env.DEFAULT_FRONTEND_URL; 
-  const state = encodeURIComponent(JSON.stringify({ redirectUrl }));
+  const redirectUrl =
+		req.query.redirect && req.query.redirect !== "null"
+			? req.query.redirect
+			: process.env.DEFAULT_FRONTEND_URL;
+  const csrfToken = crypto.randomBytes(16).toString("hex");   // Random string to verify state in callback
+  req.session.oauthState = {    // Store the actual auth creds inside server-session
+    csrfToken,
+    redirectUrl,
+  };
+  const state = csrfToken;  // Pass the Hex instead of blindly trusting the redirect_uri
   const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${process.env.ZOHO_CLIENT_ID}&scope=profile,email,ZOHOPEOPLE.forms.ALL&redirect_uri=${process.env.ZOHO_REDIRECT_URI}&access_type=offline&state=${state}`;
   res.redirect(authUrl);
 }
 
 // Handles Zoho OAuth callback
 const zohoCallback = async (req, res) => {
-  const code = req.query.code;
-  const state = req.query.state ? JSON.parse(decodeURIComponent(req.query.state)) : {};
-  const redirectUrl = state.redirectUrl || process.env.DEFAULT_FRONTEND_URL;
+  const { code, state } = req.query;
+  const savedState = req.session.oauthState;
+  if (!state || state !== savedState?.csrfToken) {
+    delete req.session.oauthState;
+    return res.redirect(process.env.DEFAULT_FRONTEND_URL);
+  }
+  const redirectUrl = savedState?.redirectUrl || process.env.DEFAULT_FRONTEND_URL;
+
+  delete req.session.oauthState;    // Remove the server-session upon successful verification
 
   try {  
     // Step 1: authorization code for access token

@@ -103,19 +103,19 @@ const UploadMarketingTemplates = () => {
 
   // Hydrate FormData after fetching Category and Disclaimer details
   useEffect(() => {
-		if (categoryOptions.length && !formData.category) {
-			setFormData((p) => ({ ...p, category: categoryOptions[0].value }));
-		}
+    if (categoryOptions.length && !formData.category) {
+      setFormData((p) => ({ ...p, category: categoryOptions[0].value }));
+    }
 
-		if (disclaimerOptions.length && !formData.disclaimer) {
-			setFormData((p) => ({ ...p, disclaimer: disclaimerOptions[0].value }));
-		}
-	}, [
-		categoryOptions,
-		disclaimerOptions,
-		formData.category,
-		formData.disclaimer,
-	]);
+    if (disclaimerOptions.length && !formData.disclaimer) {
+      setFormData((p) => ({ ...p, disclaimer: disclaimerOptions[0].value }));
+    }
+  }, [
+    categoryOptions,
+    disclaimerOptions,
+    formData.category,
+    formData.disclaimer,
+  ]);
 
   // Fetch marketing templates list
   const fetchTemplates = async (page = 1) => {
@@ -242,7 +242,7 @@ const UploadMarketingTemplates = () => {
 
   // Template EDIT Modal logic
   const openEditModal = (tpl) => {
-    console.log("Editing Template Data:", tpl);
+    // console.log("Editing Template Data:", tpl);
 
     // Extract ID from populated object (or use string if not populated)
     // const cat = tpl.category?._id || (typeof tpl.category === 'string' ? tpl.category : null);
@@ -250,27 +250,27 @@ const UploadMarketingTemplates = () => {
 
     // Fallback for legacy disclaimer text (if stored as string and not matching an ID)
     // if (!discId && tpl.disclaimer && typeof tpl.disclaimer === 'string') {
-      // Check if it matches a text in options
-      // const found = disclaimerOptions.find(d => d.text === tpl.disclaimer || d.value === tpl.disclaimer);
-      // if (found) discId = found.value;
+    // Check if it matches a text in options
+    // const found = disclaimerOptions.find(d => d.text === tpl.disclaimer || d.value === tpl.disclaimer);
+    // if (found) discId = found.value;
     // }
     // Default fallback if still missing (optional, maybe better to leave empty)
     // if (!discId && disclaimerOptions.length > 0) {
-      // discId = disclaimerOptions[0].value; 
-      // Better NOT to default randomly if data is missing, but user code had a default.
-      // Let's rely on what's there.
+    // discId = disclaimerOptions[0].value; 
+    // Better NOT to default randomly if data is missing, but user code had a default.
+    // Let's rely on what's there.
     // }
 
     setEditingTemplate(tpl);
     setEditData({
-			title: tpl.title,
-			description: tpl.description,
-			category: tpl.category?._id || tpl.category,
-			disclaimer: tpl.disclaimer?._id || tpl.disclaimer,
-			publishDate: toISODate(tpl.publishDate),
-			closeDate: tpl.closeDate ? toISODate(tpl.closeDate) : "",
-			festivalDate: isFestival(tpl.category) ? toISODate(tpl.closeDate) : "",
-		});
+      title: tpl.title,
+      description: tpl.description,
+      category: tpl.category?._id || tpl.category,
+      disclaimer: tpl.disclaimer?._id || tpl.disclaimer,
+      publishDate: toISODate(tpl.publishDate),
+      closeDate: tpl.closeDate ? toISODate(tpl.closeDate) : "",
+      festivalDate: isFestival(tpl.category) ? toISODate(tpl.closeDate) : "",
+    });
     setIsEditModalOpen(true);
   };
 
@@ -343,10 +343,17 @@ const UploadMarketingTemplates = () => {
 
       setLoading(true);
 
+      // Ensure Category is an ID
+      let categoryId = editData.category;
+      const matchedOption = categoryOptions.find(c => c.value === categoryId || c.meta?.key === categoryId || c.label === categoryId);
+      if (matchedOption) {
+        categoryId = matchedOption.value;
+      }
+
       const payload = {
         title: editData.title,
         description: editData.description,
-        category: editData.category,
+        category: categoryId,
         disclaimer: editData.disclaimer,
         publishDate: finalPublishDate,
         closeDate: finalCloseDate,
@@ -407,37 +414,37 @@ const UploadMarketingTemplates = () => {
       : formData.closeDate;
 
     // if (!formData.image || !formData.title || !formData.publishDate) {
-      // toast.error("Please fill all required fields!", {
-        // autoClose: 2500,
-        // transition: Slide,
-      // });
-      // return;
+    // toast.error("Please fill all required fields!", {
+    // autoClose: 2500,
+    // transition: Slide,
+    // });
+    // return;
     // }
 
     const isFestivalCat = isFestival(formData.category);
 
-		if (!formData.image || !formData.title) {
-			toast.error("Please fill all required fields!", {
-				autoClose: 2500,
-				transition: Slide,
-			});
-			return;
-		}
+    if (!formData.image || !formData.title) {
+      toast.error("Please fill all required fields!", {
+        autoClose: 2500,
+        transition: Slide,
+      });
+      return;
+    }
     if (isFestivalCat && !formData.festivalDate) {
-			toast.error("Festival Date is required.", {
-				autoClose: 2500,
-				transition: Slide,
-			});
-			return;
-		}
+      toast.error("Festival Date is required.", {
+        autoClose: 2500,
+        transition: Slide,
+      });
+      return;
+    }
 
-		if (!isFestivalCat && !formData.publishDate) {
-			toast.error("Publish Date is required.", {
-				autoClose: 2500,
-				transition: Slide,
-			});
-			return;
-		}
+    if (!isFestivalCat && !formData.publishDate) {
+      toast.error("Publish Date is required.", {
+        autoClose: 2500,
+        transition: Slide,
+      });
+      return;
+    }
 
     //  MARKETING => closeDate compulsory
     if (isMarketing(formData.category) && !normalizedCloseDate) {
@@ -464,11 +471,18 @@ const UploadMarketingTemplates = () => {
 
     try {
       setLoading(true);
+      // Ensure Category is an ID
+      let categoryId = formData.category;
+      const matchedOption = categoryOptions.find(c => c.value === categoryId || c.meta?.key === categoryId || c.label === categoryId);
+      if (matchedOption) {
+        categoryId = matchedOption.value;
+      }
+
       const data = new FormData();
       data.append("image", formData.image);
       data.append("title", formData.title);
       data.append("description", formData.description);
-      data.append("category", formData.category);
+      data.append("category", categoryId);
       data.append("disclaimer", formData.disclaimer);
       if (isFestival(formData.category)) {
         if (!formData.festivalDate) {
@@ -928,9 +942,9 @@ const UploadMarketingTemplates = () => {
                   )}
                   options={disclaimerOptions}
                   components={{ Option: CrudOption }}
-                  onEdit={( meta) => openManager("disclaimer", meta) }
-                  onDelete={ (meta) => handleDeleteItem("disclaimer", meta) }
-                  onChange={ (opt) => setFormData(p => ({ ...p, disclaimer: opt.value })) }
+                  onEdit={(meta) => openManager("disclaimer", meta)}
+                  onDelete={(meta) => handleDeleteItem("disclaimer", meta)}
+                  onChange={(opt) => setFormData(p => ({ ...p, disclaimer: opt.value }))}
                   className="text-sm"
                   classNamePrefix="react-select"
                 />
